@@ -475,6 +475,92 @@ export type Database = {
           },
         ]
       }
+      partner_settings: {
+        Row: {
+          auto_expire_tickets: boolean | null
+          cancellation_deadline_hours: number | null
+          cancellation_fee_type: string | null
+          cancellation_fee_value: number | null
+          checkin_requires_full_payment: boolean | null
+          created_at: string
+          currency: string | null
+          default_payment_provider: string | null
+          deposit_enabled: boolean | null
+          email_booking_confirmation: boolean | null
+          email_cancellation: boolean | null
+          email_payment_received: boolean | null
+          id: string
+          min_deposit_percent: number | null
+          no_show_policy: string | null
+          partner_id: string
+          payment_methods_enabled: string[] | null
+          qr_override_allowed: boolean | null
+          refund_enabled: boolean | null
+          ticket_validity_hours: number | null
+          updated_at: string
+          whatsapp_booking_confirmation: boolean | null
+          whatsapp_payment_link: boolean | null
+        }
+        Insert: {
+          auto_expire_tickets?: boolean | null
+          cancellation_deadline_hours?: number | null
+          cancellation_fee_type?: string | null
+          cancellation_fee_value?: number | null
+          checkin_requires_full_payment?: boolean | null
+          created_at?: string
+          currency?: string | null
+          default_payment_provider?: string | null
+          deposit_enabled?: boolean | null
+          email_booking_confirmation?: boolean | null
+          email_cancellation?: boolean | null
+          email_payment_received?: boolean | null
+          id?: string
+          min_deposit_percent?: number | null
+          no_show_policy?: string | null
+          partner_id: string
+          payment_methods_enabled?: string[] | null
+          qr_override_allowed?: boolean | null
+          refund_enabled?: boolean | null
+          ticket_validity_hours?: number | null
+          updated_at?: string
+          whatsapp_booking_confirmation?: boolean | null
+          whatsapp_payment_link?: boolean | null
+        }
+        Update: {
+          auto_expire_tickets?: boolean | null
+          cancellation_deadline_hours?: number | null
+          cancellation_fee_type?: string | null
+          cancellation_fee_value?: number | null
+          checkin_requires_full_payment?: boolean | null
+          created_at?: string
+          currency?: string | null
+          default_payment_provider?: string | null
+          deposit_enabled?: boolean | null
+          email_booking_confirmation?: boolean | null
+          email_cancellation?: boolean | null
+          email_payment_received?: boolean | null
+          id?: string
+          min_deposit_percent?: number | null
+          no_show_policy?: string | null
+          partner_id?: string
+          payment_methods_enabled?: string[] | null
+          qr_override_allowed?: boolean | null
+          refund_enabled?: boolean | null
+          ticket_validity_hours?: number | null
+          updated_at?: string
+          whatsapp_booking_confirmation?: boolean | null
+          whatsapp_payment_link?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_settings_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: true
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_users: {
         Row: {
           created_at: string
