@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -17,13 +16,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Trip } from '@/hooks/useTripsData';
+import { Plus, X } from 'lucide-react';
 
 interface ScheduleFormProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: {
     trip_id: string;
-    departure_time: string;
+    departure_times: string[];
     days_of_week: number[];
     seasonal_start_date?: string;
     seasonal_end_date?: string;
@@ -53,7 +53,9 @@ const DAYS = [
 
 const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: ScheduleFormProps) => {
   const [tripId, setTripId] = useState(initialData?.trip_id || '');
-  const [departureTime, setDepartureTime] = useState(initialData?.departure_time || '08:00');
+  const [departureTimes, setDepartureTimes] = useState<string[]>(
+    initialData?.departure_time ? [initialData.departure_time] : ['08:00']
+  );
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>(initialData?.days_of_week || [0, 1, 2, 3, 4, 5, 6]);
   const [seasonalStart, setSeasonalStart] = useState(initialData?.seasonal_start_date || '');
   const [seasonalEnd, setSeasonalEnd] = useState(initialData?.seasonal_end_date || '');
@@ -71,6 +73,22 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
     }
   };
 
+  const addDepartureTime = () => {
+    setDepartureTimes([...departureTimes, '']);
+  };
+
+  const removeDepartureTime = (index: number) => {
+    if (departureTimes.length > 1) {
+      setDepartureTimes(departureTimes.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateDepartureTime = (index: number, value: string) => {
+    const updated = [...departureTimes];
+    updated[index] = value;
+    setDepartureTimes(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -80,8 +98,16 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
       return;
     }
 
-    if (!departureTime) {
-      setError('Please enter departure time');
+    const validTimes = departureTimes.filter(t => t.trim() !== '');
+    if (validTimes.length === 0) {
+      setError('Please enter at least one departure time');
+      return;
+    }
+
+    // Check for duplicates
+    const uniqueTimes = [...new Set(validTimes)];
+    if (uniqueTimes.length !== validTimes.length) {
+      setError('Duplicate departure times are not allowed');
       return;
     }
 
@@ -98,7 +124,7 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
     setLoading(true);
     const result = await onSubmit({
       trip_id: tripId,
-      departure_time: departureTime,
+      departure_times: validTimes,
       days_of_week: daysOfWeek,
       seasonal_start_date: seasonalStart || undefined,
       seasonal_end_date: seasonalEnd || undefined,
@@ -112,7 +138,7 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
       onClose();
       // Reset form
       setTripId('');
-      setDepartureTime('08:00');
+      setDepartureTimes(['08:00']);
       setDaysOfWeek([0, 1, 2, 3, 4, 5, 6]);
       setSeasonalStart('');
       setSeasonalEnd('');
@@ -147,28 +173,61 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Departure Time *</Label>
-              <Input
-                type="time"
-                value={departureTime}
-                onChange={e => setDepartureTime(e.target.value)}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Departure Times *</Label>
+              {!isEdit && (
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={addDepartureTime}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Time
+                </Button>
+              )}
             </div>
+            <div className="space-y-2">
+              {departureTimes.map((time, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    value={time}
+                    onChange={e => updateDepartureTime(index, e.target.value)}
+                    className="flex-1"
+                  />
+                  {departureTimes.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeDepartureTime(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {!isEdit && departureTimes.length > 1 && (
+              <p className="text-xs text-muted-foreground">
+                {departureTimes.filter(t => t).length} departure times will create {departureTimes.filter(t => t).length} schedules
+              </p>
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v: 'active' | 'inactive') => setStatus(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={(v: 'active' | 'inactive') => setStatus(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -224,8 +283,8 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="hero" disabled={loading}>
-              {loading ? 'Saving...' : isEdit ? 'Update Schedule' : 'Create Schedule'}
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : isEdit ? 'Update Schedule' : `Create ${departureTimes.filter(t => t).length > 1 ? departureTimes.filter(t => t).length + ' Schedules' : 'Schedule'}`}
             </Button>
           </div>
         </form>
