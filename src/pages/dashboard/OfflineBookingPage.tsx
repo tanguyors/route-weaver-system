@@ -88,28 +88,28 @@ const OfflineBookingPage = () => {
             />
           </div>
           <Select 
-            value={filters.paymentStatus} 
-            onValueChange={(v) => setFilters(prev => ({ ...prev, paymentStatus: v }))}
+            value={filters.paymentStatus || 'all'} 
+            onValueChange={(v) => setFilters(prev => ({ ...prev, paymentStatus: v === 'all' ? '' : v }))}
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Payment" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="unpaid">Unpaid</SelectItem>
               <SelectItem value="partial">Partial</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
             </SelectContent>
           </Select>
           <Select 
-            value={filters.status} 
-            onValueChange={(v) => setFilters(prev => ({ ...prev, status: v }))}
+            value={filters.status || 'all'} 
+            onValueChange={(v) => setFilters(prev => ({ ...prev, status: v === 'all' ? '' : v }))}
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
