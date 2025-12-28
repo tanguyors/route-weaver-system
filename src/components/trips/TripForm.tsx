@@ -27,6 +27,8 @@ interface TripFormProps {
     description?: string;
     capacity_default: number;
     status: 'active' | 'inactive';
+    adult_price: number;
+    child_price?: number;
   }) => Promise<{ error: Error | null }>;
   routes: Route[];
   initialData?: {
@@ -35,6 +37,8 @@ interface TripFormProps {
     description?: string;
     capacity_default?: number;
     status?: 'active' | 'inactive';
+    adult_price?: number;
+    child_price?: number;
   };
   isEdit?: boolean;
 }
@@ -45,6 +49,8 @@ const TripForm = ({ open, onClose, onSubmit, routes, initialData, isEdit }: Trip
   const [description, setDescription] = useState(initialData?.description || '');
   const [capacityDefault, setCapacityDefault] = useState(initialData?.capacity_default?.toString() || '50');
   const [status, setStatus] = useState<'active' | 'inactive'>(initialData?.status || 'active');
+  const [adultPrice, setAdultPrice] = useState(initialData?.adult_price?.toString() || '');
+  const [childPrice, setChildPrice] = useState(initialData?.child_price?.toString() || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -70,6 +76,18 @@ const TripForm = ({ open, onClose, onSubmit, routes, initialData, isEdit }: Trip
       return;
     }
 
+    const adultPriceNum = parseFloat(adultPrice);
+    if (isNaN(adultPriceNum) || adultPriceNum < 0) {
+      setError('Please enter a valid adult price');
+      return;
+    }
+
+    const childPriceNum = childPrice ? parseFloat(childPrice) : undefined;
+    if (childPrice && (isNaN(childPriceNum!) || childPriceNum! < 0)) {
+      setError('Please enter a valid child price');
+      return;
+    }
+
     setLoading(true);
     const result = await onSubmit({
       route_id: routeId,
@@ -77,6 +95,8 @@ const TripForm = ({ open, onClose, onSubmit, routes, initialData, isEdit }: Trip
       description: description.trim() || undefined,
       capacity_default: capacity,
       status,
+      adult_price: adultPriceNum,
+      child_price: childPriceNum,
     });
 
     setLoading(false);
@@ -90,6 +110,8 @@ const TripForm = ({ open, onClose, onSubmit, routes, initialData, isEdit }: Trip
       setDescription('');
       setCapacityDefault('50');
       setStatus('active');
+      setAdultPrice('');
+      setChildPrice('');
     }
   };
 
@@ -141,6 +163,30 @@ const TripForm = ({ open, onClose, onSubmit, routes, initialData, isEdit }: Trip
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label>Adult Price (IDR) *</Label>
+              <Input
+                type="number"
+                placeholder="350000"
+                value={adultPrice}
+                onChange={e => setAdultPrice(e.target.value)}
+                min={0}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Child Price (IDR)</Label>
+              <Input
+                type="number"
+                placeholder="250000"
+                value={childPrice}
+                onChange={e => setChildPrice(e.target.value)}
+                min={0}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>Default Capacity *</Label>
               <Input
                 type="number"
@@ -173,7 +219,7 @@ const TripForm = ({ open, onClose, onSubmit, routes, initialData, isEdit }: Trip
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="hero" disabled={loading}>
+            <Button type="submit" disabled={loading}>
               {loading ? 'Saving...' : isEdit ? 'Update Trip' : 'Create Trip'}
             </Button>
           </div>
