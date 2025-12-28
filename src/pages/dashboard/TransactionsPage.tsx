@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTransactionsData } from '@/hooks/useTransactionsData';
+import { useWithdrawalsData } from '@/hooks/useWithdrawalsData';
 import PaymentList from '@/components/transactions/PaymentList';
 import CommissionList from '@/components/transactions/CommissionList';
+import WithdrawalList from '@/components/transactions/WithdrawalList';
 import WithdrawalDialog from '@/components/transactions/WithdrawalDialog';
+import TransactionFilters, { TransactionFilters as FilterType } from '@/components/transactions/TransactionFilters';
 import {
   Wallet,
   ArrowUpRight,
@@ -15,7 +18,9 @@ import {
   Loader2,
   CreditCard,
   Percent,
+  Banknote,
 } from 'lucide-react';
+import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 
 const TransactionsPage = () => {
   const {
@@ -26,7 +31,19 @@ const TransactionsPage = () => {
     requestWithdrawal,
   } = useTransactionsData();
 
+  const {
+    withdrawals,
+    loading: withdrawalsLoading,
+    refetch: refetchWithdrawals,
+  } = useWithdrawalsData(false);
+
   const [withdrawalOpen, setWithdrawalOpen] = useState(false);
+  const [paymentFilters, setPaymentFilters] = useState<FilterType>({
+    dateFrom: undefined,
+    dateTo: undefined,
+    status: 'all',
+    method: 'all',
+  });
 
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('id-ID', {
@@ -34,6 +51,76 @@ const TransactionsPage = () => {
       currency: currency,
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  // Filter payments
+  const filteredPayments = payments.filter((payment) => {
+    const paymentDate = new Date(payment.created_at);
+
+    if (paymentFilters.dateFrom && isBefore(paymentDate, startOfDay(paymentFilters.dateFrom))) {
+      return false;
+    }
+    if (paymentFilters.dateTo && isAfter(paymentDate, endOfDay(paymentFilters.dateTo))) {
+      return false;
+    }
+    if (paymentFilters.status !== 'all' && payment.status !== paymentFilters.status) {
+      return false;
+    }
+    if (paymentFilters.method !== 'all' && payment.method !== paymentFilters.method) {
+      return false;
+    }
+    return true;
+  });
+
+  // Export to CSV
+  const exportPaymentsCSV = () => {
+    const headers = ['Date', 'Booking ID', 'Customer', 'Amount', 'Method', 'Status'];
+    const rows = filteredPayments.map((p) => [
+      format(new Date(p.created_at), 'yyyy-MM-dd HH:mm'),
+      p.booking_id,
+      p.booking?.customer?.full_name || '-',
+      p.amount,
+      p.method,
+      p.status,
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payments-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportCommissionsCSV = () => {
+    const headers = ['Date', 'Booking ID', 'Gross', 'Commission (7%)', 'Provider Fee', 'Net'];
+    const rows = commissions.map((c) => [
+      format(new Date(c.created_at), 'yyyy-MM-dd HH:mm'),
+      c.booking_id,
+      c.gross_amount,
+      c.platform_fee_amount,
+      c.payment_provider_fee_amount || 0,
+      c.partner_net_amount,
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `commissions-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleWithdrawalSuccess = async (amount: number) => {
+    const success = await requestWithdrawal(amount);
+    if (success) {
+      refetchWithdrawals();
+    }
+    return success;
   };
 
   return (
@@ -64,7 +151,7 @@ const TransactionsPage = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                   <ArrowDownRight className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
@@ -81,7 +168,7 @@ const TransactionsPage = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
                   <Clock className="w-6 h-6 text-orange-600" />
                 </div>
                 <div>
@@ -96,7 +183,7 @@ const TransactionsPage = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                   <ArrowUpRight className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
@@ -111,7 +198,7 @@ const TransactionsPage = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                   <Percent className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
@@ -164,7 +251,7 @@ const TransactionsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Tabs for Payments and Commissions */}
+        {/* Tabs for Payments, Commissions, and Withdrawals */}
         <Tabs defaultValue="payments" className="space-y-4">
           <TabsList>
             <TabsTrigger value="payments" className="gap-2">
@@ -174,6 +261,10 @@ const TransactionsPage = () => {
             <TabsTrigger value="commissions" className="gap-2">
               <Percent className="w-4 h-4" />
               Commissions ({commissions.length})
+            </TabsTrigger>
+            <TabsTrigger value="withdrawals" className="gap-2">
+              <Banknote className="w-4 h-4" />
+              Withdrawals ({withdrawals.length})
             </TabsTrigger>
           </TabsList>
 
@@ -186,13 +277,19 @@ const TransactionsPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                <TransactionFilters
+                  filters={paymentFilters}
+                  onFiltersChange={setPaymentFilters}
+                  onExport={exportPaymentsCSV}
+                  showMethodFilter={true}
+                />
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                   </div>
                 ) : (
                   <PaymentList
-                    payments={payments}
+                    payments={filteredPayments}
                     formatCurrency={formatCurrency}
                   />
                 )}
@@ -202,11 +299,14 @@ const TransactionsPage = () => {
 
           <TabsContent value="commissions">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Percent className="w-5 h-5" />
                   Commission Breakdown
                 </CardTitle>
+                <Button variant="outline" onClick={exportCommissionsCSV}>
+                  Export CSV
+                </Button>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -222,6 +322,29 @@ const TransactionsPage = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="withdrawals">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Banknote className="w-5 h-5" />
+                  Withdrawal History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {withdrawalsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <WithdrawalList
+                    withdrawals={withdrawals}
+                    formatCurrency={formatCurrency}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -230,7 +353,7 @@ const TransactionsPage = () => {
         open={withdrawalOpen}
         onOpenChange={setWithdrawalOpen}
         availableBalance={summary.availableBalance}
-        onSubmit={requestWithdrawal}
+        onSubmit={handleWithdrawalSuccess}
         formatCurrency={formatCurrency}
       />
     </DashboardLayout>
