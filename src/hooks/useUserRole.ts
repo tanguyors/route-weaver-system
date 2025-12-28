@@ -37,13 +37,9 @@ export const useUserRole = (): UserRoleData => {
           .eq('role', 'admin')
           .maybeSingle();
 
-        if (adminRole) {
-          setRole('admin');
-          setLoading(false);
-          return;
-        }
+        const isAdmin = !!adminRole;
 
-        // Check if user belongs to a partner
+        // Check if user belongs to a partner (do this even for admins)
         const { data: partnerUser } = await supabase
           .from('partner_users')
           .select('partner_id, role')
@@ -54,6 +50,12 @@ export const useUserRole = (): UserRoleData => {
         if (partnerUser) {
           setPartnerId(partnerUser.partner_id);
           setPartnerRole(partnerUser.role as 'PARTNER_OWNER' | 'PARTNER_STAFF');
+        }
+
+        // Set role - admin takes priority over partner role
+        if (isAdmin) {
+          setRole('admin');
+        } else if (partnerUser) {
           setRole(partnerUser.role === 'PARTNER_OWNER' ? 'partner_owner' : 'partner_staff');
         }
       } catch (error) {
