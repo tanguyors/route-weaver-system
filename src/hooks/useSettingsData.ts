@@ -67,7 +67,10 @@ export const useSettingsData = () => {
   // Get partner ID
   useEffect(() => {
     const fetchPartnerId = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       const { data } = await supabase
         .from('partner_users')
@@ -78,6 +81,9 @@ export const useSettingsData = () => {
 
       if (data) {
         setPartnerId(data.partner_id);
+      } else {
+        // User is not associated with a partner (e.g., admin)
+        setLoading(false);
       }
     };
 
