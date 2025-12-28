@@ -254,7 +254,7 @@ export const OfflineBookingForm = ({ open, onClose, onSubmit }: OfflineBookingFo
                     <SelectValue placeholder="Select route" />
                   </SelectTrigger>
                   <SelectContent>
-                    {routes.filter(r => r.status === 'active').map(route => (
+                    {routes.filter(r => r.status === 'active' && r.id).map(route => (
                       <SelectItem key={route.id} value={route.id}>
                         {route.route_name}
                       </SelectItem>
@@ -287,7 +287,7 @@ export const OfflineBookingForm = ({ open, onClose, onSubmit }: OfflineBookingFo
                     <SelectValue placeholder={loadingDepartures ? "Loading..." : departures.length === 0 ? "No departures" : "Select time"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {departures.map(dep => {
+                    {departures.filter(dep => dep.id).map(dep => {
                       const avail = dep.capacity_total - dep.capacity_reserved;
                       return (
                         <SelectItem key={dep.id} value={dep.id}>
