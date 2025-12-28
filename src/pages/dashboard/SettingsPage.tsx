@@ -76,6 +76,35 @@ const SettingsPage = () => {
     );
   }
 
+  if (!partnerInfo) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Settings</h1>
+            <p className="text-muted-foreground mt-1">
+              Partner settings
+            </p>
+          </div>
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                No partner account associated. Admin users can manage partners from the admin dashboard.
+              </p>
+              <Button 
+                className="mt-4" 
+                variant="outline"
+                onClick={() => navigate('/admin/partners')}
+              >
+                Go to Partners Management
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
