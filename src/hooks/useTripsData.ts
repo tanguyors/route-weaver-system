@@ -234,7 +234,7 @@ export const useTripsData = () => {
 
   const createSchedule = async (data: {
     trip_id: string;
-    departure_time: string;
+    departure_times: string[];
     days_of_week: number[];
     seasonal_start_date?: string;
     seasonal_end_date?: string;
@@ -242,15 +242,18 @@ export const useTripsData = () => {
   }) => {
     if (!partnerId && !isAdmin) return { error: new Error('No partner assigned') };
     
-    const { error } = await supabase.from('departure_templates').insert({
+    // Create multiple schedules for each departure time
+    const schedulesToCreate = data.departure_times.map(time => ({
       partner_id: partnerId,
       trip_id: data.trip_id,
-      departure_time: data.departure_time,
+      departure_time: time,
       days_of_week: data.days_of_week,
       seasonal_start_date: data.seasonal_start_date || null,
       seasonal_end_date: data.seasonal_end_date || null,
       status: data.status || 'active',
-    });
+    }));
+
+    const { error } = await supabase.from('departure_templates').insert(schedulesToCreate);
     
     if (!error) await fetchSchedules();
     return { error };
