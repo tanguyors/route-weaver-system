@@ -23,6 +23,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
 import AdminPortsPage from "./pages/admin/AdminPortsPage";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import NotFound from "./pages/NotFound";
 import WidgetBooking from "./pages/WidgetBooking";
 import PaymentPage from "./pages/PaymentPage";
@@ -65,7 +66,7 @@ const App = () => (
             <Route path="/admin/withdrawals" element={<ProtectedRoute><AdminWithdrawalsPage /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute><AdminPartnersPage /></ProtectedRoute>} />
             <Route path="/admin/ports" element={<ProtectedRoute><AdminPortsPage /></ProtectedRoute>} />
-            <Route path="/admin/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/admin/settings" element={<ProtectedRoute><AdminSettingsPage /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
