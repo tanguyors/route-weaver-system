@@ -182,20 +182,42 @@ export const useTripsData = () => {
     description?: string;
     capacity_default: number;
     status?: 'active' | 'inactive';
+    adult_price: number;
+    child_price?: number;
   }) => {
     if (!partnerId && !isAdmin) return { error: new Error('No partner assigned') };
     
-    const { error } = await supabase.from('trips').insert({
+    // Create the trip first
+    const { data: newTrip, error: tripError } = await supabase.from('trips').insert({
       partner_id: partnerId,
       route_id: data.route_id,
       trip_name: data.trip_name,
       description: data.description || null,
       capacity_default: data.capacity_default,
       status: data.status || 'active',
-    });
+    }).select().single();
     
-    if (!error) await fetchTrips();
-    return { error };
+    if (tripError) {
+      return { error: tripError };
+    }
+
+    // Create the base price rule for this trip
+    const { error: priceError } = await supabase.from('price_rules').insert({
+      partner_id: partnerId,
+      trip_id: newTrip.id,
+      adult_price: data.adult_price,
+      child_price: data.child_price || null,
+      rule_type: 'base',
+      status: 'active',
+    });
+
+    if (priceError) {
+      console.error('Error creating price rule:', priceError);
+      // Trip was created but price rule failed - still refresh
+    }
+    
+    await fetchTrips();
+    return { error: null };
   };
 
   const updateTrip = async (id: string, data: Partial<Trip>) => {
