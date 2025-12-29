@@ -29,6 +29,7 @@ import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import NotFound from "./pages/NotFound";
 import WidgetBooking from "./pages/WidgetBooking";
 import PaymentPage from "./pages/PaymentPage";
+import ModifyTicket from "./pages/ModifyTicket";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/book" element={<WidgetBooking />} />
+            <Route path="/modify-ticket" element={<ModifyTicket />} />
             <Route path="/pay/:token" element={<PaymentPage />} />
             
             {/* Partner Dashboard Routes */}
