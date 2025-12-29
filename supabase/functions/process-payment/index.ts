@@ -215,7 +215,14 @@ serve(async (req) => {
               .maybeSingle();
 
             if (!existingCommission) {
-              const platformFeePercent = 7;
+              // Get partner's commission rate
+              const { data: partner } = await supabase
+                .from("partners")
+                .select("commission_percent")
+                .eq("id", paymentLink.partner_id)
+                .single();
+
+              const platformFeePercent = partner?.commission_percent || 7;
               const platformFeeAmount = (booking.total_amount * platformFeePercent) / 100;
               const partnerNetAmount = booking.total_amount - platformFeeAmount;
 

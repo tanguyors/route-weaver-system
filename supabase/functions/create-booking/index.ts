@@ -292,8 +292,14 @@ serve(async (req) => {
       console.error('Ticket creation failed:', ticketError);
     }
 
-    // 10. Create commission record (7% platform fee)
-    const platformFeePercent = 7;
+    // 10. Get partner's commission rate and create commission record
+    const { data: partner } = await supabase
+      .from('partners')
+      .select('commission_percent')
+      .eq('id', partnerId)
+      .single();
+
+    const platformFeePercent = partner?.commission_percent || 7;
     const platformFeeAmount = totalAmount * (platformFeePercent / 100);
     const partnerNetAmount = totalAmount - platformFeeAmount;
 
