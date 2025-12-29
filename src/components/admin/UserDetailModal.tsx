@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -143,11 +144,11 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Commission mise à jour');
+      toast.success('Commission updated');
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     },
     onError: () => {
-      toast.error('Erreur lors de la mise à jour');
+      toast.error('Error updating commission');
     },
   });
 
@@ -155,15 +156,15 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('Copié dans le presse-papier');
+    toast.success('Copied to clipboard');
   };
 
   const handleResetPassword = () => {
-    toast.info('Fonctionnalité à implémenter: envoi email de réinitialisation');
+    toast.info('Feature to implement: send password reset email');
   };
 
   const handleDisable2FA = () => {
-    toast.info('Fonctionnalité à implémenter: désactivation 2FA');
+    toast.info('Feature to implement: disable 2FA');
   };
 
   const handleSaveCommission = () => {
@@ -207,15 +208,18 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            Détails de l'utilisateur
+            User Details
           </DialogTitle>
+          <DialogDescription>
+            View and manage user information and partner settings.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* User & Role */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-lg">{user.full_name || 'Sans nom'}</p>
+              <p className="font-medium text-lg">{user.full_name || 'No name'}</p>
               <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
             {getRoleBadge()}
@@ -226,11 +230,11 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
           {/* Personal Information */}
           <div className="space-y-3">
             <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-              Informations personnelles
+              Personal Information
             </h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Nom complet</p>
+                <p className="text-xs text-muted-foreground">Full Name</p>
                 <p className="text-sm font-medium">{user.full_name || '-'}</p>
               </div>
               <div className="space-y-1">
@@ -241,13 +245,13 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" /> Téléphone
+                  <Phone className="w-3 h-3" /> Phone
                 </p>
                 <p className="text-sm font-medium">-</p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Date de naissance
+                  <Calendar className="w-3 h-3" /> Date of Birth
                 </p>
                 <p className="text-sm font-medium">-</p>
               </div>
@@ -260,25 +264,25 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
               <Separator />
               <div className="space-y-3">
                 <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                  Information partenariat
+                  Partner Information
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Partenaire</p>
+                    <p className="text-xs text-muted-foreground">Partner</p>
                     <p className="text-sm font-medium">{user.partnerUser.partners?.name || '-'}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Rôle partenaire</p>
+                    <p className="text-xs text-muted-foreground">Partner Role</p>
                     <p className="text-sm font-medium">
-                      {user.partnerUser.role === 'PARTNER_OWNER' ? 'Propriétaire' : 'Staff'}
+                      {user.partnerUser.role === 'PARTNER_OWNER' ? 'Owner' : 'Staff'}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Activé le</p>
+                    <p className="text-xs text-muted-foreground">Activated On</p>
                     <p className="text-sm font-medium">
-                      {new Date(user.partnerUser.created_at).toLocaleDateString('fr-FR', {
+                      {new Date(user.partnerUser.created_at).toLocaleDateString('en-US', {
                         day: '2-digit',
-                        month: '2-digit',
+                        month: 'short',
                         year: 'numeric',
                       })}
                     </p>
@@ -286,7 +290,7 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
                   {/* Commission Setting */}
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Percent className="w-3 h-3" /> Commission plateforme
+                      <Percent className="w-3 h-3" /> Platform Commission
                     </Label>
                     <div className="flex items-center gap-2">
                       <Input
@@ -307,7 +311,7 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
                         className="h-8"
                       >
                         <Save className="w-3 h-3 mr-1" />
-                        Enregistrer
+                        Save
                       </Button>
                     </div>
                   </div>
@@ -319,7 +323,7 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
               <div className="space-y-3">
                 <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />
-                  Statistiques partenaire
+                  Partner Statistics
                 </h4>
 
                 {/* Routes & Trips */}
@@ -347,39 +351,39 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
                 {/* Tickets Stats */}
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Ticket className="w-3 h-3" /> Tickets vendus
+                    <Ticket className="w-3 h-3" /> Tickets Sold
                   </p>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
                       <p className="text-xl font-bold">{stats?.ticketsToday || 0}</p>
-                      <p className="text-xs text-muted-foreground">Aujourd'hui</p>
+                      <p className="text-xs text-muted-foreground">Today</p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
                       <p className="text-xl font-bold">{stats?.ticketsMonth || 0}</p>
-                      <p className="text-xs text-muted-foreground">Ce mois</p>
+                      <p className="text-xs text-muted-foreground">This Month</p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
                       <p className="text-xl font-bold">{stats?.ticketsYear || 0}</p>
-                      <p className="text-xs text-muted-foreground">Cette année</p>
+                      <p className="text-xs text-muted-foreground">This Year</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Sales Stats */}
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Chiffre d'affaires</p>
+                  <p className="text-xs text-muted-foreground">Revenue</p>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
                       <p className="text-sm font-bold truncate">{formatCurrency(stats?.salesDay || 0)}</p>
-                      <p className="text-xs text-muted-foreground">Aujourd'hui</p>
+                      <p className="text-xs text-muted-foreground">Today</p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
                       <p className="text-sm font-bold truncate">{formatCurrency(stats?.salesMonth || 0)}</p>
-                      <p className="text-xs text-muted-foreground">Ce mois</p>
+                      <p className="text-xs text-muted-foreground">This Month</p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
                       <p className="text-sm font-bold truncate">{formatCurrency(stats?.salesYear || 0)}</p>
-                      <p className="text-xs text-muted-foreground">Cette année</p>
+                      <p className="text-xs text-muted-foreground">This Year</p>
                     </div>
                   </div>
                 </div>
@@ -392,16 +396,16 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
           {/* Admin Actions */}
           <div className="space-y-3">
             <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-              Actions administrateur
+              Admin Actions
             </h4>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={handleResetPassword}>
                 <Key className="w-4 h-4 mr-2" />
-                Réinitialiser mot de passe
+                Reset Password
               </Button>
               <Button variant="outline" size="sm" onClick={handleDisable2FA}>
                 <Smartphone className="w-4 h-4 mr-2" />
-                Désactiver 2FA
+                Disable 2FA
               </Button>
             </div>
           </div>
@@ -411,21 +415,21 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
           {/* System Info */}
           <div className="space-y-3">
             <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-              Informations système
+              System Information
             </h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Date d'inscription</p>
+                <p className="text-xs text-muted-foreground">Registration Date</p>
                 <p className="text-sm font-medium">
-                  {new Date(user.created_at).toLocaleDateString('fr-FR', {
+                  {new Date(user.created_at).toLocaleDateString('en-US', {
                     day: '2-digit',
-                    month: '2-digit',
+                    month: 'short',
                     year: 'numeric',
                   })}
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">ID utilisateur</p>
+                <p className="text-xs text-muted-foreground">User ID</p>
                 <div className="flex items-center gap-1">
                   <p className="text-sm font-mono truncate max-w-[120px]">{user.user_id}</p>
                   <Button
