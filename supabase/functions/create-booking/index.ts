@@ -6,6 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface SelectedAddon {
+  addon_id: string;
+  name: string;
+  price: number;
+  qty: number;
+  total: number;
+  pickup_zone_id?: string;
+  pickup_zone_name?: string;
+  pickup_info?: {
+    hotel_name?: string;
+    address?: string;
+    pickup_note?: string;
+  };
+}
+
 interface BookingRequest {
   widget_key: string;
   departure_id: string;
@@ -18,6 +33,7 @@ interface BookingRequest {
   pax_adult: number;
   pax_child: number;
   promo_code?: string;
+  addons?: SelectedAddon[];
 }
 
 serve(async (req) => {
@@ -118,10 +134,20 @@ serve(async (req) => {
       }
     }
 
-    let subtotal = (body.pax_adult * adultPrice) + (body.pax_child * childPrice);
+    let ticketSubtotal = (body.pax_adult * adultPrice) + (body.pax_child * childPrice);
+    
+    // 4. Calculate add-ons total
+    const addons = body.addons || [];
+    let addonsTotal = 0;
+    for (const addon of addons) {
+      addonsTotal += addon.total;
+    }
+    console.log('Add-ons total:', addonsTotal, 'from', addons.length, 'add-ons');
+
+    let subtotal = ticketSubtotal + addonsTotal;
     let discountAmount = 0;
 
-    // 4. Apply promo code if provided
+    // 5. Apply promo code if provided
     if (body.promo_code) {
       const { data: discount } = await supabase
         .from('discount_rules')
@@ -156,7 +182,7 @@ serve(async (req) => {
       }
     }
 
-    // 5. Check for automatic discounts
+    // 6. Check for automatic discounts
     const { data: autoDiscounts } = await supabase
       .from('discount_rules')
       .select('*')
@@ -181,7 +207,7 @@ serve(async (req) => {
 
     const totalAmount = Math.max(0, subtotal - discountAmount);
 
-    // 6. Create or find customer
+    // 7. Create or find customer
     let customerId: string;
     
     if (body.customer.email) {
@@ -224,7 +250,7 @@ serve(async (req) => {
       customerId = newCustomer.id;
     }
 
-    // 7. ATOMIC: Lock capacity and create booking
+    // 8. ATOMIC: Lock capacity and create booking
     // First, lock the departure row
     const newReserved = departure.capacity_reserved + totalPax;
     const newStatus = newReserved >= departure.capacity_total ? 'sold_out' : 'open';
@@ -246,7 +272,7 @@ serve(async (req) => {
       );
     }
 
-    // 8. Create booking
+    // 9. Create booking
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
@@ -278,7 +304,32 @@ serve(async (req) => {
       throw bookingError;
     }
 
-    // 9. Create ticket with QR token
+    // 10. Create booking_addons records
+    if (addons.length > 0) {
+      const bookingAddonsData = addons.map(addon => ({
+        booking_id: booking.id,
+        addon_id: addon.addon_id,
+        name: addon.name,
+        price: addon.price,
+        qty: addon.qty,
+        total: addon.total,
+        pickup_zone_id: addon.pickup_zone_id || null,
+        pickup_info: addon.pickup_info || null,
+      }));
+
+      const { error: addonsError } = await supabase
+        .from('booking_addons')
+        .insert(bookingAddonsData);
+
+      if (addonsError) {
+        console.error('Failed to create booking addons:', addonsError);
+        // Don't fail the booking, just log the error
+      } else {
+        console.log('Created', addons.length, 'booking addon records');
+      }
+    }
+
+    // 11. Create ticket with QR token
     const { data: ticket, error: ticketError } = await supabase
       .from('tickets')
       .insert({
@@ -292,7 +343,7 @@ serve(async (req) => {
       console.error('Ticket creation failed:', ticketError);
     }
 
-    // 10. Get partner's commission rate and create commission record
+    // 12. Get partner's commission rate and create commission record
     const { data: partner } = await supabase
       .from('partners')
       .select('commission_percent')
@@ -321,8 +372,12 @@ serve(async (req) => {
         booking_id: booking.id,
         ticket_id: ticket?.id,
         qr_token: ticket?.qr_token,
+        subtotal_amount: ticketSubtotal,
+        addons_amount: addonsTotal,
+        discount_amount: discountAmount,
         total_amount: totalAmount,
         currency: 'IDR',
+        addons: addons,
         departure: {
           date: departure.departure_date,
           time: departure.departure_time,
