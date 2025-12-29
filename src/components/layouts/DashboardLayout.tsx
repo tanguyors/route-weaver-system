@@ -54,7 +54,6 @@ const navItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard, adminOnly: true },
-  { label: 'Partners', href: '/admin/partners', icon: Building2, adminOnly: true },
   { label: 'All Bookings', href: '/admin/bookings', icon: BookOpen, adminOnly: true },
   { label: 'Commissions', href: '/admin/commissions', icon: Wallet, adminOnly: true },
   { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard, adminOnly: true },
