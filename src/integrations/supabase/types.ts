@@ -415,59 +415,159 @@ export type Database = {
       }
       discount_rules: {
         Row: {
+          applicable_route_ids: string[] | null
+          applicable_schedule_ids: string[] | null
           applicable_trip_ids: string[] | null
+          book_end_date: string | null
+          book_start_date: string | null
+          category: Database["public"]["Enums"]["discount_category"] | null
+          checkin_end_date: string | null
+          checkin_start_date: string | null
           code: string | null
           created_at: string
           discount_value: number
           discount_value_type: Database["public"]["Enums"]["discount_value_type"]
           end_date: string
+          free_ticket_min_pax: number | null
+          free_ticket_pax_type: string | null
           id: string
+          individual_use_only: boolean | null
+          last_minute_hours: number | null
+          limit_per_customer: number | null
           min_pax: number | null
+          minimum_spend: number | null
           partner_id: string
           start_date: string
           status: Database["public"]["Enums"]["route_status"]
+          total_discounted_amount: number | null
           type: Database["public"]["Enums"]["discount_type"]
           updated_at: string
           usage_count: number
           usage_limit: number | null
+          value_added_addon_name: string | null
         }
         Insert: {
+          applicable_route_ids?: string[] | null
+          applicable_schedule_ids?: string[] | null
           applicable_trip_ids?: string[] | null
+          book_end_date?: string | null
+          book_start_date?: string | null
+          category?: Database["public"]["Enums"]["discount_category"] | null
+          checkin_end_date?: string | null
+          checkin_start_date?: string | null
           code?: string | null
           created_at?: string
           discount_value: number
           discount_value_type: Database["public"]["Enums"]["discount_value_type"]
           end_date: string
+          free_ticket_min_pax?: number | null
+          free_ticket_pax_type?: string | null
           id?: string
+          individual_use_only?: boolean | null
+          last_minute_hours?: number | null
+          limit_per_customer?: number | null
           min_pax?: number | null
+          minimum_spend?: number | null
           partner_id: string
           start_date: string
           status?: Database["public"]["Enums"]["route_status"]
+          total_discounted_amount?: number | null
           type: Database["public"]["Enums"]["discount_type"]
           updated_at?: string
           usage_count?: number
           usage_limit?: number | null
+          value_added_addon_name?: string | null
         }
         Update: {
+          applicable_route_ids?: string[] | null
+          applicable_schedule_ids?: string[] | null
           applicable_trip_ids?: string[] | null
+          book_end_date?: string | null
+          book_start_date?: string | null
+          category?: Database["public"]["Enums"]["discount_category"] | null
+          checkin_end_date?: string | null
+          checkin_start_date?: string | null
           code?: string | null
           created_at?: string
           discount_value?: number
           discount_value_type?: Database["public"]["Enums"]["discount_value_type"]
           end_date?: string
+          free_ticket_min_pax?: number | null
+          free_ticket_pax_type?: string | null
           id?: string
+          individual_use_only?: boolean | null
+          last_minute_hours?: number | null
+          limit_per_customer?: number | null
           min_pax?: number | null
+          minimum_spend?: number | null
           partner_id?: string
           start_date?: string
           status?: Database["public"]["Enums"]["route_status"]
+          total_discounted_amount?: number | null
           type?: Database["public"]["Enums"]["discount_type"]
           updated_at?: string
           usage_count?: number
           usage_limit?: number | null
+          value_added_addon_name?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "discount_rules_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discount_usage: {
+        Row: {
+          booking_id: string | null
+          customer_email: string | null
+          customer_phone: string | null
+          discount_rule_id: string
+          discounted_amount: number
+          id: string
+          partner_id: string
+          used_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          discount_rule_id: string
+          discounted_amount?: number
+          id?: string
+          partner_id: string
+          used_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          discount_rule_id?: string
+          discounted_amount?: number
+          id?: string
+          partner_id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_usage_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_usage_discount_rule_id_fkey"
+            columns: ["discount_rule_id"]
+            isOneToOne: false
+            referencedRelation: "discount_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_usage_partner_id_fkey"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
@@ -1225,6 +1325,15 @@ export type Database = {
       booking_status: "pending" | "confirmed" | "cancelled" | "refunded"
       checkin_result: "success" | "already_used" | "invalid" | "cancelled"
       departure_status: "open" | "closed" | "sold_out" | "cancelled"
+      discount_category:
+        | "cart_fixed"
+        | "cart_percent"
+        | "schedule_fixed"
+        | "schedule_percent"
+        | "free_ticket"
+        | "per_product"
+        | "value_added"
+        | "last_minute"
       discount_type: "promo_code" | "automatic"
       discount_value_type: "percent" | "fixed"
       partner_status: "pending" | "active" | "suspended"
@@ -1385,6 +1494,16 @@ export const Constants = {
       booking_status: ["pending", "confirmed", "cancelled", "refunded"],
       checkin_result: ["success", "already_used", "invalid", "cancelled"],
       departure_status: ["open", "closed", "sold_out", "cancelled"],
+      discount_category: [
+        "cart_fixed",
+        "cart_percent",
+        "schedule_fixed",
+        "schedule_percent",
+        "free_ticket",
+        "per_product",
+        "value_added",
+        "last_minute",
+      ],
       discount_type: ["promo_code", "automatic"],
       discount_value_type: ["percent", "fixed"],
       partner_status: ["pending", "active", "suspended"],
