@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ThemeConfig } from '@/hooks/useWidgetConfigData';
-import { Palette, Check } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ThemeConfig, WidgetStyle } from '@/hooks/useWidgetConfigData';
+import { Palette, Check, LayoutGrid, GripHorizontal } from 'lucide-react';
 
 interface WidgetThemeFormProps {
   themeConfig: ThemeConfig | null;
@@ -21,9 +22,57 @@ const colorPresets = [
   { name: 'Purple', value: '#a855f7' },
 ];
 
+interface ColorPickerProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  description?: string;
+}
+
+const ColorPicker = ({ label, value, onChange, description }: ColorPickerProps) => (
+  <div className="space-y-2">
+    <Label>{label}</Label>
+    <div className="flex items-center gap-2">
+      <Input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-12 h-10 p-1 cursor-pointer"
+      />
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="#000000"
+        className="flex-1 font-mono"
+      />
+    </div>
+    {description && (
+      <p className="text-xs text-muted-foreground">{description}</p>
+    )}
+  </div>
+);
+
 const WidgetThemeForm = ({ themeConfig, onUpdate }: WidgetThemeFormProps) => {
+  const [widgetStyle, setWidgetStyle] = useState<WidgetStyle>(
+    themeConfig?.widget_style || 'block'
+  );
   const [primaryColor, setPrimaryColor] = useState(
     themeConfig?.primary_color || '#0ea5e9'
+  );
+  const [secondaryColor, setSecondaryColor] = useState(
+    themeConfig?.secondary_color || '#64748b'
+  );
+  const [backgroundColor, setBackgroundColor] = useState(
+    themeConfig?.background_color || '#ffffff'
+  );
+  const [textColor, setTextColor] = useState(
+    themeConfig?.text_color || '#1e293b'
+  );
+  const [buttonTextColor, setButtonTextColor] = useState(
+    themeConfig?.button_text_color || '#ffffff'
+  );
+  const [borderColor, setBorderColor] = useState(
+    themeConfig?.border_color || '#e2e8f0'
   );
   const [logoUrl, setLogoUrl] = useState(themeConfig?.logo_url || '');
   const [showChildPax, setShowChildPax] = useState(
@@ -34,7 +83,13 @@ const WidgetThemeForm = ({ themeConfig, onUpdate }: WidgetThemeFormProps) => {
   const handleSave = async () => {
     setSaving(true);
     await onUpdate({
+      widget_style: widgetStyle,
       primary_color: primaryColor,
+      secondary_color: secondaryColor,
+      background_color: backgroundColor,
+      text_color: textColor,
+      button_text_color: buttonTextColor,
+      border_color: borderColor,
       logo_url: logoUrl || undefined,
       show_child_pax: showChildPax,
     });
@@ -43,7 +98,55 @@ const WidgetThemeForm = ({ themeConfig, onUpdate }: WidgetThemeFormProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Primary Color */}
+      {/* Widget Style Selection */}
+      <div className="space-y-3">
+        <Label className="text-base font-medium">Widget Style</Label>
+        <RadioGroup
+          value={widgetStyle}
+          onValueChange={(value) => setWidgetStyle(value as WidgetStyle)}
+          className="grid grid-cols-2 gap-4"
+        >
+          <Label
+            htmlFor="style-block"
+            className={`flex flex-col items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              widgetStyle === 'block'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-muted-foreground/50'
+            }`}
+          >
+            <RadioGroupItem value="block" id="style-block" className="sr-only" />
+            <div className="w-16 h-20 border-2 rounded-lg flex items-center justify-center" style={{ borderColor: widgetStyle === 'block' ? primaryColor : undefined }}>
+              <LayoutGrid className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <p className="font-medium">Block Widget</p>
+              <p className="text-xs text-muted-foreground">Full booking form</p>
+            </div>
+          </Label>
+
+          <Label
+            htmlFor="style-bar"
+            className={`flex flex-col items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              widgetStyle === 'bar'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-muted-foreground/50'
+            }`}
+          >
+            <RadioGroupItem value="bar" id="style-bar" className="sr-only" />
+            <div className="w-24 h-10 border-2 rounded-lg flex items-center justify-center" style={{ borderColor: widgetStyle === 'bar' ? primaryColor : undefined }}>
+              <GripHorizontal className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <p className="font-medium">Bar Widget</p>
+              <p className="text-xs text-muted-foreground">Compact horizontal</p>
+            </div>
+          </Label>
+        </RadioGroup>
+      </div>
+
+      <Separator />
+
+      {/* Primary Color with Presets */}
       <div className="space-y-3">
         <Label className="flex items-center gap-2">
           <Palette className="w-4 h-4" />
@@ -81,6 +184,45 @@ const WidgetThemeForm = ({ themeConfig, onUpdate }: WidgetThemeFormProps) => {
             className="flex-1 font-mono"
           />
         </div>
+        <p className="text-xs text-muted-foreground">
+          Used for buttons, links, and accent elements
+        </p>
+      </div>
+
+      <Separator />
+
+      {/* Other Colors */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <ColorPicker
+          label="Secondary Color"
+          value={secondaryColor}
+          onChange={setSecondaryColor}
+          description="Icons and secondary elements"
+        />
+        <ColorPicker
+          label="Background Color"
+          value={backgroundColor}
+          onChange={setBackgroundColor}
+          description="Widget background"
+        />
+        <ColorPicker
+          label="Text Color"
+          value={textColor}
+          onChange={setTextColor}
+          description="Main text color"
+        />
+        <ColorPicker
+          label="Button Text Color"
+          value={buttonTextColor}
+          onChange={setButtonTextColor}
+          description="Text on primary buttons"
+        />
+        <ColorPicker
+          label="Border Color"
+          value={borderColor}
+          onChange={setBorderColor}
+          description="Borders and dividers"
+        />
       </div>
 
       <Separator />
@@ -125,6 +267,36 @@ const WidgetThemeForm = ({ themeConfig, onUpdate }: WidgetThemeFormProps) => {
             checked={showChildPax}
             onCheckedChange={setShowChildPax}
           />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Preview */}
+      <div className="space-y-3">
+        <Label>Color Preview</Label>
+        <div
+          className="p-4 rounded-lg border"
+          style={{
+            backgroundColor: backgroundColor,
+            borderColor: borderColor,
+          }}
+        >
+          <p style={{ color: textColor }} className="font-medium mb-2">
+            Sample Text
+          </p>
+          <p style={{ color: secondaryColor }} className="text-sm mb-3">
+            Secondary information
+          </p>
+          <button
+            className="px-4 py-2 rounded-md font-medium"
+            style={{
+              backgroundColor: primaryColor,
+              color: buttonTextColor,
+            }}
+          >
+            Book Now
+          </button>
         </div>
       </div>
 
