@@ -12,6 +12,8 @@ interface WidgetEmbedCodeProps {
   directLink: string;
   barDirectLink: string;
   widgetKey: string;
+  selectedStyle: 'block' | 'bar';
+  onStyleChange: (style: 'block' | 'bar') => void;
   onCopyKey: () => void;
 }
 
@@ -21,10 +23,11 @@ const WidgetEmbedCode = ({
   directLink,
   barDirectLink,
   widgetKey,
+  selectedStyle,
+  onStyleChange,
   onCopyKey,
 }: WidgetEmbedCodeProps) => {
   const [copied, setCopied] = useState<string | null>(null);
-  const [selectedStyle, setSelectedStyle] = useState<'block' | 'bar'>('block');
 
   const handleCopy = async (text: string, type: string) => {
     try {
@@ -70,7 +73,7 @@ const WidgetEmbedCode = ({
         <div className="grid grid-cols-2 gap-2">
           <Button
             variant={selectedStyle === 'block' ? 'default' : 'outline'}
-            onClick={() => setSelectedStyle('block')}
+            onClick={() => onStyleChange('block')}
             className="flex items-center gap-2"
           >
             <LayoutGrid className="w-4 h-4" />
@@ -78,7 +81,7 @@ const WidgetEmbedCode = ({
           </Button>
           <Button
             variant={selectedStyle === 'bar' ? 'default' : 'outline'}
-            onClick={() => setSelectedStyle('bar')}
+            onClick={() => onStyleChange('bar')}
             className="flex items-center gap-2"
           >
             <GripHorizontal className="w-4 h-4" />
