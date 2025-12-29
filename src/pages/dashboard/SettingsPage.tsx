@@ -11,6 +11,7 @@ import PaymentSettingsForm from '@/components/settings/PaymentSettingsForm';
 import CancellationSettingsForm from '@/components/settings/CancellationSettingsForm';
 import TicketSettingsForm from '@/components/settings/TicketSettingsForm';
 import NotificationSettingsForm from '@/components/settings/NotificationSettingsForm';
+import TermsSettingsForm from '@/components/settings/TermsSettingsForm';
 import StaffList from '@/components/settings/StaffList';
 import {
   Building2,
@@ -23,6 +24,7 @@ import {
   Loader2,
   Landmark,
   Globe,
+  FileText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Textarea } from '@/components/ui/textarea';
@@ -141,7 +143,7 @@ const SettingsPage = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="business" className="space-y-6">
-          <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
+          <TabsList className="grid grid-cols-4 lg:grid-cols-7 w-full">
             <TabsTrigger value="business" className="gap-2">
               <Building2 className="w-4 h-4" />
               <span className="hidden sm:inline">Business</span>
@@ -157,6 +159,10 @@ const SettingsPage = () => {
             <TabsTrigger value="tickets" className="gap-2">
               <Ticket className="w-4 h-4" />
               <span className="hidden sm:inline">Tickets</span>
+            </TabsTrigger>
+            <TabsTrigger value="terms" className="gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Terms</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-2">
               <Bell className="w-4 h-4" />
@@ -412,6 +418,17 @@ const SettingsPage = () => {
           <TabsContent value="tickets">
             {settings && (
               <TicketSettingsForm
+                settings={settings}
+                onSave={updateSettings}
+                saving={saving}
+              />
+            )}
+          </TabsContent>
+
+          {/* Terms & Conditions */}
+          <TabsContent value="terms">
+            {settings && (
+              <TermsSettingsForm
                 settings={settings}
                 onSave={updateSettings}
                 saving={saving}

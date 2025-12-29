@@ -581,6 +581,8 @@ export type Database = {
           cancellation_deadline_hours: number | null
           cancellation_fee_type: string | null
           cancellation_fee_value: number | null
+          cancellation_policy_enabled: boolean | null
+          cancellation_policy_tiers: Json | null
           checkin_requires_full_payment: boolean | null
           created_at: string
           currency: string | null
@@ -590,12 +592,16 @@ export type Database = {
           email_cancellation: boolean | null
           email_payment_received: boolean | null
           id: string
+          max_booking_advance_days: number | null
           min_deposit_percent: number | null
           no_show_policy: string | null
           partner_id: string
           payment_methods_enabled: string[] | null
           qr_override_allowed: boolean | null
           refund_enabled: boolean | null
+          tax_service_percent: number | null
+          terms_booking: string | null
+          terms_voucher: string | null
           ticket_validity_hours: number | null
           updated_at: string
           whatsapp_booking_confirmation: boolean | null
@@ -606,6 +612,8 @@ export type Database = {
           cancellation_deadline_hours?: number | null
           cancellation_fee_type?: string | null
           cancellation_fee_value?: number | null
+          cancellation_policy_enabled?: boolean | null
+          cancellation_policy_tiers?: Json | null
           checkin_requires_full_payment?: boolean | null
           created_at?: string
           currency?: string | null
@@ -615,12 +623,16 @@ export type Database = {
           email_cancellation?: boolean | null
           email_payment_received?: boolean | null
           id?: string
+          max_booking_advance_days?: number | null
           min_deposit_percent?: number | null
           no_show_policy?: string | null
           partner_id: string
           payment_methods_enabled?: string[] | null
           qr_override_allowed?: boolean | null
           refund_enabled?: boolean | null
+          tax_service_percent?: number | null
+          terms_booking?: string | null
+          terms_voucher?: string | null
           ticket_validity_hours?: number | null
           updated_at?: string
           whatsapp_booking_confirmation?: boolean | null
@@ -631,6 +643,8 @@ export type Database = {
           cancellation_deadline_hours?: number | null
           cancellation_fee_type?: string | null
           cancellation_fee_value?: number | null
+          cancellation_policy_enabled?: boolean | null
+          cancellation_policy_tiers?: Json | null
           checkin_requires_full_payment?: boolean | null
           created_at?: string
           currency?: string | null
@@ -640,12 +654,16 @@ export type Database = {
           email_cancellation?: boolean | null
           email_payment_received?: boolean | null
           id?: string
+          max_booking_advance_days?: number | null
           min_deposit_percent?: number | null
           no_show_policy?: string | null
           partner_id?: string
           payment_methods_enabled?: string[] | null
           qr_override_allowed?: boolean | null
           refund_enabled?: boolean | null
+          tax_service_percent?: number | null
+          terms_booking?: string | null
+          terms_voucher?: string | null
           ticket_validity_hours?: number | null
           updated_at?: string
           whatsapp_booking_confirmation?: boolean | null
