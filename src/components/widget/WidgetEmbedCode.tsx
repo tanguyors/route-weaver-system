@@ -4,22 +4,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Check, Copy, ExternalLink, Code2 } from 'lucide-react';
+import { Check, Copy, ExternalLink, LayoutGrid, GripHorizontal } from 'lucide-react';
 
 interface WidgetEmbedCodeProps {
   embedCode: string;
+  barEmbedCode: string;
   directLink: string;
+  barDirectLink: string;
   widgetKey: string;
   onCopyKey: () => void;
 }
 
 const WidgetEmbedCode = ({
   embedCode,
+  barEmbedCode,
   directLink,
+  barDirectLink,
   widgetKey,
   onCopyKey,
 }: WidgetEmbedCodeProps) => {
   const [copied, setCopied] = useState<string | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<'block' | 'bar'>('block');
 
   const handleCopy = async (text: string, type: string) => {
     try {
@@ -30,6 +35,9 @@ const WidgetEmbedCode = ({
       console.error('Failed to copy:', error);
     }
   };
+
+  const currentEmbedCode = selectedStyle === 'block' ? embedCode : barEmbedCode;
+  const currentDirectLink = selectedStyle === 'block' ? directLink : barDirectLink;
 
   return (
     <div className="space-y-4">
@@ -56,6 +64,34 @@ const WidgetEmbedCode = ({
         </div>
       </div>
 
+      {/* Widget Style Selector */}
+      <div className="space-y-2">
+        <Label>Widget Style</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant={selectedStyle === 'block' ? 'default' : 'outline'}
+            onClick={() => setSelectedStyle('block')}
+            className="flex items-center gap-2"
+          >
+            <LayoutGrid className="w-4 h-4" />
+            Block
+          </Button>
+          <Button
+            variant={selectedStyle === 'bar' ? 'default' : 'outline'}
+            onClick={() => setSelectedStyle('bar')}
+            className="flex items-center gap-2"
+          >
+            <GripHorizontal className="w-4 h-4" />
+            Bar
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {selectedStyle === 'block' 
+            ? 'Full booking form widget (recommended for dedicated pages)'
+            : 'Compact horizontal search bar (recommended for headers/hero sections)'}
+        </p>
+      </div>
+
       <Tabs defaultValue="iframe" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="iframe">iFrame Embed</TabsTrigger>
@@ -65,7 +101,7 @@ const WidgetEmbedCode = ({
         <TabsContent value="iframe" className="space-y-3">
           <div className="relative">
             <Textarea
-              value={embedCode}
+              value={currentEmbedCode}
               readOnly
               className="font-mono text-xs h-32 bg-muted resize-none"
             />
@@ -73,7 +109,7 @@ const WidgetEmbedCode = ({
               variant="secondary"
               size="sm"
               className="absolute top-2 right-2"
-              onClick={() => handleCopy(embedCode, 'embed')}
+              onClick={() => handleCopy(currentEmbedCode, 'embed')}
             >
               {copied === 'embed' ? (
                 <>
@@ -89,21 +125,23 @@ const WidgetEmbedCode = ({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Paste this code on your website where you want the booking widget to appear.
+            {selectedStyle === 'block'
+              ? 'Paste this code on your website where you want the full booking widget to appear.'
+              : 'Paste this code in your header or hero section for a compact search experience.'}
           </p>
         </TabsContent>
 
         <TabsContent value="link" className="space-y-3">
           <div className="flex gap-2">
             <Input
-              value={directLink}
+              value={currentDirectLink}
               readOnly
               className="font-mono text-sm bg-muted"
             />
             <Button
               variant="outline"
               size="icon"
-              onClick={() => handleCopy(directLink, 'link')}
+              onClick={() => handleCopy(currentDirectLink, 'link')}
             >
               {copied === 'link' ? (
                 <Check className="w-4 h-4 text-green-600" />
@@ -114,7 +152,7 @@ const WidgetEmbedCode = ({
             <Button
               variant="outline"
               size="icon"
-              onClick={() => window.open(directLink, '_blank')}
+              onClick={() => window.open(currentDirectLink, '_blank')}
             >
               <ExternalLink className="w-4 h-4" />
             </Button>

@@ -30,6 +30,7 @@ const WidgetPage = () => {
     toggleStatus,
     copyWidgetKey,
     getEmbedCode,
+    getBarEmbedCode,
     getDirectLink,
   } = useWidgetConfigData();
 
@@ -151,7 +152,9 @@ const WidgetPage = () => {
                 <CardContent>
                   <WidgetEmbedCode
                     embedCode={getEmbedCode()}
-                    directLink={getDirectLink()}
+                    barEmbedCode={getBarEmbedCode()}
+                    directLink={getDirectLink('block')}
+                    barDirectLink={getDirectLink('bar')}
                     widgetKey={widget.public_widget_key}
                     onCopyKey={copyWidgetKey}
                   />

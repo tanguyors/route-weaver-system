@@ -3,8 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
+export type WidgetStyle = 'block' | 'bar';
+
 export interface ThemeConfig {
+  widget_style?: WidgetStyle;
   primary_color?: string;
+  secondary_color?: string;
+  background_color?: string;
+  text_color?: string;
+  button_text_color?: string;
+  border_color?: string;
   logo_url?: string;
   show_child_pax?: boolean;
   default_route_id?: string;
@@ -237,7 +245,7 @@ export const useWidgetConfigData = () => {
     }
   };
 
-  // Get embed code
+  // Get embed code for block widget
   const getEmbedCode = (height = '600px') => {
     if (!widget) return '';
 
@@ -252,11 +260,27 @@ export const useWidgetConfigData = () => {
 ></iframe>`;
   };
 
+  // Get embed code for bar widget
+  const getBarEmbedCode = () => {
+    if (!widget) return '';
+
+    const baseUrl = window.location.origin;
+    return `<iframe 
+  src="${baseUrl}/book?key=${widget.public_widget_key}&style=bar" 
+  width="100%" 
+  height="80px" 
+  frameborder="0" 
+  style="border: none;"
+  allow="payment"
+></iframe>`;
+  };
+
   // Get direct link
-  const getDirectLink = () => {
+  const getDirectLink = (style: 'block' | 'bar' = 'block') => {
     if (!widget) return '';
     const baseUrl = window.location.origin;
-    return `${baseUrl}/book?key=${widget.public_widget_key}`;
+    const styleParam = style === 'bar' ? '&style=bar' : '';
+    return `${baseUrl}/book?key=${widget.public_widget_key}${styleParam}`;
   };
 
   return {
@@ -271,6 +295,7 @@ export const useWidgetConfigData = () => {
     toggleStatus,
     copyWidgetKey,
     getEmbedCode,
+    getBarEmbedCode,
     getDirectLink,
     refetch: fetchWidget,
   };
