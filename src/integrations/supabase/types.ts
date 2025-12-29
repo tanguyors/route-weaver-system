@@ -699,45 +699,75 @@ export type Database = {
       partners: {
         Row: {
           address: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          bank_swift_code: string | null
+          city: string | null
           commission_percent: number
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
+          country: string | null
           created_at: string
           id: string
           legal_name: string | null
           logo_url: string | null
           name: string
+          postal_code: string | null
           status: Database["public"]["Enums"]["partner_status"]
+          tax_id: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
           address?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          bank_swift_code?: string | null
+          city?: string | null
           commission_percent?: number
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          country?: string | null
           created_at?: string
           id?: string
           legal_name?: string | null
           logo_url?: string | null
           name: string
+          postal_code?: string | null
           status?: Database["public"]["Enums"]["partner_status"]
+          tax_id?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          bank_swift_code?: string | null
+          city?: string | null
           commission_percent?: number
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          country?: string | null
           created_at?: string
           id?: string
           legal_name?: string | null
           logo_url?: string | null
           name?: string
+          postal_code?: string | null
           status?: Database["public"]["Enums"]["partner_status"]
+          tax_id?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
