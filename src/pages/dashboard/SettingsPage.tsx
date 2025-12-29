@@ -419,6 +419,7 @@ const SettingsPage = () => {
             {settings && (
               <TicketSettingsForm
                 settings={settings}
+                partnerInfo={partnerInfo}
                 onSave={updateSettings}
                 saving={saving}
               />
