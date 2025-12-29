@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { FileText, Loader2, Plus, Trash2 } from 'lucide-react';
-import { PartnerSettings } from '@/hooks/useSettingsData';
+import { FileText, Loader2, Plus, Trash2, Sparkles } from 'lucide-react';
+import { PartnerSettings, PartnerInfo } from '@/hooks/useSettingsData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface CancellationTier {
   days_min: number;
@@ -16,11 +18,12 @@ interface CancellationTier {
 
 interface TermsSettingsFormProps {
   settings: PartnerSettings;
+  partnerInfo: PartnerInfo | null;
   onSave: (updates: Partial<PartnerSettings>) => Promise<boolean>;
   saving: boolean;
 }
 
-const TermsSettingsForm = ({ settings, onSave, saving }: TermsSettingsFormProps) => {
+const TermsSettingsForm = ({ settings, partnerInfo, onSave, saving }: TermsSettingsFormProps) => {
   const [termsBooking, setTermsBooking] = useState(settings.terms_booking || '');
   const [termsVoucher, setTermsVoucher] = useState(settings.terms_voucher || '');
   const [cancellationEnabled, setCancellationEnabled] = useState(settings.cancellation_policy_enabled ?? true);
@@ -33,6 +36,54 @@ const TermsSettingsForm = ({ settings, onSave, saving }: TermsSettingsFormProps)
   );
   const [taxServicePercent, setTaxServicePercent] = useState(settings.tax_service_percent || 16);
   const [maxBookingAdvanceDays, setMaxBookingAdvanceDays] = useState(settings.max_booking_advance_days || 0);
+  const [generatingBooking, setGeneratingBooking] = useState(false);
+  const [generatingVoucher, setGeneratingVoucher] = useState(false);
+  const { toast } = useToast();
+
+  const handleGenerateTerms = async (type: 'booking' | 'voucher') => {
+    if (type === 'booking') {
+      setGeneratingBooking(true);
+    } else {
+      setGeneratingVoucher(true);
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-terms', {
+        body: {
+          type,
+          partnerInfo,
+          settings,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.terms) {
+        if (type === 'booking') {
+          setTermsBooking(data.terms);
+        } else {
+          setTermsVoucher(data.terms);
+        }
+        toast({
+          title: 'Terms Generated',
+          description: `${type === 'booking' ? 'Booking' : 'Voucher'} terms have been generated. Review and save when ready.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error generating terms:', error);
+      toast({
+        title: 'Generation Failed',
+        description: 'Could not generate terms. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      if (type === 'booking') {
+        setGeneratingBooking(false);
+      } else {
+        setGeneratingVoucher(false);
+      }
+    }
+  };
 
   const handleAddTier = () => {
     const lastTier = cancellationTiers[cancellationTiers.length - 1];
@@ -71,13 +122,31 @@ const TermsSettingsForm = ({ settings, onSave, saving }: TermsSettingsFormProps)
       {/* Booking Terms & Conditions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Booking Terms & Conditions
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            These terms will be displayed on booking confirmations and tickets
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Booking Terms & Conditions
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                These terms will be displayed on booking confirmations and tickets
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleGenerateTerms('booking')}
+              disabled={generatingBooking}
+              className="gap-2"
+            >
+              {generatingBooking ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              Generate
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
@@ -93,10 +162,28 @@ const TermsSettingsForm = ({ settings, onSave, saving }: TermsSettingsFormProps)
       {/* Voucher Terms */}
       <Card>
         <CardHeader>
-          <CardTitle>Voucher Terms</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Terms specific to vouchers and tickets
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Voucher Terms</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Terms specific to vouchers and tickets
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleGenerateTerms('voucher')}
+              disabled={generatingVoucher}
+              className="gap-2"
+            >
+              {generatingVoucher ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              Generate
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
