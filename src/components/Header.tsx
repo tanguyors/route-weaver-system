@@ -1,10 +1,12 @@
-import { Ship, Menu, X } from "lucide-react";
+import { Ship, Menu, X, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
@@ -36,14 +38,25 @@ const Header = () => {
             </a>
           </div>
 
-{/* CTA Buttons */}
+          {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth">Login</Link>
-            </Button>
-            <Button variant="hero" size="sm" asChild>
-              <Link to="/auth">Become a Partner</Link>
-            </Button>
+            {user ? (
+              <Button variant="hero" size="sm" asChild>
+                <Link to="/dashboard">
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/auth">Login</Link>
+                </Button>
+                <Button variant="hero" size="sm" asChild>
+                  <Link to="/auth">Become a Partner</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -71,13 +84,24 @@ const Header = () => {
               <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2">
                 Pricing
               </a>
-<div className="flex flex-col gap-2 pt-4 border-t border-border">
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link to="/auth">Login</Link>
-                </Button>
-                <Button variant="hero" asChild>
-                  <Link to="/auth">Become a Partner</Link>
-                </Button>
+              <div className="flex flex-col gap-2 pt-4 border-t border-border">
+                {user ? (
+                  <Button variant="hero" asChild>
+                    <Link to="/dashboard">
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      Dashboard
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" className="justify-start" asChild>
+                      <Link to="/auth">Login</Link>
+                    </Button>
+                    <Button variant="hero" asChild>
+                      <Link to="/auth">Become a Partner</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
