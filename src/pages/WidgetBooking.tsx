@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useWidgetBooking } from '@/hooks/useWidgetBooking';
+import { useWidgetBooking, SelectedAddon } from '@/hooks/useWidgetBooking';
 import { BookingStepRoute } from '@/components/widget/BookingStepRoute';
 import { BookingStepDeparture } from '@/components/widget/BookingStepDeparture';
 import { BookingStepPassengers } from '@/components/widget/BookingStepPassengers';
+import { BookingStepAddons } from '@/components/widget/BookingStepAddons';
 import { BookingStepConfirm } from '@/components/widget/BookingStepConfirm';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import WidgetBarView from '@/components/widget/WidgetBarView';
@@ -11,11 +12,13 @@ import { Card } from '@/components/ui/card';
 import { Loader2, Ship, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-type BookingStep = 'route' | 'departure' | 'passengers' | 'confirm' | 'success';
+type BookingStep = 'route' | 'departure' | 'passengers' | 'addons' | 'confirm' | 'success';
 type WidgetStyle = 'block' | 'bar';
 
 interface BookingState {
   departureId: string;
+  routeId: string;
+  tripId: string;
   routeName: string;
   tripName: string;
   departureDate: string;
@@ -25,9 +28,11 @@ interface BookingState {
   adultPrice: number;
   childPrice: number;
   subtotal: number;
+  addonsTotal: number;
   discount: number;
   total: number;
   promoCode: string;
+  selectedAddons: SelectedAddon[];
   customer: {
     full_name: string;
     phone: string;
@@ -48,6 +53,8 @@ const WidgetBooking = () => {
   const [step, setStep] = useState<BookingStep>('route');
   const [booking, setBooking] = useState<BookingState>({
     departureId: '',
+    routeId: '',
+    tripId: '',
     routeName: '',
     tripName: '',
     departureDate: '',
@@ -57,9 +64,11 @@ const WidgetBooking = () => {
     adultPrice: 0,
     childPrice: 0,
     subtotal: 0,
+    addonsTotal: 0,
     discount: 0,
     total: 0,
     promoCode: '',
+    selectedAddons: [],
     customer: { full_name: '', phone: '', email: '', country: '' },
   });
   const [bookingResult, setBookingResult] = useState<any>(null);
@@ -77,6 +86,7 @@ const WidgetBooking = () => {
     setSelectedDate,
     getAvailableDestinations,
     getAvailableDepartures,
+    getApplicableAddons,
     getPricing,
     createBooking,
   } = useWidgetBooking(widgetKey);
@@ -147,6 +157,8 @@ const WidgetBooking = () => {
     setBooking(prev => ({
       ...prev,
       departureId: departure.id,
+      routeId: departure.route_id,
+      tripId: departure.trip_id,
       routeName: route?.route_name || '',
       tripName: trip?.trip_name || '',
       departureDate: departure.departure_date,
@@ -159,7 +171,6 @@ const WidgetBooking = () => {
 
   const handlePassengersConfirm = (paxAdult: number, paxChild: number, promoCode: string) => {
     const subtotal = (paxAdult * booking.adultPrice) + (paxChild * booking.childPrice);
-    // Discount will be calculated on server
     setBooking(prev => ({
       ...prev,
       paxAdult,
@@ -167,6 +178,24 @@ const WidgetBooking = () => {
       promoCode,
       subtotal,
       total: subtotal,
+    }));
+    
+    // Check if there are applicable add-ons
+    const applicableAddons = getApplicableAddons(booking.routeId, booking.tripId);
+    if (applicableAddons.length > 0) {
+      setStep('addons');
+    } else {
+      setStep('confirm');
+    }
+  };
+
+  const handleAddonsConfirm = (selectedAddons: SelectedAddon[]) => {
+    const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.total, 0);
+    setBooking(prev => ({
+      ...prev,
+      selectedAddons,
+      addonsTotal,
+      total: prev.subtotal + addonsTotal,
     }));
     setStep('confirm');
   };
@@ -179,7 +208,8 @@ const WidgetBooking = () => {
         customer,
         booking.paxAdult,
         booking.paxChild,
-        booking.promoCode
+        booking.promoCode,
+        booking.selectedAddons
       );
       
       setBookingResult(result);
@@ -201,8 +231,16 @@ const WidgetBooking = () => {
       case 'passengers':
         setStep('departure');
         break;
-      case 'confirm':
+      case 'addons':
         setStep('passengers');
+        break;
+      case 'confirm':
+        const applicableAddons = getApplicableAddons(booking.routeId, booking.tripId);
+        if (applicableAddons.length > 0) {
+          setStep('addons');
+        } else {
+          setStep('passengers');
+        }
         break;
     }
   };
@@ -233,6 +271,17 @@ const WidgetBooking = () => {
     );
   }
 
+  // Get steps for progress indicator
+  const getSteps = () => {
+    const applicableAddons = booking.routeId ? getApplicableAddons(booking.routeId, booking.tripId) : [];
+    const baseSteps = ['route', 'departure', 'passengers'];
+    if (applicableAddons.length > 0) {
+      baseSteps.push('addons');
+    }
+    baseSteps.push('confirm');
+    return baseSteps;
+  };
+
   // BLOCK WIDGET VIEW (default)
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
@@ -247,11 +296,11 @@ const WidgetBooking = () => {
           {/* Progress indicator */}
           {step !== 'success' && (
             <div className="flex justify-center gap-2 mt-4">
-              {['route', 'departure', 'passengers', 'confirm'].map((s, i) => (
+              {getSteps().map((s, i) => (
                 <div
                   key={s}
                   className={`h-2 w-12 rounded-full transition-colors ${
-                    ['route', 'departure', 'passengers', 'confirm'].indexOf(step) >= i
+                    getSteps().indexOf(step) >= i
                       ? 'bg-primary'
                       : 'bg-muted'
                   }`}
@@ -302,9 +351,21 @@ const WidgetBooking = () => {
           />
         )}
 
+        {step === 'addons' && (
+          <BookingStepAddons
+            addons={getApplicableAddons(booking.routeId, booking.tripId)}
+            paxTotal={booking.paxAdult + booking.paxChild}
+            onConfirm={handleAddonsConfirm}
+            onBack={goBack}
+          />
+        )}
+
         {step === 'confirm' && (
           <BookingStepConfirm
-            booking={booking}
+            booking={{
+              ...booking,
+              subtotal: booking.subtotal + booking.addonsTotal,
+            }}
             isSubmitting={isSubmitting}
             onSubmit={handleCustomerSubmit}
             onBack={goBack}

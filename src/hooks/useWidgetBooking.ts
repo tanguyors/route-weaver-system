@@ -43,6 +43,49 @@ interface Departure {
   status: string;
 }
 
+export interface PickupZone {
+  id: string;
+  addon_id: string;
+  zone_name: string;
+  price_override: number | null;
+}
+
+export interface WidgetAddon {
+  id: string;
+  name: string;
+  description: string | null;
+  type: 'pickup' | 'generic';
+  pricing_model: 'per_person' | 'per_booking';
+  price: number;
+  is_mandatory: boolean | null;
+  enable_pickup_zones: boolean | null;
+  pickup_required_info: {
+    hotel_name?: boolean;
+    address?: boolean;
+    pickup_note?: boolean;
+  } | null;
+  applicability: 'fastboat' | 'activities' | 'both';
+  applicable_route_ids: string[] | null;
+  applicable_trip_ids: string[] | null;
+  applicable_schedule_ids: string[] | null;
+  pickup_zones: PickupZone[];
+}
+
+export interface SelectedAddon {
+  addon_id: string;
+  name: string;
+  price: number;
+  qty: number;
+  total: number;
+  pickup_zone_id?: string;
+  pickup_zone_name?: string;
+  pickup_info?: {
+    hotel_name?: string;
+    address?: string;
+    pickup_note?: string;
+  };
+}
+
 export interface WidgetData {
   partner_id: string;
   ports: Port[];
@@ -50,6 +93,7 @@ export interface WidgetData {
   trips: Trip[];
   price_rules: PriceRule[];
   departures: Departure[];
+  addons: WidgetAddon[];
 }
 
 export interface BookingDetails {
@@ -140,6 +184,37 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     });
   };
 
+  const getApplicableAddons = (routeId: string, tripId: string): WidgetAddon[] => {
+    if (!data) return [];
+    
+    return data.addons.filter(addon => {
+      // Check applicability to fastboat (widget type)
+      if (addon.applicability !== 'both' && addon.applicability !== 'fastboat') {
+        return false;
+      }
+      
+      // If no specific routes/trips are set, addon applies to all
+      const hasRouteRestriction = addon.applicable_route_ids && addon.applicable_route_ids.length > 0;
+      const hasTripRestriction = addon.applicable_trip_ids && addon.applicable_trip_ids.length > 0;
+      
+      if (!hasRouteRestriction && !hasTripRestriction) {
+        return true;
+      }
+      
+      // Check if route matches
+      if (hasRouteRestriction && addon.applicable_route_ids!.includes(routeId)) {
+        return true;
+      }
+      
+      // Check if trip matches
+      if (hasTripRestriction && addon.applicable_trip_ids!.includes(tripId)) {
+        return true;
+      }
+      
+      return false;
+    });
+  };
+
   const getPricing = (tripId: string, date: string) => {
     if (!data) return { adult: 0, child: 0 };
     
@@ -169,7 +244,8 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     customer: { full_name: string; phone?: string; email?: string; country?: string },
     paxAdult: number,
     paxChild: number,
-    promoCode?: string
+    promoCode?: string,
+    selectedAddons?: SelectedAddon[]
   ) => {
     if (!widgetKey) throw new Error('No widget key');
 
@@ -185,6 +261,7 @@ export const useWidgetBooking = (widgetKey: string | null) => {
           pax_adult: paxAdult,
           pax_child: paxChild,
           promo_code: promoCode,
+          addons: selectedAddons,
         }),
       }
     );
@@ -210,6 +287,7 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     setSelectedDate,
     getAvailableDestinations,
     getAvailableDepartures,
+    getApplicableAddons,
     getPricing,
     createBooking,
     refetch: fetchData,
