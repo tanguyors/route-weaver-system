@@ -95,12 +95,13 @@ const TransactionsPage = () => {
   };
 
   const exportCommissionsCSV = () => {
-    const headers = ['Date', 'Booking ID', 'Gross', 'Commission (7%)', 'Provider Fee', 'Net'];
+    const headers = ['Date', 'Booking ID', 'Gross', 'Commission', 'Commission %', 'Provider Fee', 'Net'];
     const rows = commissions.map((c) => [
       format(new Date(c.created_at), 'yyyy-MM-dd HH:mm'),
       c.booking_id,
       c.gross_amount,
       c.platform_fee_amount,
+      `${c.platform_fee_percent}%`,
       c.payment_provider_fee_amount || 0,
       c.partner_net_amount,
     ]);
@@ -203,7 +204,7 @@ const TransactionsPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    Total Commission (7%)
+                    Total Commission
                   </p>
                   <p className="text-2xl font-bold text-destructive">
                     -{formatCurrency(summary.totalCommission, 'IDR')}
