@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      addons: {
+        Row: {
+          applicability: Database["public"]["Enums"]["addon_applicability"]
+          applicable_route_ids: string[] | null
+          applicable_schedule_ids: string[] | null
+          applicable_trip_ids: string[] | null
+          created_at: string
+          description: string | null
+          enable_pickup_zones: boolean | null
+          id: string
+          is_mandatory: boolean | null
+          name: string
+          partner_id: string
+          pickup_required_info: Json | null
+          price: number
+          pricing_model: Database["public"]["Enums"]["addon_pricing_model"]
+          status: Database["public"]["Enums"]["route_status"]
+          type: Database["public"]["Enums"]["addon_type"]
+          updated_at: string
+        }
+        Insert: {
+          applicability?: Database["public"]["Enums"]["addon_applicability"]
+          applicable_route_ids?: string[] | null
+          applicable_schedule_ids?: string[] | null
+          applicable_trip_ids?: string[] | null
+          created_at?: string
+          description?: string | null
+          enable_pickup_zones?: boolean | null
+          id?: string
+          is_mandatory?: boolean | null
+          name: string
+          partner_id: string
+          pickup_required_info?: Json | null
+          price?: number
+          pricing_model?: Database["public"]["Enums"]["addon_pricing_model"]
+          status?: Database["public"]["Enums"]["route_status"]
+          type?: Database["public"]["Enums"]["addon_type"]
+          updated_at?: string
+        }
+        Update: {
+          applicability?: Database["public"]["Enums"]["addon_applicability"]
+          applicable_route_ids?: string[] | null
+          applicable_schedule_ids?: string[] | null
+          applicable_trip_ids?: string[] | null
+          created_at?: string
+          description?: string | null
+          enable_pickup_zones?: boolean | null
+          id?: string
+          is_mandatory?: boolean | null
+          name?: string
+          partner_id?: string
+          pickup_required_info?: Json | null
+          price?: number
+          pricing_model?: Database["public"]["Enums"]["addon_pricing_model"]
+          status?: Database["public"]["Enums"]["route_status"]
+          type?: Database["public"]["Enums"]["addon_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addons_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -57,38 +125,61 @@ export type Database = {
       }
       booking_addons: {
         Row: {
+          addon_id: string | null
           booking_id: string
           created_at: string
           id: string
           name: string
+          pickup_info: Json | null
+          pickup_zone_id: string | null
           price: number
           qty: number
           total: number
         }
         Insert: {
+          addon_id?: string | null
           booking_id: string
           created_at?: string
           id?: string
           name: string
+          pickup_info?: Json | null
+          pickup_zone_id?: string | null
           price: number
           qty?: number
           total: number
         }
         Update: {
+          addon_id?: string | null
           booking_id?: string
           created_at?: string
           id?: string
           name?: string
+          pickup_info?: Json | null
+          pickup_zone_id?: string | null
           price?: number
           qty?: number
           total?: number
         }
         Relationships: [
           {
+            foreignKeyName: "booking_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "booking_addons_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_addons_pickup_zone_id_fkey"
+            columns: ["pickup_zone_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -935,6 +1026,51 @@ export type Database = {
           },
         ]
       }
+      pickup_zones: {
+        Row: {
+          addon_id: string
+          created_at: string
+          id: string
+          partner_id: string
+          price_override: number | null
+          status: Database["public"]["Enums"]["route_status"]
+          zone_name: string
+        }
+        Insert: {
+          addon_id: string
+          created_at?: string
+          id?: string
+          partner_id: string
+          price_override?: number | null
+          status?: Database["public"]["Enums"]["route_status"]
+          zone_name: string
+        }
+        Update: {
+          addon_id?: string
+          created_at?: string
+          id?: string
+          partner_id?: string
+          price_override?: number | null
+          status?: Database["public"]["Enums"]["route_status"]
+          zone_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickup_zones_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_zones_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           created_at: string
@@ -1362,6 +1498,9 @@ export type Database = {
       }
     }
     Enums: {
+      addon_applicability: "fastboat" | "activities" | "both"
+      addon_pricing_model: "per_person" | "per_booking"
+      addon_type: "pickup" | "generic"
       age_group: "adult" | "child" | "infant"
       app_role: "admin" | "partner_owner" | "partner_staff"
       booking_channel:
@@ -1530,6 +1669,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      addon_applicability: ["fastboat", "activities", "both"],
+      addon_pricing_model: ["per_person", "per_booking"],
+      addon_type: ["pickup", "generic"],
       age_group: ["adult", "child", "infant"],
       app_role: ["admin", "partner_owner", "partner_staff"],
       booking_channel: [
