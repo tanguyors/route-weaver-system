@@ -76,6 +76,7 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     new Date().toISOString().split('T')[0]
   );
 
+  // Fetch data only once on mount - filter client-side for better UX
   const fetchData = useCallback(async () => {
     if (!widgetKey) {
       setError('No widget key provided');
@@ -85,14 +86,9 @@ export const useWidgetBooking = (widgetKey: string | null) => {
 
     try {
       setLoading(true);
-      const { data: result, error: fnError } = await supabase.functions.invoke('widget-data', {
-        body: null,
-        headers: {},
-      });
 
-      // Use GET request with query params
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/widget-data?widget_key=${widgetKey}&date=${selectedDate}${selectedOrigin ? `&origin=${selectedOrigin}` : ''}${selectedDestination ? `&destination=${selectedDestination}` : ''}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/widget-data?widget_key=${widgetKey}`,
         {
           method: 'GET',
           headers: {
@@ -114,7 +110,7 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     } finally {
       setLoading(false);
     }
-  }, [widgetKey, selectedDate, selectedOrigin, selectedDestination]);
+  }, [widgetKey]);
 
   useEffect(() => {
     fetchData();
@@ -130,11 +126,18 @@ export const useWidgetBooking = (widgetKey: string | null) => {
 
   const getAvailableDepartures = () => {
     if (!data || !selectedOrigin || !selectedDestination) return [];
+    
     const matchingRoutes = data.routes.filter(
       r => r.origin_port_id === selectedOrigin && r.destination_port_id === selectedDestination
     );
     const routeIds = matchingRoutes.map(r => r.id);
-    return data.departures.filter(d => routeIds.includes(d.route_id));
+    
+    // Filter by route and date client-side
+    return data.departures.filter(d => {
+      const matchesRoute = routeIds.includes(d.route_id);
+      const matchesDate = !selectedDate || d.departure_date >= selectedDate;
+      return matchesRoute && matchesDate;
+    });
   };
 
   const getPricing = (tripId: string, date: string) => {
