@@ -14,7 +14,6 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
-  Clock,
   Loader2,
   CreditCard,
   Percent,
@@ -160,8 +159,13 @@ const TransactionsPage = () => {
                     Available Balance
                   </p>
                   <p className="text-2xl font-bold">
-                    {formatCurrency(summary.availableBalance, 'IDR')}
+                    {formatCurrency(Math.max(0, summary.availableBalance), 'IDR')}
                   </p>
+                  {summary.availableBalance < 0 && (
+                    <p className="text-xs text-destructive">
+                      Commission due: {formatCurrency(Math.abs(summary.availableBalance), 'IDR')}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -169,13 +173,16 @@ const TransactionsPage = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <Banknote className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(summary.pendingBalance, 'IDR')}
+                  <p className="text-sm text-muted-foreground">Commission Due (Cash)</p>
+                  <p className="text-2xl font-bold text-destructive">
+                    {formatCurrency(summary.cashCommissionDue, 'IDR')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    From cash sales: {formatCurrency(summary.cashGross, 'IDR')}
                   </p>
                 </div>
               </div>
@@ -192,6 +199,11 @@ const TransactionsPage = () => {
                   <p className="text-2xl font-bold">
                     {formatCurrency(summary.totalWithdrawn, 'IDR')}
                   </p>
+                  {summary.pendingBalance > 0 && (
+                    <p className="text-xs text-orange-600">
+                      Pending: {formatCurrency(summary.pendingBalance, 'IDR')}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -204,10 +216,10 @@ const TransactionsPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    Commission ({summary.partnerCommissionRate}%)
+                    Total Commission ({summary.partnerCommissionRate}%)
                   </p>
-                  <p className="text-2xl font-bold text-destructive">
-                    -{formatCurrency(summary.totalCommission, 'IDR')}
+                  <p className="text-2xl font-bold text-muted-foreground">
+                    {formatCurrency(summary.totalCommission, 'IDR')}
                   </p>
                 </div>
               </div>
@@ -215,38 +227,89 @@ const TransactionsPage = () => {
           </Card>
         </div>
 
-        {/* Financial Overview */}
+        {/* Financial Overview - Cash vs Online breakdown */}
         <Card>
           <CardHeader>
             <CardTitle>Financial Overview</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Gross Revenue</p>
-                <p className="text-xl font-bold">
-                  {formatCurrency(summary.totalGross, 'IDR')}
-                </p>
+          <CardContent className="space-y-4">
+            {/* Online Payments (collected by platform) */}
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <h4 className="font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                Online Payments (collected by platform)
+              </h4>
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Gross</p>
+                  <p className="text-lg font-bold">{formatCurrency(summary.onlineGross, 'IDR')}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Commission Deducted</p>
+                  <p className="text-lg font-bold text-destructive">
+                    -{formatCurrency(summary.onlineGross - summary.onlineNet, 'IDR')}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Net (Withdrawable)</p>
+                  <p className="text-lg font-bold text-green-600">
+                    {formatCurrency(summary.onlineNet, 'IDR')}
+                  </p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Platform Commission
-                </p>
-                <p className="text-xl font-bold text-destructive">
-                  -{formatCurrency(summary.totalCommission, 'IDR')}
-                </p>
+            </div>
+
+            {/* Cash Payments (kept by partner) */}
+            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <h4 className="font-semibold text-orange-700 dark:text-orange-400 mb-3 flex items-center gap-2">
+                <Banknote className="w-4 h-4" />
+                Cash/Offline Payments (kept by partner)
+              </h4>
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total Collected</p>
+                  <p className="text-lg font-bold">{formatCurrency(summary.cashGross, 'IDR')}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Commission Owed</p>
+                  <p className="text-lg font-bold text-destructive">
+                    {formatCurrency(summary.cashCommissionDue, 'IDR')}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Net Kept by Partner</p>
+                  <p className="text-lg font-bold text-orange-600">
+                    {formatCurrency(summary.cashGross - summary.cashCommissionDue, 'IDR')}
+                  </p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Provider Fees</p>
-                <p className="text-xl font-bold text-muted-foreground">
-                  -{formatCurrency(summary.totalProviderFees, 'IDR')}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Net Revenue</p>
-                <p className="text-xl font-bold text-green-600">
-                  {formatCurrency(summary.totalNet, 'IDR')}
-                </p>
+            </div>
+
+            {/* Summary */}
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="grid sm:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total Gross</p>
+                  <p className="text-xl font-bold">{formatCurrency(summary.totalGross, 'IDR')}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total Commission</p>
+                  <p className="text-xl font-bold text-muted-foreground">
+                    -{formatCurrency(summary.totalCommission, 'IDR')}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Provider Fees</p>
+                  <p className="text-xl font-bold text-muted-foreground">
+                    -{formatCurrency(summary.totalProviderFees, 'IDR')}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total Net</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {formatCurrency(summary.totalNet, 'IDR')}
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
