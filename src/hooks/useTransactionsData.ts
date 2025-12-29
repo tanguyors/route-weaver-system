@@ -63,6 +63,11 @@ export interface FinancialSummary {
   availableBalance: number;
   totalWithdrawn: number;
   partnerCommissionRate: number;
+  // New fields for cash vs online breakdown
+  onlineGross: number;
+  onlineNet: number;
+  cashGross: number;
+  cashCommissionDue: number; // Commission owed from cash payments
 }
 
 export const useTransactionsData = () => {
@@ -77,6 +82,10 @@ export const useTransactionsData = () => {
     availableBalance: 0,
     totalWithdrawn: 0,
     partnerCommissionRate: 7,
+    onlineGross: 0,
+    onlineNet: 0,
+    cashGross: 0,
+    cashCommissionDue: 0,
   });
   const [loading, setLoading] = useState(true);
   const [partnerId, setPartnerId] = useState<string | null>(null);
@@ -174,11 +183,35 @@ export const useTransactionsData = () => {
 
       const partnerCommissionRate = partnerData?.commission_percent || 7;
 
-      // Get all commission records
+      // Get all commission records with payment method info
       const { data: commissionData } = await supabase
         .from('commission_records')
-        .select('gross_amount, platform_fee_amount, payment_provider_fee_amount, partner_net_amount')
+        .select(`
+          gross_amount, 
+          platform_fee_amount, 
+          payment_provider_fee_amount, 
+          partner_net_amount,
+          booking_id
+        `)
         .eq('partner_id', partnerId);
+
+      // Get all payments to know which are cash vs online
+      const { data: paymentsData } = await supabase
+        .from('payments')
+        .select('booking_id, method, status')
+        .eq('partner_id', partnerId)
+        .eq('status', 'paid');
+
+      // Create a map of booking_id to payment method
+      const bookingPaymentMethod: Record<string, string> = {};
+      paymentsData?.forEach(p => {
+        // If there's a cash payment for this booking, mark it as cash
+        if (p.method === 'cash') {
+          bookingPaymentMethod[p.booking_id] = 'cash';
+        } else if (!bookingPaymentMethod[p.booking_id]) {
+          bookingPaymentMethod[p.booking_id] = 'online';
+        }
+      });
 
       // Get withdrawal requests
       const { data: withdrawalData } = await supabase
@@ -186,17 +219,48 @@ export const useTransactionsData = () => {
         .select('amount, status')
         .eq('partner_id', partnerId);
 
-      const totalGross = commissionData?.reduce((sum, r) => sum + Number(r.gross_amount), 0) || 0;
-      const totalCommission = commissionData?.reduce((sum, r) => sum + Number(r.platform_fee_amount), 0) || 0;
-      const totalProviderFees = commissionData?.reduce((sum, r) => sum + Number(r.payment_provider_fee_amount || 0), 0) || 0;
-      const totalNet = commissionData?.reduce((sum, r) => sum + Number(r.partner_net_amount), 0) || 0;
+      // Calculate totals
+      let totalGross = 0;
+      let totalCommission = 0;
+      let totalProviderFees = 0;
+      let totalNet = 0;
+      let onlineGross = 0;
+      let onlineNet = 0;
+      let cashGross = 0;
+      let cashCommissionDue = 0;
+
+      commissionData?.forEach(record => {
+        const gross = Number(record.gross_amount);
+        const commission = Number(record.platform_fee_amount);
+        const providerFee = Number(record.payment_provider_fee_amount || 0);
+        const net = Number(record.partner_net_amount);
+
+        totalGross += gross;
+        totalCommission += commission;
+        totalProviderFees += providerFee;
+        totalNet += net;
+
+        // Check if this booking was paid with cash
+        const paymentMethod = bookingPaymentMethod[record.booking_id];
+        if (paymentMethod === 'cash') {
+          cashGross += gross;
+          cashCommissionDue += commission; // Commission is still owed
+        } else if (paymentMethod === 'online') {
+          onlineGross += gross;
+          onlineNet += net;
+        }
+      });
 
       const approvedWithdrawals = withdrawalData?.filter(w => w.status === 'paid') || [];
       const pendingWithdrawals = withdrawalData?.filter(w => w.status === 'requested' || w.status === 'approved') || [];
 
       const totalWithdrawn = approvedWithdrawals.reduce((sum, w) => sum + Number(w.amount), 0);
       const pendingBalance = pendingWithdrawals.reduce((sum, w) => sum + Number(w.amount), 0);
-      const availableBalance = totalNet - totalWithdrawn - pendingBalance;
+      
+      // Available balance = Online payments net - Cash commission due - Withdrawals
+      // For cash payments: partner keeps the money but owes commission to platform
+      // So available balance is reduced by the commission they owe
+      const availableBalance = onlineNet - cashCommissionDue - totalWithdrawn - pendingBalance;
 
       setSummary({
         totalGross,
@@ -207,6 +271,10 @@ export const useTransactionsData = () => {
         availableBalance,
         totalWithdrawn,
         partnerCommissionRate,
+        onlineGross,
+        onlineNet,
+        cashGross,
+        cashCommissionDue,
       });
     } catch (error: any) {
       console.error('Error calculating summary:', error);
