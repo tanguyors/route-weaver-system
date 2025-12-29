@@ -78,7 +78,7 @@ const SchedulesPage = () => {
               Manage departures, capacity, and view bookings
             </p>
           </div>
-          {canEdit && schedules.length > 0 && (
+          {canEdit && trips.length > 0 && (
             <Button variant="hero" onClick={() => setGenerateDialogOpen(true)}>
               <Zap className="w-4 h-4 mr-2" />
               Generate Departures
