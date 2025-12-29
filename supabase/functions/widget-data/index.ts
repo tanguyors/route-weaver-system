@@ -72,6 +72,39 @@ serve(async (req) => {
       .eq('partner_id', partnerId)
       .eq('status', 'active');
 
+    // Get add-ons for this partner
+    const { data: addons } = await supabase
+      .from('addons')
+      .select(`
+        id, name, description, type, pricing_model, price, 
+        is_mandatory, enable_pickup_zones, pickup_required_info,
+        applicability, applicable_route_ids, applicable_trip_ids, applicable_schedule_ids
+      `)
+      .eq('partner_id', partnerId)
+      .eq('status', 'active');
+
+    // Get pickup zones for add-ons with pickup zones enabled
+    const addonIds = (addons || [])
+      .filter(a => a.enable_pickup_zones)
+      .map(a => a.id);
+    
+    let pickupZones: any[] = [];
+    if (addonIds.length > 0) {
+      const { data: zones } = await supabase
+        .from('pickup_zones')
+        .select('id, addon_id, zone_name, price_override')
+        .eq('partner_id', partnerId)
+        .eq('status', 'active')
+        .in('addon_id', addonIds);
+      pickupZones = zones || [];
+    }
+
+    // Attach pickup zones to their addons
+    const addonsWithZones = (addons || []).map(addon => ({
+      ...addon,
+      pickup_zones: pickupZones.filter(z => z.addon_id === addon.id)
+    }));
+
     // Build departures query
     let departuresQuery = supabase
       .from('departures')
@@ -116,6 +149,7 @@ serve(async (req) => {
         trips: trips || [],
         price_rules: priceRules || [],
         departures: filteredDepartures,
+        addons: addonsWithZones,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
