@@ -62,6 +62,7 @@ export interface FinancialSummary {
   pendingBalance: number;
   availableBalance: number;
   totalWithdrawn: number;
+  partnerCommissionRate: number;
 }
 
 export const useTransactionsData = () => {
@@ -75,6 +76,7 @@ export const useTransactionsData = () => {
     pendingBalance: 0,
     availableBalance: 0,
     totalWithdrawn: 0,
+    partnerCommissionRate: 7,
   });
   const [loading, setLoading] = useState(true);
   const [partnerId, setPartnerId] = useState<string | null>(null);
@@ -163,6 +165,15 @@ export const useTransactionsData = () => {
     if (!partnerId) return;
 
     try {
+      // Get partner's commission rate
+      const { data: partnerData } = await supabase
+        .from('partners')
+        .select('commission_percent')
+        .eq('id', partnerId)
+        .single();
+
+      const partnerCommissionRate = partnerData?.commission_percent || 7;
+
       // Get all commission records
       const { data: commissionData } = await supabase
         .from('commission_records')
@@ -195,6 +206,7 @@ export const useTransactionsData = () => {
         pendingBalance,
         availableBalance,
         totalWithdrawn,
+        partnerCommissionRate,
       });
     } catch (error: any) {
       console.error('Error calculating summary:', error);
