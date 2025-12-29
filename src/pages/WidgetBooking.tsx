@@ -382,6 +382,10 @@ const WidgetBooking = () => {
               time: booking.departureTime,
             }}
             totalAmount={bookingResult.total_amount}
+            subtotalAmount={bookingResult.subtotal_amount}
+            addonsAmount={bookingResult.addons_amount}
+            discountAmount={bookingResult.discount_amount}
+            addons={bookingResult.addons}
             customer={booking.customer}
           />
         )}

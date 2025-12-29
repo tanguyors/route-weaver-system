@@ -1,7 +1,8 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Calendar, Clock, Users, QrCode, Download, Ship } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, Users, QrCode, Download, Ship, Package, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
+import { SelectedAddon } from '@/hooks/useWidgetBooking';
 
 interface BookingSuccessProps {
   bookingId: string;
@@ -12,6 +13,10 @@ interface BookingSuccessProps {
     time: string;
   };
   totalAmount: number;
+  subtotalAmount?: number;
+  addonsAmount?: number;
+  discountAmount?: number;
+  addons?: SelectedAddon[];
   customer: {
     full_name: string;
     email: string;
@@ -23,6 +28,10 @@ export const BookingSuccess = ({
   qrToken,
   departure,
   totalAmount,
+  subtotalAmount,
+  addonsAmount,
+  discountAmount,
+  addons = [],
   customer,
 }: BookingSuccessProps) => {
   const formatPrice = (price: number) => {
@@ -74,6 +83,53 @@ export const BookingSuccess = ({
           </div>
         </div>
 
+        {/* Add-ons Section */}
+        {addons && addons.length > 0 && (
+          <div className="border rounded-lg p-4 space-y-3">
+            <h3 className="font-medium flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Selected Add-ons
+            </h3>
+            <div className="space-y-2">
+              {addons.map((addon, index) => (
+                <div key={index} className="flex justify-between items-start text-sm">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      {addon.pickup_zone_name ? (
+                        <MapPin className="h-3 w-3 text-blue-500" />
+                      ) : (
+                        <Package className="h-3 w-3 text-purple-500" />
+                      )}
+                      <span className="font-medium">{addon.name}</span>
+                      {addon.qty > 1 && (
+                        <span className="text-muted-foreground">x{addon.qty}</span>
+                      )}
+                    </div>
+                    {addon.pickup_zone_name && (
+                      <p className="text-xs text-muted-foreground ml-5">
+                        Zone: {addon.pickup_zone_name}
+                      </p>
+                    )}
+                    {addon.pickup_info && (
+                      <div className="text-xs text-muted-foreground ml-5 mt-1">
+                        {addon.pickup_info.hotel_name && (
+                          <p>Hotel: {addon.pickup_info.hotel_name}</p>
+                        )}
+                        {addon.pickup_info.address && (
+                          <p>Address: {addon.pickup_info.address}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-mono text-muted-foreground">
+                    {formatPrice(addon.total)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* QR Code */}
         <div className="text-center p-6 border rounded-lg">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -90,6 +146,28 @@ export const BookingSuccess = ({
           <p className="text-xs text-muted-foreground mt-4">
             Show this QR code when boarding
           </p>
+        </div>
+
+        {/* Price Breakdown */}
+        <div className="space-y-2 text-sm">
+          {subtotalAmount !== undefined && subtotalAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Ticket Price</span>
+              <span>{formatPrice(subtotalAmount)}</span>
+            </div>
+          )}
+          {addonsAmount !== undefined && addonsAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Add-ons</span>
+              <span>{formatPrice(addonsAmount)}</span>
+            </div>
+          )}
+          {discountAmount !== undefined && discountAmount > 0 && (
+            <div className="flex justify-between text-emerald-600">
+              <span>Discount</span>
+              <span>-{formatPrice(discountAmount)}</span>
+            </div>
+          )}
         </div>
 
         {/* Total */}
