@@ -48,6 +48,7 @@ export interface PartnerInfo {
   id: string;
   name: string;
   legal_name: string | null;
+  logo_url: string | null;
   contact_email: string | null;
   contact_phone: string | null;
   contact_name: string | null;
