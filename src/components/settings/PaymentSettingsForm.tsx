@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { CreditCard, Loader2 } from 'lucide-react';
 import { PartnerSettings } from '@/hooks/useSettingsData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentSettingsFormProps {
   settings: PartnerSettings;
@@ -36,6 +37,25 @@ const PaymentSettingsForm = ({ settings, onSave, saving }: PaymentSettingsFormPr
     deposit_enabled: settings.deposit_enabled || false,
     min_deposit_percent: settings.min_deposit_percent || 50,
   });
+  const [commissionRate, setCommissionRate] = useState<number>(7);
+
+  useEffect(() => {
+    const fetchCommissionRate = async () => {
+      const { data } = await supabase
+        .from('platform_settings')
+        .select('setting_value')
+        .eq('setting_key', 'commission_rate')
+        .single();
+      
+      if (data?.setting_value) {
+        const value = data.setting_value as { percent?: number };
+        if (value.percent !== undefined) {
+          setCommissionRate(value.percent);
+        }
+      }
+    };
+    fetchCommissionRate();
+  }, []);
 
   const handleMethodToggle = (methodId: string, checked: boolean) => {
     setFormData((prev) => ({
@@ -127,7 +147,7 @@ const PaymentSettingsForm = ({ settings, onSave, saving }: PaymentSettingsFormPr
 
         {/* Platform Commission Notice */}
         <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-          <strong>Note:</strong> Platform commission (7%) is automatically applied to all transactions and cannot be modified.
+          <strong>Note:</strong> Platform commission ({commissionRate}%) is automatically applied to all transactions and cannot be modified.
         </div>
 
         <Button onClick={handleSave} disabled={saving}>
