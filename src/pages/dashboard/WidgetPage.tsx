@@ -35,7 +35,7 @@ const WidgetPage = () => {
   } = useWidgetConfigData();
 
   const [creating, setCreating] = useState(false);
-
+  const [widgetStyle, setWidgetStyle] = useState<'block' | 'bar'>('block');
   const handleCreateWidget = async () => {
     setCreating(true);
     await createWidget();
@@ -156,6 +156,8 @@ const WidgetPage = () => {
                     directLink={getDirectLink('block')}
                     barDirectLink={getDirectLink('bar')}
                     widgetKey={widget.public_widget_key}
+                    selectedStyle={widgetStyle}
+                    onStyleChange={setWidgetStyle}
                     onCopyKey={copyWidgetKey}
                   />
                 </CardContent>
@@ -165,14 +167,14 @@ const WidgetPage = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ExternalLink className="w-5 h-5" />
-                    Widget Preview
+                    Widget Preview ({widgetStyle === 'block' ? 'Block' : 'Bar'})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="border rounded-lg overflow-hidden bg-muted/50">
                     <iframe
-                      src={getDirectLink()}
-                      className="w-full h-[500px] border-0"
+                      src={getDirectLink(widgetStyle)}
+                      className={widgetStyle === 'block' ? 'w-full h-[500px] border-0' : 'w-full h-[120px] border-0'}
                       title="Widget Preview"
                     />
                   </div>
