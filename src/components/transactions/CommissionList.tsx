@@ -31,7 +31,7 @@ const CommissionList = ({ commissions, formatCurrency }: CommissionListProps) =>
             <TableHead>Date</TableHead>
             <TableHead>Booking</TableHead>
             <TableHead className="text-right">Gross</TableHead>
-            <TableHead className="text-right">Commission (7%)</TableHead>
+            <TableHead className="text-right">Commission</TableHead>
             <TableHead className="text-right">Provider Fee</TableHead>
             <TableHead className="text-right">Net Amount</TableHead>
           </TableRow>
@@ -62,6 +62,7 @@ const CommissionList = ({ commissions, formatCurrency }: CommissionListProps) =>
               </TableCell>
               <TableCell className="text-right text-destructive">
                 -{formatCurrency(record.platform_fee_amount, record.currency)}
+                <span className="text-xs text-muted-foreground ml-1">({record.platform_fee_percent}%)</span>
               </TableCell>
               <TableCell className="text-right text-muted-foreground">
                 {record.payment_provider_fee_amount
