@@ -1,6 +1,7 @@
 import { Ship, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -35,13 +36,13 @@ const Header = () => {
             </a>
           </div>
 
-          {/* CTA Buttons */}
+{/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Login
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/auth">Login</Link>
             </Button>
-            <Button variant="hero" size="sm">
-              Become a Partner
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/auth">Become a Partner</Link>
             </Button>
           </div>
 
@@ -70,12 +71,12 @@ const Header = () => {
               <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2">
                 Pricing
               </a>
-              <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                <Button variant="ghost" className="justify-start">
-                  Login
+<div className="flex flex-col gap-2 pt-4 border-t border-border">
+                <Button variant="ghost" className="justify-start" asChild>
+                  <Link to="/auth">Login</Link>
                 </Button>
-                <Button variant="hero">
-                  Become a Partner
+                <Button variant="hero" asChild>
+                  <Link to="/auth">Become a Partner</Link>
                 </Button>
               </div>
             </div>
