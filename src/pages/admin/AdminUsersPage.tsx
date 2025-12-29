@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +8,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import UserDetailModal from '@/components/admin/UserDetailModal';
+
+interface UserData {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  created_at: string;
+  role: 'admin' | 'partner_owner' | 'partner_staff' | null;
+  partnerUser: {
+    role: string;
+    created_at: string;
+    partners: { name: string } | null;
+  } | null;
+}
 
 const AdminUsersPage = () => {
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
@@ -78,7 +95,11 @@ const AdminUsersPage = () => {
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow 
+                      key={user.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedUser(user)}
+                    >
                       <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
@@ -124,6 +145,12 @@ const AdminUsersPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      <UserDetailModal
+        user={selectedUser}
+        open={!!selectedUser}
+        onOpenChange={(open) => !open && setSelectedUser(null)}
+      />
     </DashboardLayout>
   );
 };
