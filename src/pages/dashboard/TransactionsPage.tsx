@@ -204,7 +204,7 @@ const TransactionsPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    Total Commission
+                    Commission ({summary.partnerCommissionRate}%)
                   </p>
                   <p className="text-2xl font-bold text-destructive">
                     -{formatCurrency(summary.totalCommission, 'IDR')}
