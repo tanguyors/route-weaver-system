@@ -217,7 +217,10 @@ const WidgetBooking = () => {
         selectedDate={selectedDate}
         paxAdult={barPaxAdult}
         paxChild={barPaxChild}
-        onOriginChange={setSelectedOrigin}
+        onOriginChange={(origin) => {
+          setSelectedOrigin(origin);
+          setSelectedDestination(''); // Reset destination when origin changes
+        }}
         onDestinationChange={setSelectedDestination}
         onDateChange={setSelectedDate}
         onPaxChange={(adult, child) => {
@@ -265,10 +268,11 @@ const WidgetBooking = () => {
             selectedOrigin={selectedOrigin}
             selectedDestination={selectedDestination}
             selectedDate={selectedDate}
-            onOriginChange={setSelectedOrigin}
-            onDestinationChange={(dest) => {
-              setSelectedDestination(dest);
+            onOriginChange={(origin) => {
+              setSelectedOrigin(origin);
+              setSelectedDestination(''); // Reset destination when origin changes
             }}
+            onDestinationChange={setSelectedDestination}
             onDateChange={setSelectedDate}
             availableDestinations={getAvailableDestinations()}
             onContinue={handleRouteSelect}
