@@ -430,6 +430,7 @@ const SettingsPage = () => {
             {settings && (
               <TermsSettingsForm
                 settings={settings}
+                partnerInfo={partnerInfo}
                 onSave={updateSettings}
                 saving={saving}
               />
