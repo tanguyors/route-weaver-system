@@ -21,8 +21,11 @@ import {
   Users,
   Code,
   Loader2,
+  Landmark,
+  Globe,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Textarea } from '@/components/ui/textarea';
 
 const SettingsPage = () => {
   const {
@@ -46,6 +49,16 @@ const SettingsPage = () => {
     contact_phone: '',
     contact_name: '',
     address: '',
+    city: '',
+    postal_code: '',
+    country: 'Indonesia',
+    tax_id: '',
+    website: '',
+    bank_name: '',
+    bank_account_name: '',
+    bank_account_number: '',
+    bank_branch: '',
+    bank_swift_code: '',
   });
 
   // Initialize business form when data loads
@@ -58,6 +71,16 @@ const SettingsPage = () => {
         contact_phone: partnerInfo.contact_phone || '',
         contact_name: partnerInfo.contact_name || '',
         address: partnerInfo.address || '',
+        city: partnerInfo.city || '',
+        postal_code: partnerInfo.postal_code || '',
+        country: partnerInfo.country || 'Indonesia',
+        tax_id: partnerInfo.tax_id || '',
+        website: partnerInfo.website || '',
+        bank_name: partnerInfo.bank_name || '',
+        bank_account_name: partnerInfo.bank_account_name || '',
+        bank_account_number: partnerInfo.bank_account_number || '',
+        bank_branch: partnerInfo.bank_branch || '',
+        bank_swift_code: partnerInfo.bank_swift_code || '',
       });
     }
   });
@@ -147,107 +170,218 @@ const SettingsPage = () => {
 
           {/* Business Info */}
           <TabsContent value="business">
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="w-5 h-5" />
-                      Business Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Business Name</Label>
-                        <Input
-                          value={businessForm.name || partnerInfo?.name || ''}
-                          onChange={(e) => setBusinessForm({ ...businessForm, name: e.target.value })}
-                          placeholder="Your business name"
-                          className="mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label>Legal Name</Label>
-                        <Input
-                          value={businessForm.legal_name || partnerInfo?.legal_name || ''}
-                          onChange={(e) => setBusinessForm({ ...businessForm, legal_name: e.target.value })}
-                          placeholder="Legal entity name"
-                          className="mt-2"
-                        />
-                      </div>
+            <div className="space-y-6">
+              {/* Business Information Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    Business Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Business Name *</Label>
+                      <Input
+                        value={businessForm.name || partnerInfo?.name || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, name: e.target.value })}
+                        placeholder="Your business name"
+                        className="mt-2"
+                      />
                     </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Contact Name</Label>
-                        <Input
-                          value={businessForm.contact_name || partnerInfo?.contact_name || ''}
-                          onChange={(e) => setBusinessForm({ ...businessForm, contact_name: e.target.value })}
-                          placeholder="Primary contact"
-                          className="mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label>Contact Email</Label>
-                        <Input
-                          type="email"
-                          value={businessForm.contact_email || partnerInfo?.contact_email || ''}
-                          onChange={(e) => setBusinessForm({ ...businessForm, contact_email: e.target.value })}
-                          placeholder="contact@example.com"
-                          className="mt-2"
-                        />
-                      </div>
+                    <div>
+                      <Label>Legal Name</Label>
+                      <Input
+                        value={businessForm.legal_name || partnerInfo?.legal_name || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, legal_name: e.target.value })}
+                        placeholder="Legal entity name"
+                        className="mt-2"
+                      />
                     </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Contact Phone</Label>
-                        <Input
-                          value={businessForm.contact_phone || partnerInfo?.contact_phone || ''}
-                          onChange={(e) => setBusinessForm({ ...businessForm, contact_phone: e.target.value })}
-                          placeholder="+62..."
-                          className="mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label>Address</Label>
-                        <Input
-                          value={businessForm.address || partnerInfo?.address || ''}
-                          onChange={(e) => setBusinessForm({ ...businessForm, address: e.target.value })}
-                          placeholder="Business address"
-                          className="mt-2"
-                        />
-                      </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Tax ID / NPWP</Label>
+                      <Input
+                        value={businessForm.tax_id || partnerInfo?.tax_id || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, tax_id: e.target.value })}
+                        placeholder="Tax identification number"
+                        className="mt-2"
+                      />
                     </div>
-                    <Button onClick={handleSaveBusinessInfo} disabled={saving}>
-                      {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                      Save Changes
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
+                    <div>
+                      <Label>Website</Label>
+                      <Input
+                        value={businessForm.website || partnerInfo?.website || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, website: e.target.value })}
+                        placeholder="https://www.example.com"
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Address</Label>
+                    <Textarea
+                      value={businessForm.address || partnerInfo?.address || ''}
+                      onChange={(e) => setBusinessForm({ ...businessForm, address: e.target.value })}
+                      placeholder="Full business address"
+                      className="mt-2"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label>City</Label>
+                      <Input
+                        value={businessForm.city || partnerInfo?.city || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, city: e.target.value })}
+                        placeholder="City"
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>Postal Code</Label>
+                      <Input
+                        value={businessForm.postal_code || partnerInfo?.postal_code || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, postal_code: e.target.value })}
+                        placeholder="Postal code"
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>Country</Label>
+                      <Input
+                        value={businessForm.country || partnerInfo?.country || 'Indonesia'}
+                        onChange={(e) => setBusinessForm({ ...businessForm, country: e.target.value })}
+                        placeholder="Country"
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {/* Widget Shortcut */}
-              <div>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Code className="w-5 h-5" />
-                      Widget Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Configure your booking widget for embedding on your website.
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => navigate('/dashboard/widget')}
-                    >
-                      Go to Widget Settings
-                    </Button>
-                  </CardContent>
-                </Card>
+              {/* Contact Information Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="w-5 h-5" />
+                    Contact Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Contact Name</Label>
+                      <Input
+                        value={businessForm.contact_name || partnerInfo?.contact_name || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, contact_name: e.target.value })}
+                        placeholder="Primary contact person"
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>Contact Email</Label>
+                      <Input
+                        type="email"
+                        value={businessForm.contact_email || partnerInfo?.contact_email || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, contact_email: e.target.value })}
+                        placeholder="contact@example.com"
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Contact Phone</Label>
+                    <Input
+                      value={businessForm.contact_phone || partnerInfo?.contact_phone || ''}
+                      onChange={(e) => setBusinessForm({ ...businessForm, contact_phone: e.target.value })}
+                      placeholder="+62..."
+                      className="mt-2 sm:w-1/2"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Banking Information Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Landmark className="w-5 h-5" />
+                    Banking Information
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Required for receiving withdrawal transfers
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Bank Name *</Label>
+                      <Input
+                        value={businessForm.bank_name || partnerInfo?.bank_name || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, bank_name: e.target.value })}
+                        placeholder="e.g. Bank BCA, Mandiri"
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>Account Holder Name *</Label>
+                      <Input
+                        value={businessForm.bank_account_name || partnerInfo?.bank_account_name || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, bank_account_name: e.target.value })}
+                        placeholder="Name on bank account"
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Account Number *</Label>
+                      <Input
+                        value={businessForm.bank_account_number || partnerInfo?.bank_account_number || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, bank_account_number: e.target.value })}
+                        placeholder="Bank account number"
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>Branch</Label>
+                      <Input
+                        value={businessForm.bank_branch || partnerInfo?.bank_branch || ''}
+                        onChange={(e) => setBusinessForm({ ...businessForm, bank_branch: e.target.value })}
+                        placeholder="Bank branch name"
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                  <div className="sm:w-1/2">
+                    <Label>SWIFT Code (for international transfers)</Label>
+                    <Input
+                      value={businessForm.bank_swift_code || partnerInfo?.bank_swift_code || ''}
+                      onChange={(e) => setBusinessForm({ ...businessForm, bank_swift_code: e.target.value })}
+                      placeholder="e.g. CENAIDJA"
+                      className="mt-2"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Save Button and Widget Shortcut */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button onClick={handleSaveBusinessInfo} disabled={saving} size="lg">
+                  {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Save All Changes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/dashboard/widget')}
+                  className="gap-2"
+                >
+                  <Code className="w-4 h-4" />
+                  Widget Settings
+                </Button>
               </div>
             </div>
           </TabsContent>

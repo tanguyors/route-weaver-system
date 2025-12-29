@@ -39,6 +39,16 @@ export interface PartnerInfo {
   contact_phone: string | null;
   contact_name: string | null;
   address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
+  tax_id: string | null;
+  website: string | null;
+  bank_name: string | null;
+  bank_account_name: string | null;
+  bank_account_number: string | null;
+  bank_branch: string | null;
+  bank_swift_code: string | null;
   status: 'active' | 'pending' | 'suspended';
 }
 
