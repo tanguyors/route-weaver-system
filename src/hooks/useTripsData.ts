@@ -171,6 +171,15 @@ export const useTripsData = () => {
   };
 
   const deleteRoute = async (id: string) => {
+    // First delete all departures for trips on this route
+    const routeTrips = trips.filter(t => t.route_id === id);
+    for (const trip of routeTrips) {
+      await supabase.from('departures').delete().eq('trip_id', trip.id);
+      await supabase.from('departure_templates').delete().eq('trip_id', trip.id);
+    }
+    // Then delete trips on this route
+    await supabase.from('trips').delete().eq('route_id', id);
+    // Finally delete the route
     const { error } = await supabase.from('routes').delete().eq('id', id);
     if (!error) await fetchRoutes();
     return { error };
@@ -227,6 +236,11 @@ export const useTripsData = () => {
   };
 
   const deleteTrip = async (id: string) => {
+    // First delete all departures for this trip
+    await supabase.from('departures').delete().eq('trip_id', id);
+    // Then delete all schedules for this trip
+    await supabase.from('departure_templates').delete().eq('trip_id', id);
+    // Finally delete the trip
     const { error } = await supabase.from('trips').delete().eq('id', id);
     if (!error) await fetchTrips();
     return { error };
@@ -266,6 +280,16 @@ export const useTripsData = () => {
   };
 
   const deleteSchedule = async (id: string) => {
+    // Get the schedule to find its trip_id and departure_time
+    const schedule = schedules.find(s => s.id === id);
+    if (schedule) {
+      // Delete departures that match this schedule's trip and departure time
+      await supabase.from('departures')
+        .delete()
+        .eq('trip_id', schedule.trip_id)
+        .eq('departure_time', schedule.departure_time);
+    }
+    // Then delete the schedule
     const { error } = await supabase.from('departure_templates').delete().eq('id', id);
     if (!error) await fetchSchedules();
     return { error };
