@@ -41,6 +41,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Routes & Trips', href: '/dashboard/trips', icon: Route },
   { label: 'Schedules', href: '/dashboard/schedules', icon: Calendar },
+  { label: 'Add-ons', href: '/dashboard/addons', icon: Ship, ownerOnly: true },
   { label: 'Discounts', href: '/dashboard/discounts', icon: Percent },
   { label: 'Bookings', href: '/dashboard/bookings', icon: BookOpen },
   { label: 'Offline Booking', href: '/dashboard/offline-booking', icon: BookOpen },

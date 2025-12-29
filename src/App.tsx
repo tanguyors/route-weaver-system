@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import TripsPage from "./pages/dashboard/TripsPage";
 import SchedulesPage from "./pages/dashboard/SchedulesPage";
 import DiscountsPage from "./pages/dashboard/DiscountsPage";
+import AddonsPage from "./pages/dashboard/AddonsPage";
 import BookingsPage from "./pages/dashboard/BookingsPage";
 import OfflineBookingPage from "./pages/dashboard/OfflineBookingPage";
 import PaymentLinksPage from "./pages/dashboard/PaymentLinksPage";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/dashboard/trips" element={<ProtectedRoute><TripsPage /></ProtectedRoute>} />
             <Route path="/dashboard/schedules" element={<ProtectedRoute><SchedulesPage /></ProtectedRoute>} />
             <Route path="/dashboard/discounts" element={<ProtectedRoute><DiscountsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/addons" element={<ProtectedRoute><AddonsPage /></ProtectedRoute>} />
             <Route path="/dashboard/bookings" element={<ProtectedRoute><BookingsPage /></ProtectedRoute>} />
             <Route path="/dashboard/offline-booking" element={<ProtectedRoute><OfflineBookingPage /></ProtectedRoute>} />
             <Route path="/dashboard/payment-links" element={<ProtectedRoute><PaymentLinksPage /></ProtectedRoute>} />
