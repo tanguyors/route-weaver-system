@@ -110,16 +110,16 @@ export const useDashboardData = (params: {
       const bookingsThisMonth = bookingsThisMonthCount ?? 0;
       const bookingsLastMonth = bookingsLastMonthCount ?? 0;
 
-      // 2) Revenue (gross) from commission_records (one record per booking) this month vs last month
+      // 2) Revenue (net - after commission deduction) from commission_records this month vs last month
       let revenueThisMonthQuery = supabase
         .from("commission_records")
-        .select("gross_amount, created_at")
+        .select("partner_net_amount, created_at")
         .gte("created_at", monthBounds.startThisMonth)
         .lt("created_at", monthBounds.startNextMonth);
 
       let revenueLastMonthQuery = supabase
         .from("commission_records")
-        .select("gross_amount, created_at")
+        .select("partner_net_amount, created_at")
         .gte("created_at", monthBounds.startLastMonth)
         .lt("created_at", monthBounds.startThisMonth);
 
@@ -132,9 +132,9 @@ export const useDashboardData = (params: {
       ]);
 
       const revenueThisMonth =
-        revenueThisMonthRows?.reduce((sum, r: any) => sum + Number(r.gross_amount), 0) || 0;
+        revenueThisMonthRows?.reduce((sum, r: any) => sum + Number(r.partner_net_amount), 0) || 0;
       const revenueLastMonth =
-        revenueLastMonthRows?.reduce((sum, r: any) => sum + Number(r.gross_amount), 0) || 0;
+        revenueLastMonthRows?.reduce((sum, r: any) => sum + Number(r.partner_net_amount), 0) || 0;
 
       // 3) Today's departures
       let departuresTodayQuery = supabase
