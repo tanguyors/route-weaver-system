@@ -6,11 +6,13 @@ import { BookingStepDeparture } from '@/components/widget/BookingStepDeparture';
 import { BookingStepPassengers } from '@/components/widget/BookingStepPassengers';
 import { BookingStepConfirm } from '@/components/widget/BookingStepConfirm';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
+import WidgetBarView from '@/components/widget/WidgetBarView';
 import { Card } from '@/components/ui/card';
 import { Loader2, Ship, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 type BookingStep = 'route' | 'departure' | 'passengers' | 'confirm' | 'success';
+type WidgetStyle = 'block' | 'bar';
 
 interface BookingState {
   departureId: string;
@@ -37,6 +39,11 @@ interface BookingState {
 const WidgetBooking = () => {
   const [searchParams] = useSearchParams();
   const widgetKey = searchParams.get('key');
+  const styleParam = searchParams.get('style') as WidgetStyle | null;
+  const widgetStyle: WidgetStyle = styleParam === 'bar' ? 'bar' : 'block';
+  
+  const [barPaxAdult, setBarPaxAdult] = useState(1);
+  const [barPaxChild, setBarPaxChild] = useState(0);
   
   const [step, setStep] = useState<BookingStep>('route');
   const [booking, setBooking] = useState<BookingState>({
@@ -114,7 +121,21 @@ const WidgetBooking = () => {
 
   const handleRouteSelect = () => {
     if (selectedOrigin && selectedDestination) {
+      // For bar widget, pre-fill pax from bar selection
+      if (widgetStyle === 'bar') {
+        setBooking(prev => ({
+          ...prev,
+          paxAdult: barPaxAdult,
+          paxChild: barPaxChild,
+        }));
+      }
       setStep('departure');
+    }
+  };
+
+  const handleBarSearch = () => {
+    if (selectedOrigin && selectedDestination && selectedDate) {
+      handleRouteSelect();
     }
   };
 
@@ -186,6 +207,30 @@ const WidgetBooking = () => {
     }
   };
 
+  // BAR WIDGET VIEW
+  if (widgetStyle === 'bar' && step === 'route') {
+    return (
+      <WidgetBarView
+        ports={data?.ports || []}
+        selectedOrigin={selectedOrigin}
+        selectedDestination={selectedDestination}
+        selectedDate={selectedDate}
+        paxAdult={barPaxAdult}
+        paxChild={barPaxChild}
+        onOriginChange={setSelectedOrigin}
+        onDestinationChange={setSelectedDestination}
+        onDateChange={setSelectedDate}
+        onPaxChange={(adult, child) => {
+          setBarPaxAdult(adult);
+          setBarPaxChild(child);
+        }}
+        availableDestinations={getAvailableDestinations()}
+        onSearch={handleBarSearch}
+      />
+    );
+  }
+
+  // BLOCK WIDGET VIEW (default)
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
       <div className="max-w-lg mx-auto">
