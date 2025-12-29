@@ -20,7 +20,8 @@ interface UserData {
   partnerUser: {
     role: string;
     created_at: string;
-    partners: { name: string } | null;
+    partner_id: string;
+    partners: { name: string; id: string; commission_percent: number } | null;
   } | null;
 }
 
@@ -43,10 +44,10 @@ const AdminUsersPage = () => {
         .select('*')
         .in('user_id', userIds);
 
-      // Get partner associations
+      // Get partner associations with commission
       const { data: partnerUsers } = await supabase
         .from('partner_users')
-        .select('*, partners(name)')
+        .select('*, partners(id, name, commission_percent)')
         .in('user_id', userIds);
 
       return profiles?.map(profile => ({

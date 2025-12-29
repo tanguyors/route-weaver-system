@@ -599,6 +599,7 @@ export type Database = {
       partners: {
         Row: {
           address: string | null
+          commission_percent: number
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -612,6 +613,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          commission_percent?: number
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -625,6 +627,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          commission_percent?: number
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
