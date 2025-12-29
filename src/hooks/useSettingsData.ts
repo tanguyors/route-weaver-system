@@ -3,6 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
+export interface CancellationTier {
+  days_min: number;
+  days_max: number;
+  refund_percent: number;
+}
+
 export interface PartnerSettings {
   id: string;
   partner_id: string;
@@ -29,6 +35,13 @@ export interface PartnerSettings {
   email_cancellation: boolean;
   whatsapp_booking_confirmation: boolean;
   whatsapp_payment_link: boolean;
+  // Terms & Conditions
+  terms_booking: string | null;
+  terms_voucher: string | null;
+  cancellation_policy_enabled: boolean;
+  cancellation_policy_tiers: CancellationTier[] | null;
+  tax_service_percent: number;
+  max_booking_advance_days: number;
 }
 
 export interface PartnerInfo {
@@ -135,7 +148,12 @@ export const useSettingsData = () => {
       }
 
       if (settingsData) {
-        setSettings(settingsData as PartnerSettings);
+        // Convert Json types to proper TypeScript types
+        const parsedSettings = {
+          ...settingsData,
+          cancellation_policy_tiers: settingsData.cancellation_policy_tiers as unknown as CancellationTier[] | null,
+        };
+        setSettings(parsedSettings as PartnerSettings);
       }
 
       // Fetch staff members
@@ -217,22 +235,30 @@ export const useSettingsData = () => {
 
     setSaving(true);
     try {
+      // Convert CancellationTier[] to Json for Supabase
+      const supabaseUpdates = {
+        ...updates,
+        cancellation_policy_tiers: updates.cancellation_policy_tiers 
+          ? JSON.parse(JSON.stringify(updates.cancellation_policy_tiers))
+          : undefined,
+      };
+
       const { error } = await supabase
         .from('partner_settings')
-        .update(updates)
+        .update(supabaseUpdates)
         .eq('partner_id', partnerId);
 
       if (error) throw error;
 
       // Log audit
-      await supabase.from('audit_logs').insert({
+      await supabase.from('audit_logs').insert([{
         partner_id: partnerId,
         actor_user_id: user.id,
         action: 'update_settings',
         entity_type: 'partner_settings',
         entity_id: settings.id,
-        metadata: { updates },
-      });
+        metadata: { updates: supabaseUpdates },
+      }]);
 
       setSettings((prev) => (prev ? { ...prev, ...updates } : null));
 
