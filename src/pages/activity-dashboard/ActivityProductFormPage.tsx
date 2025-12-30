@@ -151,6 +151,7 @@ const ActivityProductFormPage = () => {
     location_lat: null as number | null,
     location_lng: null as number | null,
     voucher_type: 'e_voucher' as VoucherType,
+    generate_qr_tickets: true,
     guest_form_enabled: false,
     guest_form_config: { name: true, phone: false, age: false, custom_fields: [] } as GuestFormConfig,
     guest_form_apply_to: 'per_booking' as GuestFormApply,
@@ -214,6 +215,7 @@ const ActivityProductFormPage = () => {
         location_lat: product.location_lat,
         location_lng: product.location_lng,
         voucher_type: product.voucher_type as VoucherType,
+        generate_qr_tickets: product.generate_qr_tickets ?? true,
         guest_form_enabled: product.guest_form_enabled || false,
         guest_form_config: asGuestFormConfig(product.guest_form_config),
         guest_form_apply_to: product.guest_form_apply_to as GuestFormApply,
@@ -266,6 +268,7 @@ const ActivityProductFormPage = () => {
         location_lat: formData.location_lat,
         location_lng: formData.location_lng,
         voucher_type: formData.voucher_type,
+        generate_qr_tickets: formData.generate_qr_tickets,
         guest_form_enabled: formData.guest_form_enabled,
         guest_form_config: toJson(formData.guest_form_config),
         guest_form_apply_to: formData.guest_form_apply_to,
@@ -933,6 +936,22 @@ const ActivityProductFormPage = () => {
                       <p className="text-sm font-medium">Not Required</p>
                       <p className="text-xs text-muted-foreground">No voucher</p>
                     </button>
+                  </div>
+
+                  {/* Generate QR Tickets Option */}
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div>
+                      <Label>Generate QR Tickets</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Create scannable QR code tickets for check-in
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.generate_qr_tickets}
+                      onCheckedChange={(checked) => 
+                        setFormData(prev => ({ ...prev, generate_qr_tickets: checked }))
+                      }
+                    />
                   </div>
                 </CardContent>
               </Card>

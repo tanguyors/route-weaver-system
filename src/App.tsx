@@ -35,6 +35,7 @@ import ActivityInvoicesPage from "./pages/activity-dashboard/ActivityInvoicesPag
 import ActivityBillingSettingsPage from "./pages/activity-dashboard/ActivityBillingSettingsPage";
 import ActivityWidgetConfigPage from "./pages/activity-dashboard/ActivityWidgetConfigPage";
 import ActivitySettingsPage from "./pages/activity-dashboard/ActivitySettingsPage";
+import ActivityCheckinPage from "./pages/activity-dashboard/ActivityCheckinPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -106,6 +107,7 @@ const App = () => (
             <Route path="/activity-dashboard/settings/billing" element={<ModuleProtectedRoute requiredModule="activity"><ActivityBillingSettingsPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/widget" element={<ModuleProtectedRoute requiredModule="activity"><ActivityWidgetConfigPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/settings" element={<ModuleProtectedRoute requiredModule="activity"><ActivitySettingsPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/checkin" element={<ModuleProtectedRoute requiredModule="activity"><ActivityCheckinPage /></ModuleProtectedRoute>} />
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/partners" element={<ProtectedRoute><AdminPartnersPage /></ProtectedRoute>} />

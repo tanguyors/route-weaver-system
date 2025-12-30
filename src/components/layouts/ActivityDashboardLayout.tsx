@@ -21,6 +21,7 @@ import {
   Wallet,
   FileText,
   Code2,
+  QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,13 +49,13 @@ const navItems: NavItem[] = [
   { label: 'Products', href: '/activity-dashboard/products', icon: Package },
   { label: 'Availability', href: '/activity-dashboard/availability', icon: Calendar },
   { label: 'Bookings', href: '/activity-dashboard/bookings', icon: Ticket },
+  { label: 'Check-in', href: '/activity-dashboard/checkin', icon: QrCode },
   { label: 'Widget', href: '/activity-dashboard/widget', icon: Code2 },
   { label: 'Customers', href: '/activity-dashboard/customers', icon: Users },
   { label: 'Transactions', href: '/activity-dashboard/transactions', icon: CreditCard },
   { label: 'Payouts', href: '/activity-dashboard/payouts', icon: Wallet },
   { label: 'Invoices', href: '/activity-dashboard/invoices', icon: FileText },
   { label: 'Reports', href: '/activity-dashboard/reports', icon: BarChart3 },
-  { label: 'Billing', href: '/activity-dashboard/settings/billing', icon: Settings },
   { label: 'Settings', href: '/activity-dashboard/settings', icon: Settings },
 ];
 
