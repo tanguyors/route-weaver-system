@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import DashboardLayout from '@/components/layouts/ActivityDashboardLayout';
@@ -9,13 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Code2,
   ExternalLink,
@@ -23,7 +22,6 @@ import {
   Eye,
   Loader2,
   Package,
-  Link as LinkIcon,
   Info,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,6 +60,13 @@ const ActivityWidgetConfigPage = () => {
     enabled: !!partnerId,
   });
 
+  // Auto-select first product when products load
+  useEffect(() => {
+    if (products.length > 0 && !selectedProductId) {
+      setSelectedProductId(products[0].id);
+    }
+  }, [products, selectedProductId]);
+
   const getWidgetUrl = (productId: string) => {
     return `${baseUrl}/widget/activity/${productId}`;
   };
@@ -96,6 +101,8 @@ const ActivityWidgetConfigPage = () => {
       default: return 'Activity';
     }
   };
+
+  const selectedProduct = products.find(p => p.id === selectedProductId);
 
   if (isLoading) {
     return (
@@ -150,105 +157,64 @@ const ActivityWidgetConfigPage = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6">
-            {/* Products Table */}
+          <div className="space-y-6">
+            {/* Product Selector */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <LinkIcon className="w-5 h-5" />
-                  Widget Links
-                </CardTitle>
-                <CardDescription>
-                  Click on a product to view its embed code
-                </CardDescription>
+                <CardTitle>Select Product</CardTitle>
+                <CardDescription>Choose a product to get its widget embed code</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Select
+                    value={selectedProductId || ''}
+                    onValueChange={setSelectedProductId}
+                  >
+                    <SelectTrigger className="w-full sm:w-[300px]">
+                      <SelectValue placeholder="Select a product" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {products.map((product) => (
-                        <TableRow 
-                          key={product.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setSelectedProductId(
-                            selectedProductId === product.id ? null : product.id
-                          )}
-                        >
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{product.name}</p>
-                              {product.short_description && (
-                                <p className="text-xs text-muted-foreground line-clamp-1">
-                                  {product.short_description}
-                                </p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
+                        <SelectItem key={product.id} value={product.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{product.name}</span>
+                            <Badge variant="outline" className="text-xs">
                               {getProductTypeLabel(product.product_type)}
                             </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="default" className="bg-emerald-500">
-                              Active
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopyLink(product.id);
-                                }}
-                                title="Copy link"
-                              >
-                                <Copy className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePreview(product.id);
-                                }}
-                                title="Preview widget"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                          </div>
+                        </SelectItem>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </SelectContent>
+                  </Select>
+                  
+                  {selectedProductId && (
+                    <Button
+                      variant="outline"
+                      onClick={() => handlePreview(selectedProductId)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Preview Widget
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Embed Code Panel */}
-            {selectedProductId && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Code2 className="w-5 h-5" />
-                    Embed Code - {products.find(p => p.id === selectedProductId)?.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Direct Link */}
-                  <div className="space-y-2">
-                    <Label>Direct Link</Label>
+            {selectedProductId && selectedProduct && (
+              <>
+                {/* Direct Link */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ExternalLink className="w-5 h-5" />
+                      Direct Link
+                    </CardTitle>
+                    <CardDescription>
+                      Share this link directly with customers for booking
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <div className="flex gap-2">
                       <Input
                         readOnly
@@ -270,18 +236,23 @@ const ActivityWidgetConfigPage = () => {
                         Open
                       </Button>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <Separator />
-
-                  {/* Iframe Embed */}
-                  <div className="space-y-2">
-                    <Label>Iframe Embed Code</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Copy and paste this code into your website's HTML where you want the booking widget to appear.
-                    </p>
+                {/* Iframe Embed */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Code2 className="w-5 h-5" />
+                      Iframe Embed Code
+                    </CardTitle>
+                    <CardDescription>
+                      Copy and paste this code into your website's HTML
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div className="relative">
-                      <pre className="p-4 bg-muted rounded-lg text-sm font-mono overflow-x-auto">
+                      <pre className="p-4 bg-muted rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-wrap">
                         {getIframeCode(selectedProductId)}
                       </pre>
                       <Button
@@ -294,13 +265,18 @@ const ActivityWidgetConfigPage = () => {
                         Copy Code
                       </Button>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <Separator />
-
-                  {/* Preview */}
-                  <div className="space-y-2">
-                    <Label>Widget Preview</Label>
+                {/* Preview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Eye className="w-5 h-5" />
+                      Widget Preview - {selectedProduct.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <div className="border rounded-lg overflow-hidden bg-muted/50">
                       <iframe
                         src={getWidgetUrl(selectedProductId)}
@@ -308,9 +284,9 @@ const ActivityWidgetConfigPage = () => {
                         title="Widget Preview"
                       />
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </>
             )}
           </div>
         )}
