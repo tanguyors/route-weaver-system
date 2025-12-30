@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   Sheet,
@@ -13,9 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useActivityPayoutDetail, ActivityPayoutDetail } from '@/hooks/useActivityPayoutsData';
+import { FileText, Loader2 } from 'lucide-react';
+import { useActivityPayoutDetail } from '@/hooks/useActivityPayoutsData';
+import { useActivityInvoicesData } from '@/hooks/useActivityInvoicesData';
+import { useToast } from '@/hooks/use-toast';
 import PayoutStatusBadge from './PayoutStatusBadge';
+import InvoiceDetailDrawer from '@/components/activity-invoices/InvoiceDetailDrawer';
 
 interface PayoutDetailDrawerProps {
   payoutId: string | null;
@@ -33,9 +39,29 @@ const formatCurrency = (amount: number, currency: string = 'IDR') => {
 };
 
 const PayoutDetailDrawer = ({ payoutId, open, onClose }: PayoutDetailDrawerProps) => {
+  const { toast } = useToast();
   const { data: payout, isLoading } = useActivityPayoutDetail(payoutId);
+  const { createFromPayout, isCreating } = useActivityInvoicesData();
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
+
+  const handleGenerateInvoice = async () => {
+    if (!payoutId) return;
+    try {
+      const result = await createFromPayout(payoutId);
+      if (result.success && result.invoice_id) {
+        toast({ 
+          title: result.already_exists ? 'Invoice exists' : 'Invoice generated',
+          description: `Invoice ${result.invoice_number}` 
+        });
+        setInvoiceId(result.invoice_id);
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
@@ -70,6 +96,26 @@ const PayoutDetailDrawer = ({ payoutId, open, onClose }: PayoutDetailDrawerProps
                   </span>
                 </div>
               )}
+
+              {/* Invoice Action - only for approved or paid payouts */}
+              {(payout.status === 'approved' || payout.status === 'paid') && (
+                <div className="border-t pt-3 mt-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleGenerateInvoice}
+                    disabled={isCreating}
+                  >
+                    {isCreating ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileText className="w-4 h-4 mr-2" />
+                    )}
+                    Generate / View Invoice
+                  </Button>
+                </div>
+              )}
+
               <div className="border-t pt-3 mt-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Gross Revenue</span>
@@ -159,6 +205,13 @@ const PayoutDetailDrawer = ({ payoutId, open, onClose }: PayoutDetailDrawerProps
         )}
       </SheetContent>
     </Sheet>
+    
+    <InvoiceDetailDrawer
+      invoiceId={invoiceId}
+      open={!!invoiceId}
+      onClose={() => setInvoiceId(null)}
+    />
+    </>
   );
 };
 

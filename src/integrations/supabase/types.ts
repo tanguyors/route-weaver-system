@@ -315,6 +315,72 @@ export type Database = {
           },
         ]
       }
+      activity_partner_invoices: {
+        Row: {
+          billing_details: Json | null
+          commission_amount: number
+          created_at: string
+          currency: string
+          due_date: string | null
+          gross_revenue: number
+          id: string
+          invoice_number: string
+          issue_date: string
+          net_amount: number
+          partner_id: string
+          payout_id: string
+          status: Database["public"]["Enums"]["activity_invoice_status"]
+          updated_at: string
+        }
+        Insert: {
+          billing_details?: Json | null
+          commission_amount?: number
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          gross_revenue?: number
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          net_amount?: number
+          partner_id: string
+          payout_id: string
+          status?: Database["public"]["Enums"]["activity_invoice_status"]
+          updated_at?: string
+        }
+        Update: {
+          billing_details?: Json | null
+          commission_amount?: number
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          gross_revenue?: number
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          net_amount?: number
+          partner_id?: string
+          payout_id?: string
+          status?: Database["public"]["Enums"]["activity_invoice_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_partner_invoices_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_partner_invoices_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: true
+            referencedRelation: "activity_partner_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_partner_payouts: {
         Row: {
           commission_amount: number
@@ -2183,6 +2249,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_activity_invoice_from_payout: {
+        Args: { _payout_id: string }
+        Returns: Json
+      }
       create_partner_with_modules: {
         Args: {
           _contact_email: string
@@ -2195,6 +2265,38 @@ export type Database = {
       }
       delete_blackout_range: { Args: { _id: string }; Returns: undefined }
       expire_draft_bookings: { Args: never; Returns: number }
+      export_activity_bookings_lines_csv: {
+        Args: { _date_from: string; _date_to: string; _partner_id?: string }
+        Returns: {
+          booking_date: string
+          booking_id: string
+          invoice_number: string
+          partner_name: string
+          payout_id: string
+          product_name: string
+          slot_time: string
+          status: string
+          subtotal_amount: number
+          total_qty: number
+        }[]
+      }
+      export_activity_invoices_csv: {
+        Args: { _date_from: string; _date_to: string; _partner_id?: string }
+        Returns: {
+          commission_amount: number
+          currency: string
+          gross_revenue: number
+          invoice_number: string
+          issue_date: string
+          net_amount: number
+          paid_at: string
+          partner_name: string
+          period_end: string
+          period_start: string
+          status: string
+        }[]
+      }
+      generate_activity_invoice_number: { Args: never; Returns: string }
       generate_activity_partner_payout: {
         Args: {
           _partner_id: string
@@ -2204,6 +2306,10 @@ export type Database = {
         Returns: Json
       }
       get_activity_booking: { Args: { _booking_id: string }; Returns: Json }
+      get_activity_invoice_detail: {
+        Args: { _invoice_id: string }
+        Returns: Json
+      }
       get_activity_payout_detail: {
         Args: { _payout_id: string }
         Returns: Json
@@ -2257,6 +2363,17 @@ export type Database = {
           _partner_id?: string
           _product_id?: string
           _q?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      list_activity_partner_invoices: {
+        Args: {
+          _date_from?: string
+          _date_to?: string
+          _limit?: number
+          _offset?: number
+          _partner_id?: string
           _status?: string
         }
         Returns: Json
@@ -2320,6 +2437,7 @@ export type Database = {
         Args: { _partner_id: string; _user_id: string }
         Returns: boolean
       }
+      void_activity_invoice: { Args: { _invoice_id: string }; Returns: Json }
     }
     Enums: {
       activity_booking_status:
@@ -2328,6 +2446,7 @@ export type Database = {
         | "cancelled"
         | "expired"
         | "completed"
+      activity_invoice_status: "draft" | "issued" | "void"
       activity_payout_status: "pending" | "approved" | "paid"
       activity_product_status: "draft" | "active" | "inactive"
       activity_product_type: "activity" | "time_slot" | "rental"
@@ -2515,6 +2634,7 @@ export const Constants = {
         "expired",
         "completed",
       ],
+      activity_invoice_status: ["draft", "issued", "void"],
       activity_payout_status: ["pending", "approved", "paid"],
       activity_product_status: ["draft", "active", "inactive"],
       activity_product_type: ["activity", "time_slot", "rental"],
