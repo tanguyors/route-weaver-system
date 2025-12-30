@@ -115,10 +115,10 @@ const WidgetPage = () => {
             </div>
             <Button
               variant="outline"
-              onClick={() => window.open(getDirectLink(), '_blank')}
+              onClick={() => window.open(getDirectLink(widgetStyle), '_blank')}
             >
               <Eye className="w-4 h-4 mr-2" />
-              Preview
+              Preview ({widgetStyle === 'block' ? 'Block' : 'Bar'})
             </Button>
           </div>
         </div>
