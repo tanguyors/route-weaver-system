@@ -38,7 +38,9 @@ import {
   QrCode,
   FileText,
   Ban,
+  Image,
 } from 'lucide-react';
+import { ProductImageGallery } from '@/components/activity-products/ProductImageGallery';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivityCategoriesData } from '@/hooks/useActivityCategoriesData';
@@ -494,7 +496,7 @@ const ActivityProductFormPage = () => {
 
         {/* Main Form Tabs */}
         <Tabs defaultValue="basic" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="pricing">
               {productType === 'rental' ? 'Rental Options' : 'Pricing'}
@@ -502,6 +504,10 @@ const ActivityProductFormPage = () => {
             {productType === 'time_slot' && (
               <TabsTrigger value="slots">Time Slots</TabsTrigger>
             )}
+            <TabsTrigger value="images">
+              <Image className="h-4 w-4 mr-1" />
+              Images
+            </TabsTrigger>
             <TabsTrigger value="options">Options</TabsTrigger>
           </TabsList>
 
@@ -869,6 +875,11 @@ const ActivityProductFormPage = () => {
               </Card>
             </TabsContent>
           )}
+
+          {/* Images Tab */}
+          <TabsContent value="images">
+            <ProductImageGallery productId={id} partnerId={partnerId ?? undefined} />
+          </TabsContent>
 
           {/* Options Tab */}
           <TabsContent value="options">
