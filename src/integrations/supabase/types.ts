@@ -164,6 +164,116 @@ export type Database = {
           },
         ]
       }
+      activity_booking_participants: {
+        Row: {
+          age: number | null
+          booking_id: string
+          created_at: string
+          custom_fields: Json | null
+          id: string
+          name: string | null
+          phone: string | null
+        }
+        Insert: {
+          age?: number | null
+          booking_id: string
+          created_at?: string
+          custom_fields?: Json | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+        }
+        Update: {
+          age?: number | null
+          booking_id?: string
+          created_at?: string
+          custom_fields?: Json | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_booking_participants_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "activity_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_bookings: {
+        Row: {
+          booking_date: string
+          created_at: string
+          currency: string
+          customer: Json | null
+          expires_at: string
+          guest_data: Json | null
+          id: string
+          line_items: Json
+          partner_id: string
+          product_id: string
+          slot_time: string | null
+          status: Database["public"]["Enums"]["activity_booking_status"]
+          subtotal_amount: number
+          total_qty: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          booking_date: string
+          created_at?: string
+          currency?: string
+          customer?: Json | null
+          expires_at?: string
+          guest_data?: Json | null
+          id?: string
+          line_items?: Json
+          partner_id: string
+          product_id: string
+          slot_time?: string | null
+          status?: Database["public"]["Enums"]["activity_booking_status"]
+          subtotal_amount?: number
+          total_qty?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          booking_date?: string
+          created_at?: string
+          currency?: string
+          customer?: Json | null
+          expires_at?: string
+          guest_data?: Json | null
+          id?: string
+          line_items?: Json
+          partner_id?: string
+          product_id?: string
+          slot_time?: string | null
+          status?: Database["public"]["Enums"]["activity_booking_status"]
+          subtotal_amount?: number
+          total_qty?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_bookings_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_bookings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_categories: {
         Row: {
           created_at: string
@@ -1993,6 +2103,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirm_activity_booking: { Args: { _booking_id: string }; Returns: Json }
+      create_activity_booking_intent: {
+        Args: {
+          _booking_date: string
+          _customer?: Json
+          _guest_data?: Json
+          _line_items?: Json
+          _product_id: string
+          _slot_time?: string
+        }
+        Returns: Json
+      }
       create_partner_with_modules: {
         Args: {
           _contact_email: string
@@ -2004,11 +2126,14 @@ export type Database = {
         Returns: string
       }
       delete_blackout_range: { Args: { _id: string }; Returns: undefined }
+      expire_draft_bookings: { Args: never; Returns: number }
+      get_activity_booking: { Args: { _booking_id: string }; Returns: Json }
       get_product_availability: {
         Args: { _end_date: string; _product_id: string; _start_date: string }
         Returns: Json
       }
       get_user_partner_id: { Args: { _user_id: string }; Returns: string }
+      get_widget_product: { Args: { _product_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2067,6 +2192,7 @@ export type Database = {
       }
     }
     Enums: {
+      activity_booking_status: "draft" | "confirmed" | "cancelled" | "expired"
       activity_product_status: "draft" | "active" | "inactive"
       activity_product_type: "activity" | "time_slot" | "rental"
       activity_voucher_type: "e_voucher" | "paper_voucher" | "not_required"
@@ -2246,6 +2372,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_booking_status: ["draft", "confirmed", "cancelled", "expired"],
       activity_product_status: ["draft", "active", "inactive"],
       activity_product_type: ["activity", "time_slot", "rental"],
       activity_voucher_type: ["e_voucher", "paper_voucher", "not_required"],
