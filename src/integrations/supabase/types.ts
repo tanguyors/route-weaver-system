@@ -110,6 +110,7 @@ export type Database = {
         Row: {
           created_at: string
           display_order: number
+          file_path: string | null
           id: string
           image_url: string
           partner_id: string
@@ -118,6 +119,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_order?: number
+          file_path?: string | null
           id?: string
           image_url: string
           partner_id: string
@@ -126,6 +128,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_order?: number
+          file_path?: string | null
           id?: string
           image_url?: string
           partner_id?: string
@@ -1869,6 +1872,10 @@ export type Database = {
           _partner_id: string
         }
         Returns: boolean
+      }
+      reorder_product_images: {
+        Args: { _orders: Json; _product_id: string }
+        Returns: undefined
       }
       user_belongs_to_partner: {
         Args: { _partner_id: string; _user_id: string }
