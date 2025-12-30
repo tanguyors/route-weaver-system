@@ -174,7 +174,7 @@ const WidgetPage = () => {
                   <div className="border rounded-lg overflow-hidden bg-muted/50">
                     <iframe
                       src={getDirectLink(widgetStyle)}
-                      className={widgetStyle === 'block' ? 'w-full h-[500px] border-0' : 'w-full h-[120px] border-0'}
+                      className={widgetStyle === 'block' ? 'w-full h-[500px] border-0' : 'w-full h-[350px] border-0'}
                       title="Widget Preview"
                     />
                   </div>
