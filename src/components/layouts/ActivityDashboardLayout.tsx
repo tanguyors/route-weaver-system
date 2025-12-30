@@ -20,6 +20,7 @@ import {
   Package,
   Wallet,
   FileText,
+  Code2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +48,7 @@ const navItems: NavItem[] = [
   { label: 'Products', href: '/activity-dashboard/products', icon: Package },
   { label: 'Availability', href: '/activity-dashboard/availability', icon: Calendar },
   { label: 'Bookings', href: '/activity-dashboard/bookings', icon: Ticket },
+  { label: 'Widget', href: '/activity-dashboard/widget', icon: Code2 },
   { label: 'Customers', href: '/activity-dashboard/customers', icon: Users },
   { label: 'Transactions', href: '/activity-dashboard/transactions', icon: CreditCard },
   { label: 'Payouts', href: '/activity-dashboard/payouts', icon: Wallet },
