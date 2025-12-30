@@ -4,26 +4,33 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Ship, ArrowLeft } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Ship, ArrowLeft, Compass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const nameSchema = z.string().min(2, 'Full name is required');
+
+type ModuleType = 'boat' | 'activity';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [selectedModules, setSelectedModules] = useState<ModuleType[]>([]);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; name?: string; modules?: string }>({});
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string; name?: string; modules?: string } = {};
     
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) {
@@ -34,9 +41,73 @@ const Auth = () => {
     if (!passwordResult.success) {
       newErrors.password = passwordResult.error.errors[0].message;
     }
+
+    if (!isLogin) {
+      const nameResult = nameSchema.safeParse(fullName);
+      if (!nameResult.success) {
+        newErrors.name = nameResult.error.errors[0].message;
+      }
+
+      if (selectedModules.length === 0) {
+        newErrors.modules = 'Please select at least one business type';
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleModuleToggle = (module: ModuleType) => {
+    setSelectedModules(prev => 
+      prev.includes(module) 
+        ? prev.filter(m => m !== module)
+        : [...prev, module]
+    );
+    setErrors(prev => ({ ...prev, modules: undefined }));
+  };
+
+  const createPartnerAndModules = async (userId: string, userEmail: string) => {
+    // Create partner
+    const partnerName = companyName.trim() || `${fullName}'s Business`;
+    const { data: partner, error: partnerError } = await supabase
+      .from('partners')
+      .insert({
+        name: partnerName,
+        contact_name: fullName,
+        contact_email: userEmail,
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (partnerError) throw partnerError;
+
+    // Create partner_users row (PARTNER_OWNER)
+    const { error: partnerUserError } = await supabase
+      .from('partner_users')
+      .insert({
+        partner_id: partner.id,
+        user_id: userId,
+        role: 'PARTNER_OWNER',
+        status: 'active',
+      });
+
+    if (partnerUserError) throw partnerUserError;
+
+    // Create partner_modules rows (status = pending)
+    const moduleInserts = selectedModules.map(moduleType => ({
+      partner_id: partner.id,
+      module_type: moduleType,
+      status: 'pending' as const,
+    }));
+
+    const { error: modulesError } = await supabase
+      .from('partner_modules')
+      .insert(moduleInserts);
+
+    if (modulesError) throw modulesError;
+
+    return partner;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +128,6 @@ const Auth = () => {
             variant: 'destructive',
           });
         } else {
-          // Redirect to module selector - it will handle routing based on role/modules
           navigate('/select-module');
         }
       } else {
@@ -73,10 +143,27 @@ const Auth = () => {
             variant: 'destructive',
           });
         } else {
-          toast({
-            title: 'Account created!',
-            description: 'Welcome to Sribooking. Your account is pending module activation.',
-          });
+          // Wait for user to be created, then create partner + modules
+          // We need to get the user ID after signup
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            try {
+              await createPartnerAndModules(user.id, email);
+              toast({
+                title: 'Account created!',
+                description: 'Your partner account is pending approval. You will be notified once activated.',
+              });
+            } catch (partnerError) {
+              console.error('Error creating partner:', partnerError);
+              toast({
+                title: 'Account created',
+                description: 'Your account was created but there was an issue setting up your partner profile. Please contact support.',
+                variant: 'destructive',
+              });
+            }
+          }
+          
           navigate('/select-module');
         }
       }
@@ -110,30 +197,50 @@ const Auth = () => {
           </div>
 
           <h1 className="text-2xl font-bold text-foreground text-center mb-2">
-            {isLogin ? 'Welcome back' : 'Create your account'}
+            {isLogin ? 'Welcome back' : 'Partner Registration'}
           </h1>
           <p className="text-muted-foreground text-center mb-8">
             {isLogin
               ? 'Sign in to access your dashboard'
-              : 'Start managing your fastboat business'}
+              : 'Create your partner account to start selling'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Your full name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Your full name"
+                    value={fullName}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      setErrors(prev => ({ ...prev, name: undefined }));
+                    }}
+                    className={errors.name ? 'border-destructive' : ''}
+                  />
+                  {errors.name && (
+                    <p className="text-sm text-destructive">{errors.name}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Company Name (optional)</Label>
+                  <Input
+                    id="companyName"
+                    type="text"
+                    placeholder="Your company or business name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -151,7 +258,7 @@ const Auth = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password *</Label>
               <Input
                 id="password"
                 type="password"
@@ -168,14 +275,78 @@ const Auth = () => {
               )}
             </div>
 
+            {/* Module Selection - Only for signup */}
+            {!isLogin && (
+              <div className="space-y-3 pt-2">
+                <Label className="text-base font-semibold">Select your business type *</Label>
+                <p className="text-sm text-muted-foreground">Choose the services you provide. You can select both.</p>
+                
+                <div className="space-y-3">
+                  {/* Boat Module */}
+                  <div 
+                    className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      selectedModules.includes('boat') 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-muted-foreground/50'
+                    }`}
+                    onClick={() => handleModuleToggle('boat')}
+                  >
+                    <Checkbox 
+                      checked={selectedModules.includes('boat')}
+                      onCheckedChange={() => handleModuleToggle('boat')}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Ship className="w-5 h-5 text-primary" />
+                        <span className="font-medium">Fastboat Provider</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Manage boat routes, schedules, and ticket sales
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Activity Module */}
+                  <div 
+                    className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      selectedModules.includes('activity') 
+                        ? 'border-emerald-500 bg-emerald-500/5' 
+                        : 'border-border hover:border-muted-foreground/50'
+                    }`}
+                    onClick={() => handleModuleToggle('activity')}
+                  >
+                    <Checkbox 
+                      checked={selectedModules.includes('activity')}
+                      onCheckedChange={() => handleModuleToggle('activity')}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Compass className="w-5 h-5 text-emerald-500" />
+                        <span className="font-medium">Activity Provider</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Manage tours, excursions, and experience bookings
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {errors.modules && (
+                  <p className="text-sm text-destructive">{errors.modules}</p>
+                )}
+              </div>
+            )}
+
             <Button
               type="submit"
               variant="hero"
               size="lg"
-              className="w-full"
+              className="w-full mt-6"
               disabled={loading}
             >
-              {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+              {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Partner Account'}
             </Button>
           </form>
 
@@ -185,13 +356,14 @@ const Auth = () => {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setErrors({});
+                setSelectedModules([]);
               }}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {isLogin ? (
                 <>
                   Don't have an account?{' '}
-                  <span className="text-primary font-medium">Sign up</span>
+                  <span className="text-primary font-medium">Register as Partner</span>
                 </>
               ) : (
                 <>
