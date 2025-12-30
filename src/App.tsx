@@ -37,6 +37,8 @@ import NotFound from "./pages/NotFound";
 import WidgetBooking from "./pages/WidgetBooking";
 import PaymentPage from "./pages/PaymentPage";
 import ModifyTicket from "./pages/ModifyTicket";
+import ActivityWidgetPage from "./pages/activity-widget/ActivityWidgetPage";
+import ActivityCheckoutPage from "./pages/activity-widget/ActivityCheckoutPage";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,10 @@ const App = () => (
             <Route path="/book" element={<WidgetBooking />} />
             <Route path="/modify-ticket" element={<ModifyTicket />} />
             <Route path="/pay/:token" element={<PaymentPage />} />
+            
+            {/* Activity Widget Routes (Public) */}
+            <Route path="/widget/activity/:productId" element={<ActivityWidgetPage />} />
+            <Route path="/activity/checkout/:bookingId" element={<ActivityCheckoutPage />} />
             
             {/* Module Selector */}
             <Route path="/select-module" element={<ProtectedRoute><ModuleSelector /></ProtectedRoute>} />
