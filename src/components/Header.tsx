@@ -1,12 +1,67 @@
-import { Ship, Menu, X, LayoutDashboard } from "lucide-react";
+import { Ship, Menu, X, LayoutDashboard, ChevronDown, Shield, Anchor, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { usePartnerModules } from "@/hooks/usePartnerModules";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
+  const { role, loading: roleLoading } = useUserRole();
+  const { activeModules, loading: modulesLoading } = usePartnerModules();
+
+  const isAdmin = role === 'admin';
+  const hasBoatModule = activeModules.includes('boat');
+  const hasActivityModule = activeModules.includes('activity');
+  const hasDashboardAccess = isAdmin || hasBoatModule || hasActivityModule;
+
+  const DashboardDropdown = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="hero" size={isMobile ? "default" : "sm"} className={isMobile ? "w-full justify-between" : ""}>
+          <span className="flex items-center">
+            <LayoutDashboard className="w-4 h-4 mr-2" />
+            Dashboard
+          </span>
+          <ChevronDown className="w-4 h-4 ml-2" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48 bg-background border border-border shadow-lg z-50">
+        {isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link to="/admin" className="flex items-center cursor-pointer">
+              <Shield className="w-4 h-4 mr-2" />
+              Dashboard Admin
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {hasBoatModule && (
+          <DropdownMenuItem asChild>
+            <Link to="/dashboard" className="flex items-center cursor-pointer">
+              <Anchor className="w-4 h-4 mr-2" />
+              Dashboard Boat
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {hasActivityModule && (
+          <DropdownMenuItem asChild>
+            <Link to="/activity-dashboard" className="flex items-center cursor-pointer">
+              <Compass className="w-4 h-4 mr-2" />
+              Dashboard Activity
+            </Link>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
@@ -41,12 +96,16 @@ const Header = () => {
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <Button variant="hero" size="sm" asChild>
-                <Link to="/select-module">
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Link>
-              </Button>
+              hasDashboardAccess && !roleLoading && !modulesLoading ? (
+                <DashboardDropdown />
+              ) : (
+                <Button variant="hero" size="sm" asChild>
+                  <Link to="/select-module">
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Link>
+                </Button>
+              )
             ) : (
               <>
                 <Button variant="ghost" size="sm" asChild>
@@ -86,12 +145,16 @@ const Header = () => {
               </a>
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
                 {user ? (
-                  <Button variant="hero" asChild>
-                    <Link to="/select-module">
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
-                      Dashboard
-                    </Link>
-                  </Button>
+                  hasDashboardAccess && !roleLoading && !modulesLoading ? (
+                    <DashboardDropdown isMobile />
+                  ) : (
+                    <Button variant="hero" asChild>
+                      <Link to="/select-module">
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        Dashboard
+                      </Link>
+                    </Button>
+                  )
                 ) : (
                   <>
                     <Button variant="ghost" className="justify-start" asChild>
