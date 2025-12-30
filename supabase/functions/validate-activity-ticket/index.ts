@@ -58,13 +58,8 @@ serve(async (req) => {
       .single();
 
     if (ticketError || !ticket) {
-      // Log the invalid scan
-      await supabase.from('activity_checkin_events').insert({
-        ticket_id: null,
-        partner_id,
-        scanned_by_user_id: user_id,
-        result: 'invalid',
-      });
+      // Cannot log invalid scan without a ticket_id (required field)
+      console.log('Ticket not found for qr_token:', qr_token);
 
       return new Response(JSON.stringify({
         success: false,

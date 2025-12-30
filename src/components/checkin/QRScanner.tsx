@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import { Camera, CameraOff, Loader2 } from 'lucide-react';
@@ -12,14 +12,48 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
+  const scannerIdRef = useRef(`qr-reader-${Date.now()}`);
+
+  const stopScanning = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        const scanner = scannerRef.current;
+        scannerRef.current = null;
+        await scanner.stop();
+        // Clear the container manually to prevent React DOM conflicts
+        const container = document.getElementById(scannerIdRef.current);
+        if (container) {
+          container.innerHTML = '';
+        }
+      } catch (err) {
+        console.error('Error stopping scanner:', err);
+      }
+    }
+    if (isMountedRef.current) {
+      setIsScanning(false);
+    }
+  }, []);
 
   const startScanning = async () => {
-    if (!containerRef.current) return;
-
     try {
       setError(null);
-      const scanner = new Html5Qrcode('qr-reader');
+      
+      // Ensure any previous scanner is stopped
+      if (scannerRef.current) {
+        await stopScanning();
+      }
+      
+      // Wait a bit for DOM to settle
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const container = document.getElementById(scannerIdRef.current);
+      if (!container || !isMountedRef.current) return;
+      
+      // Clear container before starting
+      container.innerHTML = '';
+      
+      const scanner = new Html5Qrcode(scannerIdRef.current);
       scannerRef.current = scanner;
 
       await scanner.start(
@@ -30,7 +64,7 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
           aspectRatio: 1,
         },
         (decodedText) => {
-          if (!isProcessing) {
+          if (!isProcessing && isMountedRef.current) {
             // Vibrate on successful scan if supported
             if (navigator.vibrate) {
               navigator.vibrate(200);
@@ -43,30 +77,27 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
         }
       );
 
-      setIsScanning(true);
+      if (isMountedRef.current) {
+        setIsScanning(true);
+      }
     } catch (err: any) {
       console.error('Error starting scanner:', err);
-      setError(err.message || 'Failed to start camera');
-    }
-  };
-
-  const stopScanning = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
-      } catch (err) {
-        console.error('Error stopping scanner:', err);
+      if (isMountedRef.current) {
+        setError(err.message || 'Failed to start camera');
       }
     }
-    setIsScanning(false);
   };
 
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
+    
     return () => {
+      isMountedRef.current = false;
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(console.error);
+        const scanner = scannerRef.current;
+        scannerRef.current = null;
+        scanner.stop().catch(() => {});
       }
     };
   }, []);
@@ -74,8 +105,7 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
   return (
     <div className="space-y-4">
       <div
-        id="qr-reader"
-        ref={containerRef}
+        id={scannerIdRef.current}
         className={`relative overflow-hidden rounded-lg bg-black ${
           isScanning ? 'min-h-[300px]' : 'h-64'
         }`}
