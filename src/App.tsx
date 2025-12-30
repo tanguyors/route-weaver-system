@@ -27,6 +27,8 @@ import ActivityCategoriesPage from "./pages/activity-dashboard/ActivityCategorie
 import ActivityProductsPage from "./pages/activity-dashboard/ActivityProductsPage";
 import ActivityProductFormPage from "./pages/activity-dashboard/ActivityProductFormPage";
 import ActivityAvailabilityPage from "./pages/activity-dashboard/ActivityAvailabilityPage";
+import ActivityBookingsPage from "./pages/activity-dashboard/ActivityBookingsPage";
+import ActivityBookingDetailPage from "./pages/activity-dashboard/ActivityBookingDetailPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -85,6 +87,8 @@ const App = () => (
             <Route path="/activity-dashboard/products/new" element={<ModuleProtectedRoute requiredModule="activity"><ActivityProductFormPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/products/:id" element={<ModuleProtectedRoute requiredModule="activity"><ActivityProductFormPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/availability" element={<ModuleProtectedRoute requiredModule="activity"><ActivityAvailabilityPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/bookings" element={<ModuleProtectedRoute requiredModule="activity"><ActivityBookingsPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/bookings/:id" element={<ModuleProtectedRoute requiredModule="activity"><ActivityBookingDetailPage /></ModuleProtectedRoute>} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
