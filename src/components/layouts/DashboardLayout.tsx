@@ -59,6 +59,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard, adminOnly: true },
   { label: 'All Bookings', href: '/admin/bookings', icon: BookOpen, adminOnly: true },
   { label: 'Commissions', href: '/admin/commissions', icon: Wallet, adminOnly: true },
+  { label: 'Activity Commissions', href: '/admin/activity-commissions', icon: Percent, adminOnly: true },
   { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard, adminOnly: true },
   { label: 'Users', href: '/admin/users', icon: Users, adminOnly: true },
   { label: 'Ports', href: '/admin/ports', icon: Ship, adminOnly: true },

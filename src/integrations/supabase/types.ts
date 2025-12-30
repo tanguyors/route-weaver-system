@@ -437,6 +437,48 @@ export type Database = {
           },
         ]
       }
+      activity_partner_product_commissions: {
+        Row: {
+          commission_rate: number
+          created_at: string
+          id: string
+          partner_id: string
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          commission_rate: number
+          created_at?: string
+          id?: string
+          partner_id: string
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          partner_id?: string
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_partner_product_commissions_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_partner_product_commissions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_pricing: {
         Row: {
           created_at: string
@@ -676,6 +718,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      activity_settings: {
+        Row: {
+          default_commission_rate: number
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          default_commission_rate?: number
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          default_commission_rate?: number
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       activity_time_slots: {
         Row: {
@@ -2267,6 +2327,10 @@ export type Database = {
         Returns: string
       }
       delete_blackout_range: { Args: { _id: string }; Returns: undefined }
+      delete_partner_product_commission: {
+        Args: { _id: string }
+        Returns: Json
+      }
       expire_draft_bookings: { Args: never; Returns: number }
       export_activity_bookings_lines_csv: {
         Args: { _date_from: string; _date_to: string; _partner_id?: string }
@@ -2339,6 +2403,11 @@ export type Database = {
         }
         Returns: Json
       }
+      get_activity_settings: { Args: never; Returns: Json }
+      get_effective_activity_commission_rate: {
+        Args: { _partner_id: string; _product_id: string }
+        Returns: number
+      }
       get_partner_billing_details: {
         Args: { _partner_id?: string }
         Returns: Json
@@ -2396,6 +2465,10 @@ export type Database = {
         }
         Returns: Json
       }
+      list_partner_product_commissions: {
+        Args: { _partner_id: string }
+        Returns: Json
+      }
       mark_activity_partner_payout_paid: {
         Args: { _payout_id: string }
         Returns: Json
@@ -2419,6 +2492,14 @@ export type Database = {
           _start_date: string
         }
         Returns: string
+      }
+      set_partner_commission_rate: {
+        Args: { _partner_id: string; _rate: number }
+        Returns: Json
+      }
+      update_activity_settings_default_commission: {
+        Args: { _rate: number }
+        Returns: Json
       }
       update_partner_billing_details:
         | { Args: { _billing_details: Json }; Returns: Json }
@@ -2456,6 +2537,10 @@ export type Database = {
           _status: Database["public"]["Enums"]["availability_status"]
         }
         Returns: string
+      }
+      upsert_partner_product_commission: {
+        Args: { _partner_id: string; _product_id: string; _rate: number }
+        Returns: Json
       }
       user_belongs_to_partner: {
         Args: { _partner_id: string; _user_id: string }
