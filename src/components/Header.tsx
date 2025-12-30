@@ -42,7 +42,7 @@ const Header = () => {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <Button variant="hero" size="sm" asChild>
-                <Link to="/dashboard">
+                <Link to="/select-module">
                   <LayoutDashboard className="w-4 h-4 mr-2" />
                   Dashboard
                 </Link>
@@ -87,7 +87,7 @@ const Header = () => {
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
                 {user ? (
                   <Button variant="hero" asChild>
-                    <Link to="/dashboard">
+                    <Link to="/select-module">
                       <LayoutDashboard className="w-4 h-4 mr-2" />
                       Dashboard
                     </Link>
