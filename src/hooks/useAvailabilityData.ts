@@ -78,7 +78,7 @@ export const useAvailabilityData = (productId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blackout-ranges', productId] });
-      queryClient.invalidateQueries({ queryKey: ['availability', productId] });
+      queryClient.invalidateQueries({ queryKey: ['availability', productId], exact: false });
       toast.success('Blackout range added');
     },
     onError: (err: Error) => {
@@ -94,7 +94,7 @@ export const useAvailabilityData = (productId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blackout-ranges', productId] });
-      queryClient.invalidateQueries({ queryKey: ['availability', productId] });
+      queryClient.invalidateQueries({ queryKey: ['availability', productId], exact: false });
       toast.success('Blackout range removed');
     },
     onError: () => {
@@ -129,7 +129,7 @@ export const useAvailabilityData = (productId: string | undefined) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['availability', productId] });
+      queryClient.invalidateQueries({ queryKey: ['availability', productId], exact: false });
       toast.success('Day updated');
     },
     onError: (err: Error) => {
@@ -164,7 +164,7 @@ export const useAvailabilityData = (productId: string | undefined) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['availability', productId] });
+      queryClient.invalidateQueries({ queryKey: ['availability', productId], exact: false });
       toast.success('Slot updated');
     },
     onError: (err: Error) => {
