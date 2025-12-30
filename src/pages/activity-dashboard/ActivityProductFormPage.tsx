@@ -87,9 +87,10 @@ interface GuestFormConfig {
 const asCustomField = (item: unknown): CustomField | null => {
   if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
   const obj = item as Record<string, unknown>;
-  if (typeof obj.label !== 'string') return null;
+  const label = typeof obj.label === 'string' ? obj.label.trim() : '';
+  if (!label) return null;
   return {
-    label: obj.label,
+    label,
     required: typeof obj.required === 'boolean' ? obj.required : false,
   };
 };
