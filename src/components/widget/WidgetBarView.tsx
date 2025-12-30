@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Search, MapPin, CalendarDays, Users, ChevronDown, Loader2 } from 'lucide-react';
+import { Search, MapPin, CalendarDays, Users, ChevronDown, Loader2, Baby } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Port {
   id: string;
@@ -49,199 +50,330 @@ const WidgetBarView = ({
   isSearching = false,
   themeConfig,
 }: WidgetBarViewProps) => {
-  const [originOpen, setOriginOpen] = useState(false);
-  const [destOpen, setDestOpen] = useState(false);
-  const [dateOpen, setDateOpen] = useState(false);
-  const [paxOpen, setPaxOpen] = useState(false);
+  const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');
+  const [returnDate, setReturnDate] = useState<string | null>(null);
+  const [paxInfant, setPaxInfant] = useState(0);
+  const [departureDateOpen, setDepartureDateOpen] = useState(false);
+  const [returnDateOpen, setReturnDateOpen] = useState(false);
 
-  const primaryColor = themeConfig?.primary_color || '#f43f5e';
-  const backgroundColor = themeConfig?.background_color || '#ffffff';
-  const textColor = themeConfig?.text_color || '#1e293b';
+  const primaryColor = themeConfig?.primary_color || '#6b21a8';
+  const backgroundColor = themeConfig?.background_color || '#f8fafc';
+  const textColor = themeConfig?.text_color || '#1e1b4b';
   const buttonTextColor = themeConfig?.button_text_color || '#ffffff';
   const borderColor = themeConfig?.border_color || '#e2e8f0';
 
   const selectedOriginPort = ports.find(p => p.id === selectedOrigin);
-  const selectedDestPort = ports.find(p => p.id === selectedDestination);
-  const totalPax = paxAdult + paxChild;
+  const selectedDestPort = availableDestinations.find(p => p.id === selectedDestination);
   const parsedDate = selectedDate ? new Date(selectedDate) : null;
+  const parsedReturnDate = returnDate ? new Date(returnDate) : null;
 
-  const canSearch = selectedOrigin && selectedDestination && selectedDate;
+  const canSearch = selectedOrigin && selectedDestination && selectedDate && (tripType === 'one-way' || returnDate);
 
   return (
     <div 
-      className="w-full py-3 px-4"
+      className="w-full p-6 rounded-2xl shadow-lg relative"
       style={{ backgroundColor }}
     >
-      <div 
-        className="flex items-center rounded-full shadow-lg border overflow-hidden max-w-4xl mx-auto"
-        style={{ borderColor, backgroundColor }}
+      {/* Header */}
+      <h2 
+        className="text-2xl font-bold mb-6"
+        style={{ color: primaryColor }}
       >
-        {/* Destination Field */}
-        <Popover open={originOpen} onOpenChange={setOriginOpen}>
-          <PopoverTrigger asChild>
-            <button 
-              className="flex-1 flex flex-col items-start px-4 py-2 hover:bg-muted/50 transition-colors border-r min-w-0"
+        Book Your Tickets!
+      </h2>
+
+      {/* Trip Type Toggle */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setTripType('one-way')}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+            tripType === 'one-way' 
+              ? 'text-white shadow-md' 
+              : 'bg-white border text-gray-700 hover:bg-gray-50'
+          }`}
+          style={tripType === 'one-way' ? { backgroundColor: primaryColor } : { borderColor }}
+        >
+          One Way
+        </button>
+        <button
+          onClick={() => setTripType('round-trip')}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+            tripType === 'round-trip' 
+              ? 'text-white shadow-md' 
+              : 'bg-white border text-gray-700 hover:bg-gray-50'
+          }`}
+          style={tripType === 'round-trip' ? { backgroundColor: primaryColor } : { borderColor }}
+        >
+          Round Trip
+        </button>
+      </div>
+
+      {/* Row 1: Departure + Dates */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        {/* Departure Field */}
+        <div>
+          <label 
+            className="block text-sm font-semibold mb-2"
+            style={{ color: primaryColor }}
+          >
+            Departure
+          </label>
+          <Select value={selectedOrigin || ''} onValueChange={onOriginChange}>
+            <SelectTrigger 
+              className="w-full h-12 bg-white rounded-lg border"
               style={{ borderColor }}
             >
-              <span className="text-xs font-medium" style={{ color: textColor }}>
-                Destination
-              </span>
-              <span className="text-sm truncate w-full text-left" style={{ color: selectedOriginPort ? textColor : '#94a3b8' }}>
-                {selectedOriginPort?.name || 'Rechercher une destination'}
-              </span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-2" align="start">
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground px-2 py-1">
-                Sélectionner l'origine
-              </p>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5" style={{ color: primaryColor }} />
+                <SelectValue placeholder="Choose Departure">
+                  {selectedOriginPort?.name || 'Choose Departure'}
+                </SelectValue>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
               {ports.map((port) => (
-                <button
-                  key={port.id}
-                  onClick={() => {
-                    onOriginChange(port.id);
-                    setOriginOpen(false);
-                    if (selectedDestination === port.id) {
-                      onDestinationChange('');
-                    }
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                    selectedOrigin === port.id 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  <MapPin className="w-4 h-4 inline mr-2" />
+                <SelectItem key={port.id} value={port.id}>
                   {port.name}
-                </button>
+                </SelectItem>
               ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Dates Field */}
-        <Popover open={dateOpen} onOpenChange={setDateOpen}>
-          <PopoverTrigger asChild>
-            <button 
-              className="flex-1 flex flex-col items-start px-4 py-2 hover:bg-muted/50 transition-colors border-r min-w-0"
-              style={{ borderColor }}
-            >
-              <span className="text-xs font-medium" style={{ color: textColor }}>
-                Dates
-              </span>
-              <span className="text-sm truncate w-full text-left" style={{ color: parsedDate ? textColor : '#94a3b8' }}>
-                {parsedDate ? format(parsedDate, 'dd MMM yyyy') : 'Quand ?'}
-              </span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="center">
-            <Calendar
-              mode="single"
-              selected={parsedDate || undefined}
-              onSelect={(date) => {
-                if (date) {
-                  onDateChange(date.toISOString().split('T')[0]);
-                }
-                setDateOpen(false);
-              }}
-              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        {/* Departure Date */}
+        <div>
+          <label 
+            className="block text-sm font-semibold mb-2"
+            style={{ color: primaryColor }}
+          >
+            Departure Date
+          </label>
+          <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen}>
+            <PopoverTrigger asChild>
+              <button 
+                className="w-full h-12 bg-white rounded-lg border flex items-center gap-2 px-3 text-left"
+                style={{ borderColor }}
+              >
+                <CalendarDays className="w-5 h-5" style={{ color: primaryColor }} />
+                <span style={{ color: parsedDate ? textColor : '#94a3b8' }}>
+                  {parsedDate ? format(parsedDate, 'd MMM yyyy') : 'Select Date'}
+                </span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={parsedDate || undefined}
+                onSelect={(date) => {
+                  if (date) {
+                    onDateChange(date.toISOString().split('T')[0]);
+                  }
+                  setDepartureDateOpen(false);
+                }}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
-        {/* Passengers Field */}
-        <Popover open={paxOpen} onOpenChange={setPaxOpen}>
-          <PopoverTrigger asChild>
-            <button 
-              className="flex-1 flex flex-col items-start px-4 py-2 hover:bg-muted/50 transition-colors min-w-0"
+        {/* Return Date */}
+        <div>
+          <label 
+            className="block text-sm font-semibold mb-2"
+            style={{ color: primaryColor }}
+          >
+            Return Date
+          </label>
+          <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
+            <PopoverTrigger asChild>
+              <button 
+                className={`w-full h-12 bg-white rounded-lg border flex items-center gap-2 px-3 text-left ${
+                  tripType === 'one-way' ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                style={{ borderColor }}
+                disabled={tripType === 'one-way'}
+              >
+                <CalendarDays className="w-5 h-5" style={{ color: primaryColor }} />
+                <span style={{ color: parsedReturnDate ? textColor : '#94a3b8' }}>
+                  {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : 'Select Date'}
+                </span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={parsedReturnDate || undefined}
+                onSelect={(date) => {
+                  if (date) {
+                    setReturnDate(date.toISOString().split('T')[0]);
+                  }
+                  setReturnDateOpen(false);
+                }}
+                disabled={(date) => {
+                  const today = new Date(new Date().setHours(0, 0, 0, 0));
+                  const departureMin = parsedDate || today;
+                  return date < departureMin;
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Row 2: Destination + Passengers + Search */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Destination Field */}
+          <div>
+            <label 
+              className="block text-sm font-semibold mb-2"
+              style={{ color: primaryColor }}
             >
-              <span className="text-xs font-medium" style={{ color: textColor }}>
-                Voyageurs
-              </span>
-              <span className="text-sm truncate w-full text-left" style={{ color: totalPax > 0 ? textColor : '#94a3b8' }}>
-                {totalPax > 0 ? `${totalPax} voyageur${totalPax > 1 ? 's' : ''}` : 'Ajouter des...'}
-              </span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-4" align="end">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Adultes</p>
-                  <p className="text-xs text-muted-foreground">12 ans et plus</p>
-                </div>
+              Destination
+            </label>
+            <Select 
+              value={selectedDestination || ''} 
+              onValueChange={onDestinationChange}
+              disabled={!selectedOrigin}
+            >
+              <SelectTrigger 
+                className="w-full h-12 bg-white rounded-lg border"
+                style={{ borderColor }}
+              >
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => onPaxChange(Math.max(1, paxAdult - 1), paxChild)}
-                    disabled={paxAdult <= 1}
-                  >
-                    -
-                  </Button>
-                  <span className="w-8 text-center font-medium">{paxAdult}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => onPaxChange(paxAdult + 1, paxChild)}
-                  >
-                    +
-                  </Button>
+                  <MapPin className="w-5 h-5" style={{ color: primaryColor }} />
+                  <SelectValue placeholder="Choose Destination">
+                    {selectedDestPort?.name || 'Choose Destination'}
+                  </SelectValue>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Enfants</p>
-                  <p className="text-xs text-muted-foreground">2-11 ans</p>
-                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {availableDestinations.map((port) => (
+                  <SelectItem key={port.id} value={port.id}>
+                    {port.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Adult */}
+          <div>
+            <label 
+              className="block text-sm font-semibold mb-2"
+              style={{ color: primaryColor }}
+            >
+              Adult
+            </label>
+            <Select value={String(paxAdult)} onValueChange={(v) => onPaxChange(Number(v), paxChild)}>
+              <SelectTrigger 
+                className="w-full h-12 bg-white rounded-lg border"
+                style={{ borderColor }}
+              >
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => onPaxChange(paxAdult, Math.max(0, paxChild - 1))}
-                    disabled={paxChild <= 0}
-                  >
-                    -
-                  </Button>
-                  <span className="w-8 text-center font-medium">{paxChild}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => onPaxChange(paxAdult, paxChild + 1)}
-                  >
-                    +
-                  </Button>
+                  <Users className="w-5 h-5" style={{ color: primaryColor }} />
+                  <SelectValue>{paxAdult}</SelectValue>
                 </div>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs mt-1 block" style={{ color: primaryColor }}>
+              10 Years Old +
+            </span>
+          </div>
+
+          {/* Child */}
+          <div>
+            <label 
+              className="block text-sm font-semibold mb-2"
+              style={{ color: primaryColor }}
+            >
+              Child
+            </label>
+            <Select value={String(paxChild)} onValueChange={(v) => onPaxChange(paxAdult, Number(v))}>
+              <SelectTrigger 
+                className="w-full h-12 bg-white rounded-lg border"
+                style={{ borderColor }}
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" style={{ color: primaryColor }} />
+                  <Users className="w-4 h-4 -ml-2" style={{ color: primaryColor }} />
+                  <SelectValue>{paxChild}</SelectValue>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs mt-1 block" style={{ color: primaryColor }}>
+              3 - 10 Years Old
+            </span>
+          </div>
+
+          {/* Infants */}
+          <div>
+            <label 
+              className="block text-sm font-semibold mb-2"
+              style={{ color: primaryColor }}
+            >
+              Infants
+            </label>
+            <Select value={String(paxInfant)} onValueChange={(v) => setPaxInfant(Number(v))}>
+              <SelectTrigger 
+                className="w-full h-12 bg-white rounded-lg border"
+                style={{ borderColor }}
+              >
+                <div className="flex items-center gap-2">
+                  <Baby className="w-5 h-5" style={{ color: primaryColor }} />
+                  <SelectValue>{paxInfant}</SelectValue>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {[0, 1, 2, 3, 4, 5].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs mt-1 block" style={{ color: primaryColor }}>
+              0-2 Years Old
+            </span>
+          </div>
+        </div>
 
         {/* Search Button */}
-        <div className="pr-2">
-          <Button
-            size="icon"
-            className="h-12 w-12 rounded-full shadow-md"
-            style={{ 
-              backgroundColor: primaryColor, 
-              color: buttonTextColor,
-            }}
-            onClick={onSearch}
-            disabled={!canSearch || isSearching}
-          >
-            {isSearching ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
+        <Button
+          className="h-12 px-8 rounded-lg shadow-md font-semibold gap-2"
+          style={{ 
+            backgroundColor: primaryColor, 
+            color: buttonTextColor,
+          }}
+          onClick={onSearch}
+          disabled={!canSearch || isSearching}
+        >
+          {isSearching ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <>
+              Search
               <Search className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Powered By Tag */}
+      <div className="absolute bottom-2 right-4">
+        <span className="text-xs text-gray-400">
+          By <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: primaryColor }}>SriBooking.com</a>
+        </span>
       </div>
     </div>
   );
