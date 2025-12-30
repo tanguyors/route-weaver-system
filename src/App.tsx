@@ -29,6 +29,7 @@ import ActivityProductFormPage from "./pages/activity-dashboard/ActivityProductF
 import ActivityAvailabilityPage from "./pages/activity-dashboard/ActivityAvailabilityPage";
 import ActivityBookingsPage from "./pages/activity-dashboard/ActivityBookingsPage";
 import ActivityBookingDetailPage from "./pages/activity-dashboard/ActivityBookingDetailPage";
+import ActivityReportsPage from "./pages/activity-dashboard/ActivityReportsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -89,6 +90,7 @@ const App = () => (
             <Route path="/activity-dashboard/availability" element={<ModuleProtectedRoute requiredModule="activity"><ActivityAvailabilityPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/bookings" element={<ModuleProtectedRoute requiredModule="activity"><ActivityBookingsPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/bookings/:id" element={<ModuleProtectedRoute requiredModule="activity"><ActivityBookingDetailPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/reports" element={<ModuleProtectedRoute requiredModule="activity"><ActivityReportsPage /></ModuleProtectedRoute>} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />

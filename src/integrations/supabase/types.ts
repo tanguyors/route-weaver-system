@@ -2136,6 +2136,28 @@ export type Database = {
       delete_blackout_range: { Args: { _id: string }; Returns: undefined }
       expire_draft_bookings: { Args: never; Returns: number }
       get_activity_booking: { Args: { _booking_id: string }; Returns: Json }
+      get_activity_reports_summary: {
+        Args: { _date_from: string; _date_to: string; _partner_id: string }
+        Returns: Json
+      }
+      get_activity_reports_timeseries: {
+        Args: {
+          _date_from: string
+          _date_to: string
+          _granularity?: string
+          _partner_id: string
+        }
+        Returns: Json
+      }
+      get_activity_reports_top_products: {
+        Args: {
+          _date_from: string
+          _date_to: string
+          _limit?: number
+          _partner_id: string
+        }
+        Returns: Json
+      }
       get_product_availability: {
         Args: { _end_date: string; _product_id: string; _start_date: string }
         Returns: Json
