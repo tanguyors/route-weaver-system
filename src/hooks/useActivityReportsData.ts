@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 
@@ -39,9 +39,10 @@ export const useActivityReportsData = (
   granularity: 'day' | 'week' | 'month' = 'day'
 ) => {
   const { partnerId } = useUserRole();
+  const queryClient = useQueryClient();
 
   const summaryQuery = useQuery({
-    queryKey: ['activity-reports-summary', partnerId, dateFrom, dateTo],
+    queryKey: ['activity-reports', 'summary', partnerId, dateFrom, dateTo],
     queryFn: async () => {
       if (!partnerId) throw new Error('No partner ID');
       
@@ -52,13 +53,14 @@ export const useActivityReportsData = (
       });
       
       if (error) throw error;
+      // RPC returns jsonb_build_object which is a single object
       return data as unknown as ReportsSummary;
     },
     enabled: !!partnerId && !!dateFrom && !!dateTo,
   });
 
   const timeseriesQuery = useQuery({
-    queryKey: ['activity-reports-timeseries', partnerId, dateFrom, dateTo, granularity],
+    queryKey: ['activity-reports', 'timeseries', partnerId, dateFrom, dateTo, granularity],
     queryFn: async () => {
       if (!partnerId) throw new Error('No partner ID');
       
@@ -76,7 +78,7 @@ export const useActivityReportsData = (
   });
 
   const topProductsQuery = useQuery({
-    queryKey: ['activity-reports-top-products', partnerId, dateFrom, dateTo],
+    queryKey: ['activity-reports', 'top-products', partnerId, dateFrom, dateTo],
     queryFn: async () => {
       if (!partnerId) throw new Error('No partner ID');
       
@@ -93,6 +95,10 @@ export const useActivityReportsData = (
     enabled: !!partnerId && !!dateFrom && !!dateTo,
   });
 
+  const invalidateReports = () => {
+    queryClient.invalidateQueries({ queryKey: ['activity-reports'], exact: false });
+  };
+
   return {
     summary: summaryQuery.data,
     timeseries: timeseriesQuery.data || [],
@@ -104,5 +110,6 @@ export const useActivityReportsData = (
       timeseriesQuery.refetch();
       topProductsQuery.refetch();
     },
+    invalidateReports,
   };
 };
