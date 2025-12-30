@@ -9,11 +9,18 @@ import { BookingStepConfirm } from '@/components/widget/BookingStepConfirm';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import WidgetBarView from '@/components/widget/WidgetBarView';
 import { Card } from '@/components/ui/card';
-import { Loader2, Ship, AlertCircle } from 'lucide-react';
+import { Loader2, Ship, AlertCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 type BookingStep = 'route' | 'departure' | 'passengers' | 'addons' | 'confirm' | 'success';
 type WidgetStyle = 'block' | 'bar';
+
+interface BarSelectionState {
+  tripType: 'one-way' | 'round-trip';
+  returnDate: string | null;
+  paxInfant: number;
+}
 
 interface BookingState {
   departureId: string;
@@ -49,6 +56,11 @@ const WidgetBooking = () => {
   
   const [barPaxAdult, setBarPaxAdult] = useState(1);
   const [barPaxChild, setBarPaxChild] = useState(0);
+  const [barSelection, setBarSelection] = useState<BarSelectionState>({
+    tripType: 'one-way',
+    returnDate: null,
+    paxInfant: 0,
+  });
   
   const [step, setStep] = useState<BookingStep>('route');
   const [booking, setBooking] = useState<BookingState>({
@@ -245,33 +257,10 @@ const WidgetBooking = () => {
     }
   };
 
-  // BAR WIDGET VIEW
-  if (widgetStyle === 'bar' && step === 'route') {
-    return (
-      <WidgetBarView
-        ports={data?.ports || []}
-        selectedOrigin={selectedOrigin}
-        selectedDestination={selectedDestination}
-        selectedDate={selectedDate}
-        paxAdult={barPaxAdult}
-        paxChild={barPaxChild}
-        onOriginChange={(origin) => {
-          setSelectedOrigin(origin);
-          setSelectedDestination(''); // Reset destination when origin changes
-        }}
-        onDestinationChange={setSelectedDestination}
-        onDateChange={setSelectedDate}
-        onPaxChange={(adult, child) => {
-          setBarPaxAdult(adult);
-          setBarPaxChild(child);
-        }}
-        availableDestinations={getAvailableDestinations()}
-        onSearch={handleBarSearch}
-      />
-    );
-  }
+  const originPort = data?.ports.find(p => p.id === selectedOrigin);
+  const destPort = data?.ports.find(p => p.id === selectedDestination);
 
-  // Get steps for progress indicator
+  // Get steps for progress indicator - defined here so it's available for bar widget too
   const getSteps = () => {
     const applicableAddons = booking.routeId ? getApplicableAddons(booking.routeId, booking.tripId) : [];
     const baseSteps = ['route', 'departure', 'passengers'];
@@ -281,6 +270,176 @@ const WidgetBooking = () => {
     baseSteps.push('confirm');
     return baseSteps;
   };
+
+  // BAR WIDGET VIEW - Shows summary header after initial search
+  if (widgetStyle === 'bar') {
+    // Initial search state
+    if (step === 'route') {
+      return (
+        <WidgetBarView
+          ports={data?.ports || []}
+          selectedOrigin={selectedOrigin}
+          selectedDestination={selectedDestination}
+          selectedDate={selectedDate}
+          paxAdult={barPaxAdult}
+          paxChild={barPaxChild}
+          onOriginChange={(origin) => {
+            setSelectedOrigin(origin);
+            setSelectedDestination('');
+          }}
+          onDestinationChange={setSelectedDestination}
+          onDateChange={setSelectedDate}
+          onPaxChange={(adult, child) => {
+            setBarPaxAdult(adult);
+            setBarPaxChild(child);
+          }}
+          availableDestinations={getAvailableDestinations()}
+          onSearch={handleBarSearch}
+          onBarSelectionChange={setBarSelection}
+          barSelection={barSelection}
+        />
+      );
+    }
+
+    // After search - show summary header + step content
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+        {/* Summary Header */}
+        <div className="bg-white shadow-md p-4 border-b">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setStep('route')}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Modify Search
+              </Button>
+              
+              <div className="flex items-center gap-6 text-sm flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-purple-800">Route:</span>
+                  <span>{originPort?.name} → {destPort?.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-purple-800">Date:</span>
+                  <span>{selectedDate}</span>
+                </div>
+                {barSelection.tripType === 'round-trip' && barSelection.returnDate && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-purple-800">Return:</span>
+                    <span>{barSelection.returnDate}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-purple-800">Passengers:</span>
+                  <span>
+                    {barPaxAdult} Adult{barPaxAdult > 1 ? 's' : ''}
+                    {barPaxChild > 0 && `, ${barPaxChild} Child${barPaxChild > 1 ? 'ren' : ''}`}
+                    {barSelection.paxInfant > 0 && `, ${barSelection.paxInfant} Infant${barSelection.paxInfant > 1 ? 's' : ''}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="p-4">
+          <div className="max-w-lg mx-auto">
+            {/* Progress indicator */}
+            {step !== 'success' && (
+              <div className="flex justify-center gap-2 mb-6">
+                {getSteps().map((s, i) => (
+                  <div
+                    key={s}
+                    className={`h-2 w-12 rounded-full transition-colors ${
+                      getSteps().indexOf(step) >= i
+                        ? 'bg-purple-600'
+                        : 'bg-gray-200'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {step === 'departure' && (
+              <BookingStepDeparture
+                departures={getAvailableDepartures()}
+                trips={data?.trips || []}
+                getPricing={getPricing}
+                onSelect={handleDepartureSelect}
+                onBack={goBack}
+              />
+            )}
+
+            {step === 'passengers' && (
+              <BookingStepPassengers
+                adultPrice={booking.adultPrice}
+                childPrice={booking.childPrice}
+                maxSeats={
+                  (data?.departures.find(d => d.id === booking.departureId)?.capacity_total || 0) -
+                  (data?.departures.find(d => d.id === booking.departureId)?.capacity_reserved || 0)
+                }
+                initialAdult={barPaxAdult}
+                initialChild={barPaxChild}
+                onConfirm={handlePassengersConfirm}
+                onBack={goBack}
+              />
+            )}
+
+            {step === 'addons' && (
+              <BookingStepAddons
+                addons={getApplicableAddons(booking.routeId, booking.tripId)}
+                paxTotal={booking.paxAdult + booking.paxChild}
+                onConfirm={handleAddonsConfirm}
+                onBack={goBack}
+              />
+            )}
+
+            {step === 'confirm' && (
+              <BookingStepConfirm
+                booking={{
+                  ...booking,
+                  subtotal: booking.subtotal + booking.addonsTotal,
+                }}
+                isSubmitting={isSubmitting}
+                onSubmit={handleCustomerSubmit}
+                onBack={goBack}
+              />
+            )}
+
+            {step === 'success' && bookingResult && (
+              <BookingSuccess
+                bookingId={bookingResult.booking_id}
+                qrToken={bookingResult.qr_token}
+                departure={{
+                  route: booking.routeName,
+                  date: booking.departureDate,
+                  time: booking.departureTime,
+                }}
+                totalAmount={bookingResult.total_amount}
+                subtotalAmount={bookingResult.subtotal_amount}
+                addonsAmount={bookingResult.addons_amount}
+                discountAmount={bookingResult.discount_amount}
+                addons={bookingResult.addons}
+                customer={booking.customer}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Powered By Tag */}
+        <div className="fixed bottom-2 right-4">
+          <span className="text-xs text-gray-400">
+            By <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" className="hover:underline text-purple-600">SriBooking.com</a>
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // BLOCK WIDGET VIEW (default)
   return (

@@ -9,6 +9,8 @@ interface BookingStepPassengersProps {
   adultPrice: number;
   childPrice: number;
   maxSeats: number;
+  initialAdult?: number;
+  initialChild?: number;
   onConfirm: (paxAdult: number, paxChild: number, promoCode: string) => void;
   onBack: () => void;
 }
@@ -17,11 +19,13 @@ export const BookingStepPassengers = ({
   adultPrice,
   childPrice,
   maxSeats,
+  initialAdult = 1,
+  initialChild = 0,
   onConfirm,
   onBack,
 }: BookingStepPassengersProps) => {
-  const [paxAdult, setPaxAdult] = useState(1);
-  const [paxChild, setPaxChild] = useState(0);
+  const [paxAdult, setPaxAdult] = useState(initialAdult);
+  const [paxChild, setPaxChild] = useState(initialChild);
   const [promoCode, setPromoCode] = useState('');
 
   const totalPax = paxAdult + paxChild;
