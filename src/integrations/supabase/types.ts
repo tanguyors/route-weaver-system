@@ -315,6 +315,48 @@ export type Database = {
           },
         ]
       }
+      activity_checkin_events: {
+        Row: {
+          id: string
+          partner_id: string
+          result: string
+          scanned_at: string
+          scanned_by_user_id: string
+          ticket_id: string
+        }
+        Insert: {
+          id?: string
+          partner_id: string
+          result: string
+          scanned_at?: string
+          scanned_by_user_id: string
+          ticket_id: string
+        }
+        Update: {
+          id?: string
+          partner_id?: string
+          result?: string
+          scanned_at?: string
+          scanned_by_user_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_checkin_events_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_checkin_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "activity_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_partner_invoices: {
         Row: {
           billing_details: Json | null
@@ -584,6 +626,7 @@ export type Database = {
           created_at: string
           default_capacity: number | null
           full_description: string | null
+          generate_qr_tickets: boolean | null
           guest_form_apply_to:
             | Database["public"]["Enums"]["guest_form_apply_type"]
             | null
@@ -609,6 +652,7 @@ export type Database = {
           created_at?: string
           default_capacity?: number | null
           full_description?: string | null
+          generate_qr_tickets?: boolean | null
           guest_form_apply_to?:
             | Database["public"]["Enums"]["guest_form_apply_type"]
             | null
@@ -634,6 +678,7 @@ export type Database = {
           created_at?: string
           default_capacity?: number | null
           full_description?: string | null
+          generate_qr_tickets?: boolean | null
           guest_form_apply_to?:
             | Database["public"]["Enums"]["guest_form_apply_type"]
             | null
@@ -736,6 +781,67 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      activity_tickets: {
+        Row: {
+          booking_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          participant_index: number
+          partner_id: string
+          product_id: string
+          qr_token: string
+          status: string
+          used_at: string | null
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          participant_index?: number
+          partner_id: string
+          product_id: string
+          qr_token?: string
+          status?: string
+          used_at?: string | null
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          participant_index?: number
+          partner_id?: string
+          product_id?: string
+          qr_token?: string
+          status?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_tickets_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "activity_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_tickets_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_tickets_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       activity_time_slots: {
         Row: {
