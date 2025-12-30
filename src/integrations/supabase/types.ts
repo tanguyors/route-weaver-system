@@ -2607,7 +2607,7 @@ export type Database = {
         | "expired"
       trip_status: "active" | "inactive"
       widget_status: "active" | "inactive"
-      widget_type: "fastboat"
+      widget_type: "fastboat" | "activity"
       withdrawal_status: "requested" | "approved" | "paid" | "rejected"
     }
     CompositeTypes: {
@@ -2798,7 +2798,7 @@ export const Constants = {
       ],
       trip_status: ["active", "inactive"],
       widget_status: ["active", "inactive"],
-      widget_type: ["fastboat"],
+      widget_type: ["fastboat", "activity"],
       withdrawal_status: ["requested", "approved", "paid", "rejected"],
     },
   },
