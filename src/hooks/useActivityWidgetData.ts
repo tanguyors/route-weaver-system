@@ -1,6 +1,11 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
+const toJsonOrNull = (v: unknown): Json | null => {
+  if (v === null || v === undefined) return null;
+  return v as Json;
+};
 export interface WidgetProduct {
   id: string;
   name: string;
@@ -124,9 +129,9 @@ export const useActivityWidgetData = (productId: string | undefined) => {
         _product_id: productId,
         _booking_date: bookingDate,
         _slot_time: slotTime || null,
-        _line_items: lineItems as unknown as Record<string, unknown>[],
-        _customer: customer as unknown as Record<string, unknown> || null,
-        _guest_data: guestData as unknown as Record<string, unknown> || null,
+        _line_items: lineItems as unknown as Json,
+        _customer: toJsonOrNull(customer),
+        _guest_data: toJsonOrNull(guestData),
       });
       
       if (error) throw error;

@@ -39,6 +39,9 @@ import {
   FileText,
   Ban,
   Image,
+  Link,
+  Copy,
+  Code,
 } from 'lucide-react';
 import { ProductImageGallery } from '@/components/activity-products/ProductImageGallery';
 import { supabase } from '@/integrations/supabase/client';
@@ -1013,6 +1016,77 @@ const ActivityProductFormPage = () => {
                     </div>
                   </CardContent>
                 )}
+              </Card>
+
+              {/* Widget / Embed */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Code className="w-5 h-5" />
+                    Widget / Embed
+                  </CardTitle>
+                  <CardDescription>Share or embed this product on your website</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isEditing ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Widget URL</Label>
+                        <div className="flex gap-2">
+                          <Input 
+                            readOnly 
+                            value={`${window.location.origin}/widget/activity/${id}`}
+                            className="font-mono text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/widget/activity/${id}`);
+                              toast.success('Widget URL copied');
+                            }}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Embed Code (iframe)</Label>
+                        <div className="flex gap-2">
+                          <Textarea 
+                            readOnly 
+                            rows={3}
+                            value={`<iframe\n  src="${window.location.origin}/widget/activity/${id}"\n  style="width:100%;height:900px;border:0;"\n  loading="lazy"\n></iframe>`}
+                            className="font-mono text-xs"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="flex-shrink-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`<iframe\n  src="${window.location.origin}/widget/activity/${id}"\n  style="width:100%;height:900px;border:0;"\n  loading="lazy"\n></iframe>`);
+                              toast.success('Embed code copied');
+                            }}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.open(`/widget/activity/${id}`, '_blank')}
+                      >
+                        <Link className="w-4 h-4 mr-2" />
+                        Preview Widget
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Save the product first to generate a widget link.
+                    </p>
+                  )}
+                </CardContent>
               </Card>
 
               {/* Status */}
