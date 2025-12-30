@@ -57,7 +57,8 @@ const Auth = () => {
             variant: 'destructive',
           });
         } else {
-          navigate('/dashboard');
+          // Redirect to module selector - it will handle routing based on role/modules
+          navigate('/select-module');
         }
       } else {
         const { error } = await signUp(email, password, fullName);
@@ -74,9 +75,9 @@ const Auth = () => {
         } else {
           toast({
             title: 'Account created!',
-            description: 'Welcome to Sribooking. You can now access your dashboard.',
+            description: 'Welcome to Sribooking. Your account is pending module activation.',
           });
-          navigate('/dashboard');
+          navigate('/select-module');
         }
       }
     } finally {

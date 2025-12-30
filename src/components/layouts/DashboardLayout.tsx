@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { usePartnerModules } from '@/hooks/usePartnerModules';
 import { Button } from '@/components/ui/button';
 import {
   Ship,
@@ -22,6 +23,7 @@ import {
   ChevronDown,
   Building2,
   Wallet,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -66,9 +68,12 @@ const adminNavItems: NavItem[] = [
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, signOut } = useAuth();
   const { role, loading } = useUserRole();
+  const { activeModules } = usePartnerModules();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  const hasBothModules = activeModules.includes('boat') && activeModules.includes('activity');
 
   const handleSignOut = async () => {
     await signOut();
@@ -121,6 +126,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </span>
             </Link>
           </div>
+
+          {/* Switch Module Button - only show if user has both modules */}
+          {hasBothModules && (
+            <div className="px-3 py-2 border-b border-border">
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-2"
+                onClick={() => navigate('/select-module')}
+              >
+                <ArrowLeftRight className="w-4 h-4" />
+                Switch to Activity
+              </Button>
+            </div>
+          )}
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4 px-3">

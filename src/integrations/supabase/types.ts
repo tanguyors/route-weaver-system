@@ -666,6 +666,41 @@ export type Database = {
           },
         ]
       }
+      partner_modules: {
+        Row: {
+          created_at: string
+          id: string
+          module_type: Database["public"]["Enums"]["module_type"]
+          partner_id: string
+          status: Database["public"]["Enums"]["module_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module_type: Database["public"]["Enums"]["module_type"]
+          partner_id: string
+          status?: Database["public"]["Enums"]["module_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module_type?: Database["public"]["Enums"]["module_type"]
+          partner_id?: string
+          status?: Database["public"]["Enums"]["module_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_modules_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_settings: {
         Row: {
           auto_expire_tickets: boolean | null
@@ -1492,6 +1527,13 @@ export type Database = {
         Args: { _partner_id: string; _user_id: string }
         Returns: boolean
       }
+      partner_has_module: {
+        Args: {
+          _module_type: Database["public"]["Enums"]["module_type"]
+          _partner_id: string
+        }
+        Returns: boolean
+      }
       user_belongs_to_partner: {
         Args: { _partner_id: string; _user_id: string }
         Returns: boolean
@@ -1523,6 +1565,8 @@ export type Database = {
         | "last_minute"
       discount_type: "promo_code" | "automatic"
       discount_value_type: "percent" | "fixed"
+      module_status: "active" | "pending" | "disabled"
+      module_type: "boat" | "activity"
       partner_status: "pending" | "active" | "suspended"
       partner_user_role: "PARTNER_OWNER" | "PARTNER_STAFF"
       partner_user_status: "active" | "inactive"
@@ -1696,6 +1740,8 @@ export const Constants = {
       ],
       discount_type: ["promo_code", "automatic"],
       discount_value_type: ["percent", "fixed"],
+      module_status: ["active", "pending", "disabled"],
+      module_type: ["boat", "activity"],
       partner_status: ["pending", "active", "suspended"],
       partner_user_role: ["PARTNER_OWNER", "PARTNER_STAFF"],
       partner_user_status: ["active", "inactive"],
