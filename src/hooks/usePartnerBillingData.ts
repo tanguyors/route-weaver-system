@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface BillingDetails {
   company_name: string;
@@ -29,6 +30,7 @@ const defaultBillingDetails: BillingDetails = {
 
 export const usePartnerBillingData = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['partner-billing-details'],
@@ -37,20 +39,13 @@ export const usePartnerBillingData = () => {
       if (error) throw error;
       return data as unknown as BillingDetails;
     },
+    enabled: !!user,
   });
+
   const updateMutation = useMutation({
     mutationFn: async (details: Partial<BillingDetails>) => {
       const { data, error } = await supabase.rpc('update_partner_billing_details', {
-        _company_name: details.company_name,
-        _address: details.address,
-        _city: details.city,
-        _country: details.country,
-        _tax_id: details.tax_id,
-        _billing_email: details.billing_email,
-        _billing_phone: details.billing_phone,
-        _bank_name: details.bank_name,
-        _bank_account: details.bank_account,
-        _bank_holder: details.bank_holder,
+        _billing_details: details,
       });
       if (error) throw error;
       return data;
