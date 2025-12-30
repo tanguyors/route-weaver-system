@@ -1514,6 +1514,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_partner_with_modules: {
+        Args: {
+          _contact_email: string
+          _contact_name: string
+          _module_types: string[]
+          _partner_name: string
+          _user_id: string
+        }
+        Returns: string
+      }
       get_user_partner_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
