@@ -668,28 +668,34 @@ export type Database = {
       }
       partner_modules: {
         Row: {
+          admin_note: string | null
           created_at: string
           id: string
           module_type: Database["public"]["Enums"]["module_type"]
           partner_id: string
           status: Database["public"]["Enums"]["module_status"]
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
+          admin_note?: string | null
           created_at?: string
           id?: string
           module_type: Database["public"]["Enums"]["module_type"]
           partner_id: string
           status?: Database["public"]["Enums"]["module_status"]
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
+          admin_note?: string | null
           created_at?: string
           id?: string
           module_type?: Database["public"]["Enums"]["module_type"]
           partner_id?: string
           status?: Database["public"]["Enums"]["module_status"]
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
