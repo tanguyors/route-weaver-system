@@ -13,11 +13,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
   User, Mail, Phone, Calendar, Shield, Building2, Key, Smartphone, Copy, 
-  Route, Ship, Ticket, Percent, Save, TrendingUp 
+  Route, Ship, Ticket, Percent, Save, TrendingUp, Compass 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+interface PartnerModule {
+  module_type: 'boat' | 'activity';
+  status: 'active' | 'pending' | 'disabled';
+}
 
 interface UserData {
   id: string;
@@ -32,6 +37,7 @@ interface UserData {
     partner_id: string;
     partners: { name: string; id: string; commission_percent: number } | null;
   } | null;
+  modules?: PartnerModule[];
 }
 
 interface PartnerStats {
@@ -315,6 +321,29 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
                       </Button>
                     </div>
                   </div>
+                  {/* Modules */}
+                  {user.modules && user.modules.length > 0 && (
+                    <div className="space-y-1 col-span-2">
+                      <p className="text-xs text-muted-foreground">Active Modules</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {user.modules.map((module, idx) => (
+                          <Badge 
+                            key={idx}
+                            variant={module.status === 'active' ? 'default' : 'secondary'}
+                            className={`gap-1 ${
+                              module.module_type === 'boat' 
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' 
+                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                            }`}
+                          >
+                            {module.module_type === 'boat' ? <Ship className="w-3 h-3" /> : <Compass className="w-3 h-3" />}
+                            {module.module_type === 'boat' ? 'Boat' : 'Activity'}
+                            <span className="opacity-70">({module.status})</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
