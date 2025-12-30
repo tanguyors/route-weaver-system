@@ -33,6 +33,7 @@ import ActivityReportsPage from "./pages/activity-dashboard/ActivityReportsPage"
 import ActivityPayoutsPage from "./pages/activity-dashboard/ActivityPayoutsPage";
 import ActivityInvoicesPage from "./pages/activity-dashboard/ActivityInvoicesPage";
 import ActivityBillingSettingsPage from "./pages/activity-dashboard/ActivityBillingSettingsPage";
+import ActivityWidgetConfigPage from "./pages/activity-dashboard/ActivityWidgetConfigPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -100,7 +101,7 @@ const App = () => (
             <Route path="/activity-dashboard/payouts" element={<ModuleProtectedRoute requiredModule="activity"><ActivityPayoutsPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/invoices" element={<ModuleProtectedRoute requiredModule="activity"><ActivityInvoicesPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/settings/billing" element={<ModuleProtectedRoute requiredModule="activity"><ActivityBillingSettingsPage /></ModuleProtectedRoute>} />
-            
+            <Route path="/activity-dashboard/widget" element={<ModuleProtectedRoute requiredModule="activity"><ActivityWidgetConfigPage /></ModuleProtectedRoute>} />
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/partners" element={<ProtectedRoute><AdminPartnersPage /></ProtectedRoute>} />
