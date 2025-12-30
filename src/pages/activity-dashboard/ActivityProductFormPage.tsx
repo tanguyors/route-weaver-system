@@ -71,24 +71,46 @@ interface RentalOption {
   price: number;
 }
 
+interface CustomField {
+  label: string;
+  required: boolean;
+}
+
 interface GuestFormConfig {
   name: boolean;
   phone: boolean;
   age: boolean;
-  custom_fields: string[];
+  custom_fields: CustomField[];
 }
 
 // Safe type casting helpers
+const asCustomField = (item: unknown): CustomField | null => {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+  const obj = item as Record<string, unknown>;
+  if (typeof obj.label !== 'string') return null;
+  return {
+    label: obj.label,
+    required: typeof obj.required === 'boolean' ? obj.required : false,
+  };
+};
+
 const asGuestFormConfig = (json: Json | null): GuestFormConfig => {
   if (!json || typeof json !== 'object' || Array.isArray(json)) {
     return { name: true, phone: false, age: false, custom_fields: [] };
   }
   const obj = json as Record<string, unknown>;
+  const customFields: CustomField[] = [];
+  if (Array.isArray(obj.custom_fields)) {
+    for (const item of obj.custom_fields) {
+      const parsed = asCustomField(item);
+      if (parsed) customFields.push(parsed);
+    }
+  }
   return {
     name: typeof obj.name === 'boolean' ? obj.name : true,
     phone: typeof obj.phone === 'boolean' ? obj.phone : false,
     age: typeof obj.age === 'boolean' ? obj.age : false,
-    custom_fields: Array.isArray(obj.custom_fields) ? obj.custom_fields.filter((f): f is string => typeof f === 'string') : [],
+    custom_fields: customFields,
   };
 };
 
@@ -101,25 +123,6 @@ const toJson = (config: GuestFormConfig): Json => {
   return config as unknown as Json;
 };
 
-interface TimeSlot {
-  id?: string;
-  slot_time: string;
-  capacity: number;
-}
-
-interface RentalOption {
-  id?: string;
-  duration_unit: 'hour' | 'day';
-  duration_value: number;
-  price: number;
-}
-
-interface GuestFormConfig {
-  name: boolean;
-  phone: boolean;
-  age: boolean;
-  custom_fields: string[];
-}
 
 const ActivityProductFormPage = () => {
   const navigate = useNavigate();
