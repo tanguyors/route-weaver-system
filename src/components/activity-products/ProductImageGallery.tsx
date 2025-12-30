@@ -179,12 +179,14 @@ export const ProductImageGallery = ({ productId, partnerId }: ProductImageGaller
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      const oldIndex = images.findIndex(img => img.id === active.id);
-      const newIndex = images.findIndex(img => img.id === over.id);
+      // Use displayImages for correct indices
+      const oldIndex = displayImages.findIndex(img => img.id === active.id);
+      const newIndex = displayImages.findIndex(img => img.id === over.id);
       
-      const newOrder = arrayMove(images, oldIndex, newIndex);
+      const newOrder = arrayMove(displayImages, oldIndex, newIndex);
       setLocalImages(newOrder);
       
+      // Normalize to contiguous order 1, 2, 3...
       const reordered = newOrder.map((img, index) => ({
         id: img.id,
         display_order: index + 1,
@@ -193,6 +195,10 @@ export const ProductImageGallery = ({ productId, partnerId }: ProductImageGaller
       await reorderImages(reordered);
       setLocalImages([]);
     }
+  };
+
+  const handleSetMainImage = (imageId: string) => {
+    setMainImage(imageId, displayImages);
   };
 
   const handleDelete = async () => {
@@ -295,7 +301,7 @@ export const ProductImageGallery = ({ productId, partnerId }: ProductImageGaller
                     image={image}
                     isFirst={index === 0}
                     onDelete={setDeleteConfirm}
-                    onSetMain={setMainImage}
+                    onSetMain={handleSetMainImage}
                     isDeleting={isDeleting}
                   />
                 ))}

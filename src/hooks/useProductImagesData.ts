@@ -8,6 +8,7 @@ export interface ProductImage {
   product_id: string;
   partner_id: string;
   image_url: string;
+  file_path: string | null;
   display_order: number;
   created_at: string;
 }
@@ -89,15 +90,19 @@ export const useProductImagesData = (productId: string | undefined, partnerId: s
           .from('activity-products')
           .getPublicUrl(filePath);
 
-        // Save to database
+        // Save to database - trigger will set partner_id from product
+        // Need to cast to bypass strict typing since trigger handles partner_id
+        const insertData = {
+          product_id: productId,
+          partner_id: partnerId, // Will be overwritten by trigger but needed for types
+          image_url: urlData.publicUrl,
+          file_path: filePath,
+          display_order: currentOrder,
+        };
+        
         const { data: imageData, error: dbError } = await supabase
           .from('activity_product_images')
-          .insert({
-            product_id: productId,
-            partner_id: partnerId,
-            image_url: urlData.publicUrl,
-            display_order: currentOrder,
-          })
+          .insert(insertData)
           .select()
           .single();
 
@@ -122,22 +127,17 @@ export const useProductImagesData = (productId: string | undefined, partnerId: s
     },
   });
 
-  // Reorder images
+  // Reorder images using atomic RPC
   const reorderMutation = useMutation({
     mutationFn: async (reorderedImages: { id: string; display_order: number }[]) => {
-      // Update all in parallel
-      const updates = reorderedImages.map(img =>
-        supabase
-          .from('activity_product_images')
-          .update({ display_order: img.display_order })
-          .eq('id', img.id)
-      );
+      if (!productId) throw new Error('Product ID is required');
+      
+      const { error } = await supabase.rpc('reorder_product_images', {
+        _product_id: productId,
+        _orders: reorderedImages,
+      });
 
-      const results = await Promise.all(updates);
-      const errors = results.filter(r => r.error);
-      if (errors.length > 0) {
-        throw new Error('Failed to reorder some images');
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-images', productId] });
@@ -148,20 +148,14 @@ export const useProductImagesData = (productId: string | undefined, partnerId: s
     },
   });
 
-  // Delete image
+  // Delete image using file_path
   const deleteMutation = useMutation({
     mutationFn: async (image: ProductImage) => {
-      if (!partnerId || !productId) {
-        throw new Error('Partner ID and Product ID are required');
-      }
-
-      // Extract file path from URL
-      const urlParts = image.image_url.split('/activity-products/');
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
+      // Delete from storage using file_path (reliable)
+      if (image.file_path) {
         await supabase.storage
           .from('activity-products')
-          .remove([filePath]);
+          .remove([image.file_path]);
       }
 
       // Delete from database
@@ -182,20 +176,23 @@ export const useProductImagesData = (productId: string | undefined, partnerId: s
     },
   });
 
-  // Set as main image (move to position 1)
-  const setMainImage = async (imageId: string) => {
-    const targetImage = images.find(img => img.id === imageId);
-    if (!targetImage || targetImage.display_order === 1) return;
+  // Set as main image - normalize all orders to contiguous sequence
+  const setMainImage = async (imageId: string, currentImages: ProductImage[]) => {
+    const targetImage = currentImages.find(img => img.id === imageId);
+    if (!targetImage) return;
+    
+    // Already first? No-op
+    const sortedImages = [...currentImages].sort((a, b) => a.display_order - b.display_order);
+    if (sortedImages[0]?.id === imageId) return;
 
-    const reordered = images.map(img => {
-      if (img.id === imageId) {
-        return { id: img.id, display_order: 1 };
-      }
-      if (img.display_order < targetImage.display_order) {
-        return { id: img.id, display_order: img.display_order + 1 };
-      }
-      return { id: img.id, display_order: img.display_order };
-    });
+    // Move target to front, then normalize all to 1, 2, 3...
+    const reordered = [
+      targetImage,
+      ...sortedImages.filter(img => img.id !== imageId),
+    ].map((img, index) => ({
+      id: img.id,
+      display_order: index + 1,
+    }));
 
     await reorderMutation.mutateAsync(reordered);
   };
