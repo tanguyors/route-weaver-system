@@ -315,6 +315,62 @@ export type Database = {
           },
         ]
       }
+      activity_partner_payouts: {
+        Row: {
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          currency: string
+          gross_revenue: number
+          id: string
+          net_amount: number
+          paid_at: string | null
+          partner_id: string
+          period_end: string
+          period_start: string
+          status: Database["public"]["Enums"]["activity_payout_status"]
+          updated_at: string
+        }
+        Insert: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          gross_revenue?: number
+          id?: string
+          net_amount?: number
+          paid_at?: string | null
+          partner_id: string
+          period_end: string
+          period_start: string
+          status?: Database["public"]["Enums"]["activity_payout_status"]
+          updated_at?: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          gross_revenue?: number
+          id?: string
+          net_amount?: number
+          paid_at?: string | null
+          partner_id?: string
+          period_end?: string
+          period_start?: string
+          status?: Database["public"]["Enums"]["activity_payout_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_partner_payouts_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_pricing: {
         Row: {
           created_at: string
@@ -2106,6 +2162,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_activity_partner_payout: {
+        Args: { _payout_id: string }
+        Returns: Json
+      }
       cancel_activity_booking: { Args: { _booking_id: string }; Returns: Json }
       complete_activity_booking: {
         Args: { _booking_id: string }
@@ -2135,7 +2195,19 @@ export type Database = {
       }
       delete_blackout_range: { Args: { _id: string }; Returns: undefined }
       expire_draft_bookings: { Args: never; Returns: number }
+      generate_activity_partner_payout: {
+        Args: {
+          _partner_id: string
+          _period_end: string
+          _period_start: string
+        }
+        Returns: Json
+      }
       get_activity_booking: { Args: { _booking_id: string }; Returns: Json }
+      get_activity_payout_detail: {
+        Args: { _payout_id: string }
+        Returns: Json
+      }
       get_activity_reports_summary: {
         Args: { _date_from: string; _date_to: string; _partner_id: string }
         Returns: Json
@@ -2187,6 +2259,21 @@ export type Database = {
           _q?: string
           _status?: string
         }
+        Returns: Json
+      }
+      list_activity_partner_payouts: {
+        Args: {
+          _date_from?: string
+          _date_to?: string
+          _limit?: number
+          _offset?: number
+          _partner_id?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      mark_activity_partner_payout_paid: {
+        Args: { _payout_id: string }
         Returns: Json
       }
       partner_has_module: {
@@ -2241,6 +2328,7 @@ export type Database = {
         | "cancelled"
         | "expired"
         | "completed"
+      activity_payout_status: "pending" | "approved" | "paid"
       activity_product_status: "draft" | "active" | "inactive"
       activity_product_type: "activity" | "time_slot" | "rental"
       activity_voucher_type: "e_voucher" | "paper_voucher" | "not_required"
@@ -2427,6 +2515,7 @@ export const Constants = {
         "expired",
         "completed",
       ],
+      activity_payout_status: ["pending", "approved", "paid"],
       activity_product_status: ["draft", "active", "inactive"],
       activity_product_type: ["activity", "time_slot", "rental"],
       activity_voucher_type: ["e_voucher", "paper_voucher", "not_required"],

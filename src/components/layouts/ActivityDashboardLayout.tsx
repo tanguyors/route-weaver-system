@@ -18,6 +18,7 @@ import {
   ArrowLeftRight,
   FolderOpen,
   Package,
+  Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +48,7 @@ const navItems: NavItem[] = [
   { label: 'Bookings', href: '/activity-dashboard/bookings', icon: Ticket },
   { label: 'Customers', href: '/activity-dashboard/customers', icon: Users },
   { label: 'Transactions', href: '/activity-dashboard/transactions', icon: CreditCard },
+  { label: 'Payouts', href: '/activity-dashboard/payouts', icon: Wallet },
   { label: 'Reports', href: '/activity-dashboard/reports', icon: BarChart3 },
   { label: 'Settings', href: '/activity-dashboard/settings', icon: Settings },
 ];
