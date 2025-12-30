@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, subDays } from 'date-fns';
+import { format, subDays, parseISO } from 'date-fns';
 import { BarChart3, TrendingUp, Users, DollarSign, Percent, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ const ActivityReportsPage = () => {
   const chartData = useMemo(() => {
     return timeseries.map((point) => ({
       ...point,
-      date: format(new Date(point.bucket_start), granularity === 'month' ? 'MMM yyyy' : 'MMM d'),
+      date: format(parseISO(point.bucket_start), granularity === 'month' ? 'MMM yyyy' : 'MMM d'),
     }));
   }, [timeseries, granularity]);
 
