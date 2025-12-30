@@ -423,102 +423,149 @@ const ActivityAvailabilityPage = () => {
                 {selectedDate && format(selectedDate, 'EEEE, MMMM d, yyyy')}
               </SheetTitle>
               <SheetDescription>
-                Edit availability for this day
+                {selectedDate && blackoutDates.has(format(selectedDate, 'yyyy-MM-dd'))
+                  ? 'This day is within a blackout range'
+                  : 'Edit availability for this day'}
               </SheetDescription>
             </SheetHeader>
             <div className="space-y-6 mt-6">
-              {/* Day Status */}
-              <div className="flex items-center justify-between">
-                <Label>Day Status</Label>
-                <div className="flex items-center gap-2">
-                  <span className={cn('text-sm', dayStatus === 'closed' && 'text-muted-foreground')}>Open</span>
-                  <Switch
-                    checked={dayStatus === 'closed'}
-                    onCheckedChange={(checked) => setDayStatus(checked ? 'closed' : 'open')}
-                  />
-                  <span className={cn('text-sm', dayStatus === 'open' && 'text-muted-foreground')}>Closed</span>
-                </div>
-              </div>
-
-              {/* Capacity Override */}
-              {selectedProduct?.product_type !== 'time_slot' && (
-                <div className="space-y-2">
-                  <Label>Capacity Override</Label>
-                  <Input
-                    type="number"
-                    placeholder={`Default: ${selectedProduct?.product_type === 'rental' ? selectedProduct.inventory_count : selectedProduct?.default_capacity}`}
-                    value={dayCapacity}
-                    onChange={(e) => setDayCapacity(e.target.value)}
-                    min={0}
-                  />
-                  <p className="text-xs text-muted-foreground">Leave empty to use default capacity</p>
-                </div>
-              )}
-
-              {/* Note */}
-              <div className="space-y-2">
-                <Label>Note</Label>
-                <Textarea
-                  placeholder="Add a note for this day..."
-                  value={dayNote}
-                  onChange={(e) => setDayNote(e.target.value)}
-                  rows={2}
-                />
-              </div>
-
-              {/* Time Slots (for time_slot products) */}
-              {selectedProduct?.product_type === 'time_slot' && selectedDate && (
-                <div className="space-y-3">
-                  <Label>Time Slots</Label>
-                  {availabilityMap.get(format(selectedDate, 'yyyy-MM-dd'))?.slots?.map(slot => (
-                    <div key={slot.slot_time} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                      <span className="text-sm font-medium w-16">{slot.slot_time.slice(0, 5)}</span>
-                      <div className="flex items-center gap-2 flex-1">
-                        <Switch
-                          checked={slotEdits[slot.slot_time]?.status === 'closed'}
-                          onCheckedChange={(checked) => 
-                            setSlotEdits(prev => ({
-                              ...prev,
-                              [slot.slot_time]: {
-                                ...prev[slot.slot_time],
-                                status: checked ? 'closed' : 'open'
-                              }
-                            }))
-                          }
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {slotEdits[slot.slot_time]?.status === 'closed' ? 'Closed' : 'Open'}
-                        </span>
+              {/* Blackout Warning */}
+              {selectedDate && blackoutDates.has(format(selectedDate, 'yyyy-MM-dd')) ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-muted border border-muted-foreground/20">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                      <Ban className="h-4 w-4" />
+                      <span className="font-medium">Blackout Date (Read-only)</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      This date is closed due to a blackout range. To make changes, remove the blackout first.
+                    </p>
+                  </div>
+                  {/* Find the blackout range containing this date */}
+                  {blackoutRanges
+                    .filter(range => {
+                      if (!selectedDate) return false;
+                      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                      return dateStr >= range.start_date && dateStr <= range.end_date;
+                    })
+                    .map(range => (
+                      <div key={range.id} className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                        <p className="text-sm font-medium mb-1">
+                          {format(parseISO(range.start_date), 'MMM d')} - {format(parseISO(range.end_date), 'MMM d, yyyy')}
+                        </p>
+                        {range.reason && (
+                          <p className="text-xs text-muted-foreground mb-3">{range.reason}</p>
+                        )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            setDeleteBlackoutId(range.id);
+                            setSelectedDate(null);
+                          }}
+                        >
+                          Remove Blackout Range
+                        </Button>
                       </div>
+                    ))}
+                </div>
+              ) : (
+                <>
+                  {/* Day Status */}
+                  <div className="flex items-center justify-between">
+                    <Label>Day Status</Label>
+                    <div className="flex items-center gap-2">
+                      <span className={cn('text-sm', dayStatus === 'closed' && 'text-muted-foreground')}>Open</span>
+                      <Switch
+                        checked={dayStatus === 'closed'}
+                        onCheckedChange={(checked) => setDayStatus(checked ? 'closed' : 'open')}
+                      />
+                      <span className={cn('text-sm', dayStatus === 'open' && 'text-muted-foreground')}>Closed</span>
+                    </div>
+                  </div>
+
+                  {/* Capacity Override */}
+                  {selectedProduct?.product_type !== 'time_slot' && (
+                    <div className="space-y-2">
+                      <Label>Capacity Override</Label>
                       <Input
                         type="number"
-                        className="w-20 h-8"
-                        placeholder={slot.capacity.toString()}
-                        value={slotEdits[slot.slot_time]?.capacity || ''}
-                        onChange={(e) => 
-                          setSlotEdits(prev => ({
-                            ...prev,
-                            [slot.slot_time]: {
-                              ...prev[slot.slot_time],
-                              capacity: e.target.value
-                            }
-                          }))
-                        }
+                        placeholder={`Default: ${selectedProduct?.product_type === 'rental' ? selectedProduct.inventory_count : selectedProduct?.default_capacity}`}
+                        value={dayCapacity}
+                        onChange={(e) => setDayCapacity(e.target.value)}
                         min={0}
                       />
+                      <p className="text-xs text-muted-foreground">Leave empty to use default capacity</p>
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              <Button 
-                onClick={handleSaveDay} 
-                className="w-full" 
-                disabled={isUpsertingDay || isUpsertingSlot}
-              >
-                {(isUpsertingDay || isUpsertingSlot) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Save Changes
-              </Button>
+                  {/* Note */}
+                  <div className="space-y-2">
+                    <Label>Note</Label>
+                    <Textarea
+                      placeholder="Add a note for this day..."
+                      value={dayNote}
+                      onChange={(e) => setDayNote(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Time Slots (for time_slot products) */}
+                  {selectedProduct?.product_type === 'time_slot' && selectedDate && (
+                    <div className="space-y-3">
+                      <Label>Time Slots</Label>
+                      {availabilityMap.get(format(selectedDate, 'yyyy-MM-dd'))?.slots?.map(slot => (
+                        <div key={slot.slot_time} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                          <span className="text-sm font-medium w-16">{slot.slot_time.slice(0, 5)}</span>
+                          <div className="flex items-center gap-2 flex-1">
+                            <Switch
+                              checked={slotEdits[slot.slot_time]?.status === 'closed'}
+                              onCheckedChange={(checked) => 
+                                setSlotEdits(prev => ({
+                                  ...prev,
+                                  [slot.slot_time]: {
+                                    ...prev[slot.slot_time],
+                                    status: checked ? 'closed' : 'open'
+                                  }
+                                }))
+                              }
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {slotEdits[slot.slot_time]?.status === 'closed' ? 'Closed' : 'Open'}
+                            </span>
+                          </div>
+                          <Input
+                            type="number"
+                            className="w-20 h-8"
+                            placeholder={slot.capacity.toString()}
+                            value={slotEdits[slot.slot_time]?.capacity || ''}
+                            onChange={(e) => 
+                              setSlotEdits(prev => ({
+                                ...prev,
+                                [slot.slot_time]: {
+                                  ...prev[slot.slot_time],
+                                  capacity: e.target.value
+                                }
+                              }))
+                            }
+                            min={0}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleSaveDay} 
+                    className="w-full" 
+                    disabled={isUpsertingDay || isUpsertingSlot}
+                  >
+                    {(isUpsertingDay || isUpsertingSlot) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save Changes
+                  </Button>
+                </>
+              )}
             </div>
           </SheetContent>
         </Sheet>
