@@ -32,6 +32,7 @@ import ActivityBookingDetailPage from "./pages/activity-dashboard/ActivityBookin
 import ActivityReportsPage from "./pages/activity-dashboard/ActivityReportsPage";
 import ActivityPayoutsPage from "./pages/activity-dashboard/ActivityPayoutsPage";
 import ActivityInvoicesPage from "./pages/activity-dashboard/ActivityInvoicesPage";
+import ActivityBillingSettingsPage from "./pages/activity-dashboard/ActivityBillingSettingsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -97,6 +98,7 @@ const App = () => (
             <Route path="/activity-dashboard/reports" element={<ModuleProtectedRoute requiredModule="activity"><ActivityReportsPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/payouts" element={<ModuleProtectedRoute requiredModule="activity"><ActivityPayoutsPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/invoices" element={<ModuleProtectedRoute requiredModule="activity"><ActivityInvoicesPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/settings/billing" element={<ModuleProtectedRoute requiredModule="activity"><ActivityBillingSettingsPage /></ModuleProtectedRoute>} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
