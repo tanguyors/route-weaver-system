@@ -23,6 +23,9 @@ import TransactionsPage from "./pages/dashboard/TransactionsPage";
 import WidgetPage from "./pages/dashboard/WidgetPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
 import ActivityDashboard from "./pages/activity-dashboard/ActivityDashboard";
+import ActivityCategoriesPage from "./pages/activity-dashboard/ActivityCategoriesPage";
+import ActivityProductsPage from "./pages/activity-dashboard/ActivityProductsPage";
+import ActivityProductFormPage from "./pages/activity-dashboard/ActivityProductFormPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -70,6 +73,10 @@ const App = () => (
             
             {/* Activity Partner Dashboard Routes */}
             <Route path="/activity-dashboard" element={<ModuleProtectedRoute requiredModule="activity"><ActivityDashboard /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/categories" element={<ModuleProtectedRoute requiredModule="activity"><ActivityCategoriesPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/products" element={<ModuleProtectedRoute requiredModule="activity"><ActivityProductsPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/products/new" element={<ModuleProtectedRoute requiredModule="activity"><ActivityProductFormPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/products/:id" element={<ModuleProtectedRoute requiredModule="activity"><ActivityProductFormPage /></ModuleProtectedRoute>} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />

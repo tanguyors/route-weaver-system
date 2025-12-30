@@ -43,6 +43,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivityCategoriesData } from '@/hooks/useActivityCategoriesData';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 type ProductType = 'activity' | 'time_slot' | 'rental';
 type ProductStatus = 'draft' | 'active' | 'inactive';
@@ -56,6 +57,49 @@ interface PricingTier {
   min_age: number | null;
   max_age: number | null;
 }
+
+interface TimeSlot {
+  id?: string;
+  slot_time: string;
+  capacity: number;
+}
+
+interface RentalOption {
+  id?: string;
+  duration_unit: 'hour' | 'day';
+  duration_value: number;
+  price: number;
+}
+
+interface GuestFormConfig {
+  name: boolean;
+  phone: boolean;
+  age: boolean;
+  custom_fields: string[];
+}
+
+// Safe type casting helpers
+const asGuestFormConfig = (json: Json | null): GuestFormConfig => {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
+    return { name: true, phone: false, age: false, custom_fields: [] };
+  }
+  const obj = json as Record<string, unknown>;
+  return {
+    name: typeof obj.name === 'boolean' ? obj.name : true,
+    phone: typeof obj.phone === 'boolean' ? obj.phone : false,
+    age: typeof obj.age === 'boolean' ? obj.age : false,
+    custom_fields: Array.isArray(obj.custom_fields) ? obj.custom_fields.filter((f): f is string => typeof f === 'string') : [],
+  };
+};
+
+const asStringArray = (arr: unknown): string[] => {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((item): item is string => typeof item === 'string');
+};
+
+const toJson = (config: GuestFormConfig): Json => {
+  return config as unknown as Json;
+};
 
 interface TimeSlot {
   id?: string;
@@ -154,7 +198,7 @@ const ActivityProductFormPage = () => {
         category_id: product.category_id || '',
         language: product.language,
         name: product.name,
-        highlights: product.highlights || [],
+        highlights: asStringArray(product.highlights),
         short_description: product.short_description || '',
         full_description: product.full_description || '',
         location_name: product.location_name || '',
@@ -162,7 +206,7 @@ const ActivityProductFormPage = () => {
         location_lng: product.location_lng,
         voucher_type: product.voucher_type as VoucherType,
         guest_form_enabled: product.guest_form_enabled || false,
-        guest_form_config: (product.guest_form_config as unknown as GuestFormConfig) || { name: true, phone: false, age: false, custom_fields: [] },
+        guest_form_config: asGuestFormConfig(product.guest_form_config),
         guest_form_apply_to: product.guest_form_apply_to as GuestFormApply,
         default_capacity: product.default_capacity || 50,
         inventory_count: product.inventory_count || 1,
@@ -214,7 +258,7 @@ const ActivityProductFormPage = () => {
         location_lng: formData.location_lng,
         voucher_type: formData.voucher_type,
         guest_form_enabled: formData.guest_form_enabled,
-        guest_form_config: formData.guest_form_config as unknown as Record<string, unknown>,
+        guest_form_config: toJson(formData.guest_form_config),
         guest_form_apply_to: formData.guest_form_apply_to,
         default_capacity: productType === 'activity' ? formData.default_capacity : null,
         inventory_count: productType === 'rental' ? formData.inventory_count : null,

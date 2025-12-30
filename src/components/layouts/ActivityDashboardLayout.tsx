@@ -16,6 +16,8 @@ import {
   CreditCard,
   BarChart3,
   ArrowLeftRight,
+  FolderOpen,
+  Package,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,7 +41,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/activity-dashboard', icon: LayoutDashboard },
-  { label: 'Activities', href: '/activity-dashboard/activities', icon: Compass },
+  { label: 'Categories', href: '/activity-dashboard/categories', icon: FolderOpen },
+  { label: 'Products', href: '/activity-dashboard/products', icon: Package },
   { label: 'Calendar', href: '/activity-dashboard/calendar', icon: Calendar },
   { label: 'Bookings', href: '/activity-dashboard/bookings', icon: Ticket },
   { label: 'Customers', href: '/activity-dashboard/customers', icon: Users },
