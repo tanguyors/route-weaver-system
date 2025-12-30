@@ -102,6 +102,14 @@ const AdminActivityInvoicesPage = () => {
         return;
       }
       
+      const escapeCsvValue = (val: any) => {
+        const str = String(val ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
       const headers = ['Invoice Number', 'Partner', 'Period Start', 'Period End', 'Issue Date', 'Currency', 'Gross Revenue', 'Commission', 'Net Amount', 'Status', 'Paid At'];
       const rows = data.map(row => [
         row.invoice_number,
@@ -117,7 +125,7 @@ const AdminActivityInvoicesPage = () => {
         row.paid_at || '',
       ]);
       
-      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const csv = [headers.map(escapeCsvValue).join(','), ...rows.map(r => r.map(escapeCsvValue).join(','))].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -143,6 +151,14 @@ const AdminActivityInvoicesPage = () => {
         return;
       }
       
+      const escapeCsvValue = (val: any) => {
+        const str = String(val ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
       const headers = ['Booking ID', 'Partner', 'Product', 'Booking Date', 'Slot Time', 'Qty', 'Amount', 'Status', 'Payout ID', 'Invoice Number'];
       const rows = data.map(row => [
         row.booking_id,
@@ -157,7 +173,7 @@ const AdminActivityInvoicesPage = () => {
         row.invoice_number || '',
       ]);
       
-      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const csv = [headers.map(escapeCsvValue).join(','), ...rows.map(r => r.map(escapeCsvValue).join(','))].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

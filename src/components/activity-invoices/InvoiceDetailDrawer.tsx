@@ -41,7 +41,7 @@ const InvoiceDetailDrawer = ({ invoiceId, open, onClose }: InvoiceDetailDrawerPr
 
   const handlePrint = () => {
     if (!printRef.current) return;
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
     if (!printWindow) return;
     
     printWindow.document.write(`
@@ -72,6 +72,14 @@ const InvoiceDetailDrawer = ({ invoiceId, open, onClose }: InvoiceDetailDrawerPr
   const handleDownloadCSV = () => {
     if (!invoice) return;
     
+    const escapeCsvValue = (val: any) => {
+      const str = String(val ?? '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+    
     const rows = [
       ['Invoice Number', invoice.invoice_number],
       ['Partner', invoice.partner_name],
@@ -88,7 +96,7 @@ const InvoiceDetailDrawer = ({ invoiceId, open, onClose }: InvoiceDetailDrawerPr
       ...invoice.product_breakdown.map(p => [p.product_name, p.booking_count.toString(), p.total_qty.toString(), p.revenue.toString()]),
     ];
     
-    const csv = rows.map(row => row.join(',')).join('\n');
+    const csv = rows.map(row => row.map(escapeCsvValue).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
