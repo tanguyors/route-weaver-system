@@ -2420,21 +2420,23 @@ export type Database = {
         }
         Returns: string
       }
-      update_partner_billing_details: {
-        Args: {
-          _address?: string
-          _bank_account?: string
-          _bank_holder?: string
-          _bank_name?: string
-          _billing_email?: string
-          _billing_phone?: string
-          _city?: string
-          _company_name?: string
-          _country?: string
-          _tax_id?: string
-        }
-        Returns: Json
-      }
+      update_partner_billing_details:
+        | { Args: { _billing_details: Json }; Returns: Json }
+        | {
+            Args: {
+              _address?: string
+              _bank_account?: string
+              _bank_holder?: string
+              _bank_name?: string
+              _billing_email?: string
+              _billing_phone?: string
+              _city?: string
+              _company_name?: string
+              _country?: string
+              _tax_id?: string
+            }
+            Returns: Json
+          }
       upsert_availability_day: {
         Args: {
           _capacity_override?: number
