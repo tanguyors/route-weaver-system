@@ -11,6 +11,12 @@ interface Port {
   name: string;
 }
 
+interface BarSelectionState {
+  tripType: 'one-way' | 'round-trip';
+  returnDate: string | null;
+  paxInfant: number;
+}
+
 interface WidgetBarViewProps {
   ports: Port[];
   selectedOrigin: string | null;
@@ -32,6 +38,8 @@ interface WidgetBarViewProps {
     button_text_color?: string;
     border_color?: string;
   };
+  barSelection?: BarSelectionState;
+  onBarSelectionChange?: (selection: BarSelectionState) => void;
 }
 
 const WidgetBarView = ({
@@ -49,12 +57,25 @@ const WidgetBarView = ({
   onSearch,
   isSearching = false,
   themeConfig,
+  barSelection,
+  onBarSelectionChange,
 }: WidgetBarViewProps) => {
-  const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');
-  const [returnDate, setReturnDate] = useState<string | null>(null);
-  const [paxInfant, setPaxInfant] = useState(0);
   const [departureDateOpen, setDepartureDateOpen] = useState(false);
   const [returnDateOpen, setReturnDateOpen] = useState(false);
+
+  const tripType = barSelection?.tripType || 'one-way';
+  const returnDate = barSelection?.returnDate || null;
+  const paxInfant = barSelection?.paxInfant || 0;
+
+  const setTripType = (type: 'one-way' | 'round-trip') => {
+    onBarSelectionChange?.({ tripType: type, returnDate, paxInfant });
+  };
+  const setReturnDate = (date: string | null) => {
+    onBarSelectionChange?.({ tripType, returnDate: date, paxInfant });
+  };
+  const setPaxInfant = (count: number) => {
+    onBarSelectionChange?.({ tripType, returnDate, paxInfant: count });
+  };
 
   const primaryColor = themeConfig?.primary_color || '#6b21a8';
   const backgroundColor = themeConfig?.background_color || '#f8fafc';
