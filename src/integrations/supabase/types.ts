@@ -14,6 +14,326 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          partner_id: string
+          status: Database["public"]["Enums"]["route_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          partner_id: string
+          status?: Database["public"]["Enums"]["route_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          partner_id?: string
+          status?: Database["public"]["Enums"]["route_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_categories_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_pricing: {
+        Row: {
+          created_at: string
+          id: string
+          max_age: number | null
+          min_age: number | null
+          partner_id: string
+          price: number
+          product_id: string
+          status: Database["public"]["Enums"]["route_status"]
+          tier_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_age?: number | null
+          min_age?: number | null
+          partner_id: string
+          price?: number
+          product_id: string
+          status?: Database["public"]["Enums"]["route_status"]
+          tier_name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_age?: number | null
+          min_age?: number | null
+          partner_id?: string
+          price?: number
+          product_id?: string
+          status?: Database["public"]["Enums"]["route_status"]
+          tier_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_pricing_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_pricing_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_product_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          partner_id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          partner_id: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          partner_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_product_images_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_products: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          default_capacity: number | null
+          full_description: string | null
+          guest_form_apply_to:
+            | Database["public"]["Enums"]["guest_form_apply_type"]
+            | null
+          guest_form_config: Json | null
+          guest_form_enabled: boolean | null
+          highlights: string[] | null
+          id: string
+          inventory_count: number | null
+          language: string
+          location_lat: number | null
+          location_lng: number | null
+          location_name: string | null
+          name: string
+          partner_id: string
+          product_type: Database["public"]["Enums"]["activity_product_type"]
+          short_description: string | null
+          status: Database["public"]["Enums"]["activity_product_status"]
+          updated_at: string
+          voucher_type: Database["public"]["Enums"]["activity_voucher_type"]
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          default_capacity?: number | null
+          full_description?: string | null
+          guest_form_apply_to?:
+            | Database["public"]["Enums"]["guest_form_apply_type"]
+            | null
+          guest_form_config?: Json | null
+          guest_form_enabled?: boolean | null
+          highlights?: string[] | null
+          id?: string
+          inventory_count?: number | null
+          language?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          name: string
+          partner_id: string
+          product_type: Database["public"]["Enums"]["activity_product_type"]
+          short_description?: string | null
+          status?: Database["public"]["Enums"]["activity_product_status"]
+          updated_at?: string
+          voucher_type?: Database["public"]["Enums"]["activity_voucher_type"]
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          default_capacity?: number | null
+          full_description?: string | null
+          guest_form_apply_to?:
+            | Database["public"]["Enums"]["guest_form_apply_type"]
+            | null
+          guest_form_config?: Json | null
+          guest_form_enabled?: boolean | null
+          highlights?: string[] | null
+          id?: string
+          inventory_count?: number | null
+          language?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          name?: string
+          partner_id?: string
+          product_type?: Database["public"]["Enums"]["activity_product_type"]
+          short_description?: string | null
+          status?: Database["public"]["Enums"]["activity_product_status"]
+          updated_at?: string
+          voucher_type?: Database["public"]["Enums"]["activity_voucher_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "activity_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_products_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_rental_options: {
+        Row: {
+          created_at: string
+          duration_unit: Database["public"]["Enums"]["duration_unit"]
+          duration_value: number
+          id: string
+          partner_id: string
+          price: number
+          product_id: string
+          status: Database["public"]["Enums"]["route_status"]
+        }
+        Insert: {
+          created_at?: string
+          duration_unit?: Database["public"]["Enums"]["duration_unit"]
+          duration_value?: number
+          id?: string
+          partner_id: string
+          price?: number
+          product_id: string
+          status?: Database["public"]["Enums"]["route_status"]
+        }
+        Update: {
+          created_at?: string
+          duration_unit?: Database["public"]["Enums"]["duration_unit"]
+          duration_value?: number
+          id?: string
+          partner_id?: string
+          price?: number
+          product_id?: string
+          status?: Database["public"]["Enums"]["route_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_rental_options_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_rental_options_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_time_slots: {
+        Row: {
+          capacity: number
+          created_at: string
+          id: string
+          partner_id: string
+          product_id: string
+          slot_time: string
+          status: Database["public"]["Enums"]["route_status"]
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          partner_id: string
+          product_id: string
+          slot_time: string
+          status?: Database["public"]["Enums"]["route_status"]
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          partner_id?: string
+          product_id?: string
+          slot_time?: string
+          status?: Database["public"]["Enums"]["route_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_time_slots_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_time_slots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addons: {
         Row: {
           applicability: Database["public"]["Enums"]["addon_applicability"]
@@ -1556,6 +1876,9 @@ export type Database = {
       }
     }
     Enums: {
+      activity_product_status: "draft" | "active" | "inactive"
+      activity_product_type: "activity" | "time_slot" | "rental"
+      activity_voucher_type: "e_voucher" | "paper_voucher" | "not_required"
       addon_applicability: "fastboat" | "activities" | "both"
       addon_pricing_model: "per_person" | "per_booking"
       addon_type: "pickup" | "generic"
@@ -1581,6 +1904,8 @@ export type Database = {
         | "last_minute"
       discount_type: "promo_code" | "automatic"
       discount_value_type: "percent" | "fixed"
+      duration_unit: "hour" | "day"
+      guest_form_apply_type: "per_participant" | "per_booking"
       module_status: "active" | "pending" | "disabled"
       module_type: "boat" | "activity"
       partner_status: "pending" | "active" | "suspended"
@@ -1729,6 +2054,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_product_status: ["draft", "active", "inactive"],
+      activity_product_type: ["activity", "time_slot", "rental"],
+      activity_voucher_type: ["e_voucher", "paper_voucher", "not_required"],
       addon_applicability: ["fastboat", "activities", "both"],
       addon_pricing_model: ["per_person", "per_booking"],
       addon_type: ["pickup", "generic"],
@@ -1756,6 +2084,8 @@ export const Constants = {
       ],
       discount_type: ["promo_code", "automatic"],
       discount_value_type: ["percent", "fixed"],
+      duration_unit: ["hour", "day"],
+      guest_form_apply_type: ["per_participant", "per_booking"],
       module_status: ["active", "pending", "disabled"],
       module_type: ["boat", "activity"],
       partner_status: ["pending", "active", "suspended"],
