@@ -1,297 +1,226 @@
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import DashboardLayout from '@/components/layouts/ActivityDashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState } from 'react';
+import ActivityDashboardLayout from '@/components/layouts/ActivityDashboardLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useActivityWidgetConfigData } from '@/hooks/useActivityWidgetConfigData';
+import ActivityWidgetEmbedCode from '@/components/activity-widget/ActivityWidgetEmbedCode';
+import ActivityWidgetThemeForm from '@/components/activity-widget/ActivityWidgetThemeForm';
+import WidgetDomainsForm from '@/components/widget/WidgetDomainsForm';
 import {
   Code2,
+  Palette,
+  Globe,
   ExternalLink,
-  Copy,
-  Eye,
   Loader2,
-  Package,
-  Info,
+  Plus,
+  Eye,
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useUserRole } from '@/hooks/useUserRole';
-
-interface ProductForWidget {
-  id: string;
-  name: string;
-  product_type: 'activity' | 'time_slot' | 'rental';
-  status: 'active' | 'draft' | 'archived';
-  short_description: string | null;
-}
 
 const ActivityWidgetConfigPage = () => {
-  const { partnerId } = useUserRole();
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  
-  const baseUrl = window.location.origin;
+  const {
+    widget,
+    loading,
+    createWidget,
+    addDomain,
+    removeDomain,
+    updateTheme,
+    toggleStatus,
+    copyWidgetKey,
+    getEmbedCode,
+    getDirectLink,
+  } = useActivityWidgetConfigData();
 
-  // Fetch active products for widget
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ['activity-products-widget', partnerId],
-    queryFn: async () => {
-      if (!partnerId) return [];
-      
-      const { data, error } = await supabase
-        .from('activity_products')
-        .select('id, name, product_type, status, short_description')
-        .eq('partner_id', partnerId)
-        .eq('status', 'active')
-        .order('name');
-      
-      if (error) throw error;
-      return data as ProductForWidget[];
-    },
-    enabled: !!partnerId,
-  });
+  const [creating, setCreating] = useState(false);
 
-  // Auto-select first product when products load
-  useEffect(() => {
-    if (products.length > 0 && !selectedProductId) {
-      setSelectedProductId(products[0].id);
-    }
-  }, [products, selectedProductId]);
-
-  const getWidgetUrl = (productId: string) => {
-    return `${baseUrl}/widget/activity/${productId}`;
+  const handleCreateWidget = async () => {
+    setCreating(true);
+    await createWidget();
+    setCreating(false);
   };
 
-  const getIframeCode = (productId: string) => {
-    const url = getWidgetUrl(productId);
-    return `<iframe 
-  src="${url}" 
-  style="width: 100%; min-height: 800px; border: none;"
-  title="Booking Widget"
-></iframe>`;
-  };
-
-  const handleCopyLink = (productId: string) => {
-    navigator.clipboard.writeText(getWidgetUrl(productId));
-    toast.success('Widget link copied to clipboard');
-  };
-
-  const handleCopyIframe = (productId: string) => {
-    navigator.clipboard.writeText(getIframeCode(productId));
-    toast.success('Embed code copied to clipboard');
-  };
-
-  const handlePreview = (productId: string) => {
-    window.open(getWidgetUrl(productId), '_blank');
-  };
-
-  const getProductTypeLabel = (type: string) => {
-    switch (type) {
-      case 'time_slot': return 'Time Slot';
-      case 'rental': return 'Rental';
-      default: return 'Activity';
-    }
-  };
-
-  const selectedProduct = products.find(p => p.id === selectedProductId);
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <DashboardLayout>
+      <ActivityDashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      </DashboardLayout>
+      </ActivityDashboardLayout>
+    );
+  }
+
+  // No widget yet - show creation prompt
+  if (!widget) {
+    return (
+      <ActivityDashboardLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              Widget
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Configure and embed the activity booking widget on your website
+            </p>
+          </div>
+
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Code2 className="w-16 h-16 text-muted-foreground/50 mb-4" />
+              <h2 className="text-xl font-bold mb-2">Create Your Activity Widget</h2>
+              <p className="text-muted-foreground text-center mb-6 max-w-md">
+                Generate an embeddable widget that displays all your activities
+                and allows customers to book directly on your website.
+              </p>
+              <Button onClick={handleCreateWidget} disabled={creating}>
+                {creating ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Create Widget
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </ActivityDashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <ActivityDashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            Booking Widget
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Embed booking widgets for your products on your website
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              Widget
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Configure and embed the activity booking widget on your website
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Status:</span>
+              <Badge variant={widget.status === 'active' ? 'default' : 'secondary'}>
+                {widget.status === 'active' ? 'Active' : 'Inactive'}
+              </Badge>
+              <Switch
+                checked={widget.status === 'active'}
+                onCheckedChange={toggleStatus}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => window.open(getDirectLink(), '_blank')}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Preview
+            </Button>
+          </div>
         </div>
 
-        {/* Info Card */}
-        <Card className="bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800">
-          <CardContent className="flex items-start gap-3 pt-4">
-            <Info className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-emerald-800 dark:text-emerald-200">
-              <p className="font-medium mb-1">How it works</p>
-              <p>
-                Each active product has its own booking widget URL. You can embed the widget on your website 
-                using an iframe, or share the direct link with customers for online booking.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="embed" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="embed" className="gap-2">
+              <Code2 className="w-4 h-4" />
+              Embed Code
+            </TabsTrigger>
+            <TabsTrigger value="theme" className="gap-2">
+              <Palette className="w-4 h-4" />
+              Theme
+            </TabsTrigger>
+            <TabsTrigger value="domains" className="gap-2">
+              <Globe className="w-4 h-4" />
+              Domains
+            </TabsTrigger>
+          </TabsList>
 
-        {products.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Package className="w-16 h-16 text-muted-foreground/50 mb-4" />
-              <h2 className="text-xl font-bold mb-2">No Active Products</h2>
-              <p className="text-muted-foreground text-center mb-6 max-w-md">
-                Create and activate products to generate booking widget links.
-                Only active products can be embedded as widgets.
-              </p>
-              <Button onClick={() => window.location.href = '/activity-dashboard/products'}>
-                <Package className="w-4 h-4 mr-2" />
-                Manage Products
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {/* Product Selector */}
+          {/* Embed Code Tab */}
+          <TabsContent value="embed">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Code2 className="w-5 h-5" />
+                    Embed Code
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ActivityWidgetEmbedCode
+                    embedCode={getEmbedCode()}
+                    directLink={getDirectLink()}
+                    widgetKey={widget.public_widget_key}
+                    onCopyKey={copyWidgetKey}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ExternalLink className="w-5 h-5" />
+                    Widget Preview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg overflow-hidden bg-muted/50">
+                    <iframe
+                      src={getDirectLink()}
+                      className="w-full h-[500px] border-0"
+                      title="Activity Widget Preview"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Theme Tab */}
+          <TabsContent value="theme">
             <Card>
               <CardHeader>
-                <CardTitle>Select Product</CardTitle>
-                <CardDescription>Choose a product to get its widget embed code</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="w-5 h-5" />
+                  Widget Theme
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Select
-                    value={selectedProductId || ''}
-                    onValueChange={setSelectedProductId}
-                  >
-                    <SelectTrigger className="w-full sm:w-[300px]">
-                      <SelectValue placeholder="Select a product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{product.name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {getProductTypeLabel(product.product_type)}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {selectedProductId && (
-                    <Button
-                      variant="outline"
-                      onClick={() => handlePreview(selectedProductId)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview Widget
-                    </Button>
-                  )}
+                <div className="max-w-lg">
+                  <ActivityWidgetThemeForm
+                    themeConfig={widget.theme_config}
+                    onUpdate={updateTheme}
+                  />
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Embed Code Panel */}
-            {selectedProductId && selectedProduct && (
-              <>
-                {/* Direct Link */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ExternalLink className="w-5 h-5" />
-                      Direct Link
-                    </CardTitle>
-                    <CardDescription>
-                      Share this link directly with customers for booking
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2">
-                      <Input
-                        readOnly
-                        value={getWidgetUrl(selectedProductId)}
-                        className="font-mono text-sm"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => handleCopyLink(selectedProductId)}
-                      >
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copy
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => handlePreview(selectedProductId)}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Open
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Iframe Embed */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Code2 className="w-5 h-5" />
-                      Iframe Embed Code
-                    </CardTitle>
-                    <CardDescription>
-                      Copy and paste this code into your website's HTML
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="relative">
-                      <pre className="p-4 bg-muted rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-wrap">
-                        {getIframeCode(selectedProductId)}
-                      </pre>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => handleCopyIframe(selectedProductId)}
-                      >
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copy Code
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Preview */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Eye className="w-5 h-5" />
-                      Widget Preview - {selectedProduct.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="border rounded-lg overflow-hidden bg-muted/50">
-                      <iframe
-                        src={getWidgetUrl(selectedProductId)}
-                        className="w-full h-[600px] border-0"
-                        title="Widget Preview"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </div>
-        )}
+          {/* Domains Tab */}
+          <TabsContent value="domains">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  Allowed Domains
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-w-lg">
+                  <WidgetDomainsForm
+                    domains={widget.allowed_domains}
+                    onAdd={addDomain}
+                    onRemove={removeDomain}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-    </DashboardLayout>
+    </ActivityDashboardLayout>
   );
 };
 

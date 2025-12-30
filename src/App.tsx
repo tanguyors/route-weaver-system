@@ -49,6 +49,7 @@ import PaymentPage from "./pages/PaymentPage";
 import ModifyTicket from "./pages/ModifyTicket";
 import ActivityWidgetPage from "./pages/activity-widget/ActivityWidgetPage";
 import ActivityCheckoutPage from "./pages/activity-widget/ActivityCheckoutPage";
+import ActivityWidgetListPage from "./pages/activity-widget/ActivityWidgetListPage";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/pay/:token" element={<PaymentPage />} />
             
             {/* Activity Widget Routes (Public) */}
+            <Route path="/activity-widget" element={<ActivityWidgetListPage />} />
             <Route path="/widget/activity/:productId" element={<ActivityWidgetPage />} />
             <Route path="/activity/checkout/:bookingId" element={<ActivityCheckoutPage />} />
             
