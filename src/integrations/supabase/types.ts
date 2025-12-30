@@ -205,6 +205,7 @@ export type Database = {
       activity_bookings: {
         Row: {
           booking_date: string
+          cancelled_at: string | null
           created_at: string
           currency: string
           customer: Json | null
@@ -223,6 +224,7 @@ export type Database = {
         }
         Insert: {
           booking_date: string
+          cancelled_at?: string | null
           created_at?: string
           currency?: string
           customer?: Json | null
@@ -241,6 +243,7 @@ export type Database = {
         }
         Update: {
           booking_date?: string
+          cancelled_at?: string | null
           created_at?: string
           currency?: string
           customer?: Json | null
@@ -2103,6 +2106,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_activity_booking: { Args: { _booking_id: string }; Returns: Json }
+      complete_activity_booking: {
+        Args: { _booking_id: string }
+        Returns: Json
+      }
       confirm_activity_booking: { Args: { _booking_id: string }; Returns: Json }
       create_activity_booking_intent: {
         Args: {
@@ -2145,6 +2153,19 @@ export type Database = {
       is_partner_owner: {
         Args: { _partner_id: string; _user_id: string }
         Returns: boolean
+      }
+      list_activity_bookings: {
+        Args: {
+          _date_from?: string
+          _date_to?: string
+          _limit?: number
+          _offset?: number
+          _partner_id?: string
+          _product_id?: string
+          _q?: string
+          _status?: string
+        }
+        Returns: Json
       }
       partner_has_module: {
         Args: {
@@ -2192,7 +2213,12 @@ export type Database = {
       }
     }
     Enums: {
-      activity_booking_status: "draft" | "confirmed" | "cancelled" | "expired"
+      activity_booking_status:
+        | "draft"
+        | "confirmed"
+        | "cancelled"
+        | "expired"
+        | "completed"
       activity_product_status: "draft" | "active" | "inactive"
       activity_product_type: "activity" | "time_slot" | "rental"
       activity_voucher_type: "e_voucher" | "paper_voucher" | "not_required"
@@ -2372,7 +2398,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      activity_booking_status: ["draft", "confirmed", "cancelled", "expired"],
+      activity_booking_status: [
+        "draft",
+        "confirmed",
+        "cancelled",
+        "expired",
+        "completed",
+      ],
       activity_product_status: ["draft", "active", "inactive"],
       activity_product_type: ["activity", "time_slot", "rental"],
       activity_voucher_type: ["e_voucher", "paper_voucher", "not_required"],
