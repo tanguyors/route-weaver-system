@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Percent, Save, Trash2, Plus, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,11 +67,11 @@ const AdminActivityCommissionsPage = () => {
     usePartnerProductCommissions(selectedPartnerId);
 
   // Initialize default rate when settings load
-  useState(() => {
-    if (settings?.default_commission_rate && !defaultRate) {
-      setDefaultRate(settings.default_commission_rate.toString());
+  useEffect(() => {
+    if (settings?.default_commission_rate !== undefined && defaultRate === '') {
+      setDefaultRate(String(settings.default_commission_rate));
     }
-  });
+  }, [settings?.default_commission_rate]);
 
   // Update partner rate when partner changes
   const handlePartnerChange = (partnerId: string) => {
