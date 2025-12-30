@@ -31,6 +31,7 @@ import ActivityBookingsPage from "./pages/activity-dashboard/ActivityBookingsPag
 import ActivityBookingDetailPage from "./pages/activity-dashboard/ActivityBookingDetailPage";
 import ActivityReportsPage from "./pages/activity-dashboard/ActivityReportsPage";
 import ActivityPayoutsPage from "./pages/activity-dashboard/ActivityPayoutsPage";
+import ActivityInvoicesPage from "./pages/activity-dashboard/ActivityInvoicesPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -38,6 +39,7 @@ import AdminPortsPage from "./pages/admin/AdminPortsPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminActivityPayoutsPage from "./pages/admin/AdminActivityPayoutsPage";
+import AdminActivityInvoicesPage from "./pages/admin/AdminActivityInvoicesPage";
 import NotFound from "./pages/NotFound";
 import WidgetBooking from "./pages/WidgetBooking";
 import PaymentPage from "./pages/PaymentPage";
@@ -94,6 +96,7 @@ const App = () => (
             <Route path="/activity-dashboard/bookings/:id" element={<ModuleProtectedRoute requiredModule="activity"><ActivityBookingDetailPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/reports" element={<ModuleProtectedRoute requiredModule="activity"><ActivityReportsPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/payouts" element={<ModuleProtectedRoute requiredModule="activity"><ActivityPayoutsPage /></ModuleProtectedRoute>} />
+            <Route path="/activity-dashboard/invoices" element={<ModuleProtectedRoute requiredModule="activity"><ActivityInvoicesPage /></ModuleProtectedRoute>} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
@@ -106,6 +109,7 @@ const App = () => (
             <Route path="/admin/ports" element={<ProtectedRoute><AdminPortsPage /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute><AdminSettingsPage /></ProtectedRoute>} />
             <Route path="/admin/activity-payouts" element={<ProtectedRoute><AdminActivityPayoutsPage /></ProtectedRoute>} />
+            <Route path="/admin/activity-invoices" element={<ProtectedRoute><AdminActivityInvoicesPage /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
