@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -77,11 +77,11 @@ const PartnerDetailModal = ({ partner, open, onOpenChange, onPartnerUpdated }: P
   const [adminNote, setAdminNote] = useState('');
 
   // Update commission when partner changes
-  useState(() => {
+  useEffect(() => {
     if (partner) {
       setCommission(partner.commission_percent);
     }
-  });
+  }, [partner]);
 
   // Save commission mutation
   const saveCommissionMutation = useMutation({
@@ -131,24 +131,23 @@ const PartnerDetailModal = ({ partner, open, onOpenChange, onPartnerUpdated }: P
     },
   });
 
-  // Approve all pending modules
+  // Approve all pending modules (bulk update for atomicity + performance)
   const approveAllMutation = useMutation({
     mutationFn: async () => {
       if (!partner) throw new Error('No partner');
       const { data: { user } } = await supabase.auth.getUser();
-      const pendingModules = partner.modules.filter(m => m.status === 'pending');
       
-      for (const module of pendingModules) {
-        const { error } = await supabase
-          .from('partner_modules')
-          .update({ 
-            status: 'active', 
-            updated_by: user?.id,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', module.id);
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('partner_modules')
+        .update({ 
+          status: 'active', 
+          updated_by: user?.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('partner_id', partner.id)
+        .eq('status', 'pending');
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('All modules approved');
