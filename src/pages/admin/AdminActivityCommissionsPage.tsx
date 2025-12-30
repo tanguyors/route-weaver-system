@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Percent, Save, Trash2, Plus, X } from 'lucide-react';
+import { Percent, Save, Trash2, Plus, X, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useActivityCommissionsData, usePartnerProductCommissions } from '@/hooks/useActivityCommissionsData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const AdminActivityCommissionsPage = () => {
   const {
@@ -129,12 +130,22 @@ const AdminActivityCommissionsPage = () => {
           <Percent className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Activity Commissions</h1>
+          <h1 className="text-2xl font-bold">Platform Commission</h1>
           <p className="text-muted-foreground">
-            Manage commission rates at global, partner, and product levels
+            Manage platform take rate at global, partner, and product levels
           </p>
         </div>
       </div>
+
+      {/* Model explanation */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Platform Take Rate Model</AlertTitle>
+        <AlertDescription>
+          The platform commission is the percentage kept from partner gross revenue. 
+          Partners receive <strong>net_amount = gross_revenue - commission_amount</strong>.
+        </AlertDescription>
+      </Alert>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Card 1: Global Default */}
@@ -142,7 +153,7 @@ const AdminActivityCommissionsPage = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Badge variant="secondary">Global</Badge>
-              Default Commission Rate
+              Global Default Commission
             </CardTitle>
             <CardDescription>
               Applied when no partner or product override exists
@@ -154,7 +165,7 @@ const AdminActivityCommissionsPage = () => {
             ) : (
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <Label htmlFor="defaultRate">Rate (%)</Label>
+                  <Label htmlFor="defaultRate">Platform commission rate (%)</Label>
                   <div className="flex gap-2 mt-1">
                     <Input
                       id="defaultRate"
@@ -188,7 +199,7 @@ const AdminActivityCommissionsPage = () => {
               Partner Commission Override
             </CardTitle>
             <CardDescription>
-              Override the default rate for a specific partner
+              Override the global default for a specific partner
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -208,7 +219,7 @@ const AdminActivityCommissionsPage = () => {
                     partners.map((partner) => (
                       <SelectItem key={partner.id} value={partner.id}>
                         {partner.name}
-                        {partner.commission_percent && (
+                        {partner.commission_percent !== null && (
                           <span className="text-muted-foreground ml-2">
                             ({partner.commission_percent}%)
                           </span>
@@ -222,7 +233,7 @@ const AdminActivityCommissionsPage = () => {
 
             {selectedPartnerId && (
               <div>
-                <Label htmlFor="partnerRate">Commission Rate (%)</Label>
+                <Label htmlFor="partnerRate">Platform commission rate (%)</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     id="partnerRate"
@@ -244,7 +255,7 @@ const AdminActivityCommissionsPage = () => {
                   <Button 
                     variant="outline"
                     onClick={handleClearPartner} 
-                    disabled={isSettingPartner || !selectedPartner?.commission_percent}
+                    disabled={isSettingPartner || selectedPartner?.commission_percent === null}
                   >
                     <X className="h-4 w-4 mr-1" />
                     Clear
@@ -271,7 +282,7 @@ const AdminActivityCommissionsPage = () => {
               </span>
             </CardTitle>
             <CardDescription>
-              Override commission rates for specific products (highest priority)
+              Override platform commission for specific products (highest priority)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -334,7 +345,7 @@ const AdminActivityCommissionsPage = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
-                    <TableHead className="w-32">Rate (%)</TableHead>
+                    <TableHead className="w-32">Platform Rate (%)</TableHead>
                     <TableHead className="w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -373,6 +384,9 @@ const AdminActivityCommissionsPage = () => {
             <li><strong>Partner Override</strong> — Custom rate for the partner</li>
             <li><strong>Global Default</strong> — Fallback rate ({settings?.default_commission_rate || 10}%)</li>
           </ol>
+          <p className="text-xs text-muted-foreground mt-3 border-t pt-3">
+            Example: 1,000,000 IDR gross × 10% rate = 100,000 commission (platform keeps) / 900,000 net (partner receives)
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -2405,8 +2405,8 @@ export type Database = {
       }
       get_activity_settings: { Args: never; Returns: Json }
       get_effective_activity_commission_rate: {
-        Args: { _partner_id: string; _product_id: string }
-        Returns: number
+        Args: { _partner_id: string; _product_id?: string }
+        Returns: Json
       }
       get_partner_billing_details: {
         Args: { _partner_id?: string }
