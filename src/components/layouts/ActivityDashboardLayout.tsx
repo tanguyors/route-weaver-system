@@ -52,6 +52,7 @@ const navItems: NavItem[] = [
   { label: 'Payouts', href: '/activity-dashboard/payouts', icon: Wallet },
   { label: 'Invoices', href: '/activity-dashboard/invoices', icon: FileText },
   { label: 'Reports', href: '/activity-dashboard/reports', icon: BarChart3 },
+  { label: 'Billing', href: '/activity-dashboard/settings/billing', icon: Settings },
   { label: 'Settings', href: '/activity-dashboard/settings', icon: Settings },
 ];
 

@@ -1562,6 +1562,7 @@ export type Database = {
           bank_branch: string | null
           bank_name: string | null
           bank_swift_code: string | null
+          billing_details: Json
           city: string | null
           commission_percent: number
           contact_email: string | null
@@ -1586,6 +1587,7 @@ export type Database = {
           bank_branch?: string | null
           bank_name?: string | null
           bank_swift_code?: string | null
+          billing_details?: Json
           city?: string | null
           commission_percent?: number
           contact_email?: string | null
@@ -1610,6 +1612,7 @@ export type Database = {
           bank_branch?: string | null
           bank_name?: string | null
           bank_swift_code?: string | null
+          billing_details?: Json
           city?: string | null
           commission_percent?: number
           contact_email?: string | null
@@ -2336,6 +2339,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_partner_billing_details: {
+        Args: { _partner_id?: string }
+        Returns: Json
+      }
       get_product_availability: {
         Args: { _end_date: string; _product_id: string; _start_date: string }
         Returns: Json
@@ -2412,6 +2419,21 @@ export type Database = {
           _start_date: string
         }
         Returns: string
+      }
+      update_partner_billing_details: {
+        Args: {
+          _address?: string
+          _bank_account?: string
+          _bank_holder?: string
+          _bank_name?: string
+          _billing_email?: string
+          _billing_phone?: string
+          _city?: string
+          _company_name?: string
+          _country?: string
+          _tax_id?: string
+        }
+        Returns: Json
       }
       upsert_availability_day: {
         Args: {
