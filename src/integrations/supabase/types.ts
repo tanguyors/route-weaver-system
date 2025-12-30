@@ -14,6 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_availability_days: {
+        Row: {
+          capacity_override: number | null
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          partner_id: string
+          product_id: string
+          status: Database["public"]["Enums"]["availability_status"]
+          updated_at: string
+        }
+        Insert: {
+          capacity_override?: number | null
+          created_at?: string
+          date: string
+          id?: string
+          note?: string | null
+          partner_id: string
+          product_id: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string
+        }
+        Update: {
+          capacity_override?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          partner_id?: string
+          product_id?: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_availability_days_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_availability_days_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_availability_slots: {
+        Row: {
+          capacity_override: number | null
+          created_at: string
+          date: string
+          id: string
+          partner_id: string
+          product_id: string
+          slot_time: string
+          status: Database["public"]["Enums"]["availability_status"]
+          updated_at: string
+        }
+        Insert: {
+          capacity_override?: number | null
+          created_at?: string
+          date: string
+          id?: string
+          partner_id: string
+          product_id: string
+          slot_time: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string
+        }
+        Update: {
+          capacity_override?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          partner_id?: string
+          product_id?: string
+          slot_time?: string
+          status?: Database["public"]["Enums"]["availability_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_availability_slots_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_availability_slots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_blackout_ranges: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          partner_id: string
+          product_id: string
+          reason: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          partner_id: string
+          product_id: string
+          reason?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          partner_id?: string
+          product_id?: string
+          reason?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_blackout_ranges_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_blackout_ranges_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "activity_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_categories: {
         Row: {
           created_at: string
@@ -1853,6 +2003,11 @@ export type Database = {
         }
         Returns: string
       }
+      delete_blackout_range: { Args: { _id: string }; Returns: undefined }
+      get_product_availability: {
+        Args: { _end_date: string; _product_id: string; _start_date: string }
+        Returns: Json
+      }
       get_user_partner_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -1877,6 +2032,35 @@ export type Database = {
         Args: { _orders: Json; _product_id: string }
         Returns: undefined
       }
+      set_blackout_range: {
+        Args: {
+          _end_date: string
+          _product_id: string
+          _reason?: string
+          _start_date: string
+        }
+        Returns: string
+      }
+      upsert_availability_day: {
+        Args: {
+          _capacity_override?: number
+          _date: string
+          _note?: string
+          _product_id: string
+          _status: Database["public"]["Enums"]["availability_status"]
+        }
+        Returns: string
+      }
+      upsert_availability_slot: {
+        Args: {
+          _capacity_override?: number
+          _date: string
+          _product_id: string
+          _slot_time: string
+          _status: Database["public"]["Enums"]["availability_status"]
+        }
+        Returns: string
+      }
       user_belongs_to_partner: {
         Args: { _partner_id: string; _user_id: string }
         Returns: boolean
@@ -1891,6 +2075,7 @@ export type Database = {
       addon_type: "pickup" | "generic"
       age_group: "adult" | "child" | "infant"
       app_role: "admin" | "partner_owner" | "partner_staff"
+      availability_status: "open" | "closed"
       booking_channel:
         | "online_widget"
         | "offline_walkin"
@@ -2069,6 +2254,7 @@ export const Constants = {
       addon_type: ["pickup", "generic"],
       age_group: ["adult", "child", "infant"],
       app_role: ["admin", "partner_owner", "partner_staff"],
+      availability_status: ["open", "closed"],
       booking_channel: [
         "online_widget",
         "offline_walkin",

@@ -43,7 +43,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/activity-dashboard', icon: LayoutDashboard },
   { label: 'Categories', href: '/activity-dashboard/categories', icon: FolderOpen },
   { label: 'Products', href: '/activity-dashboard/products', icon: Package },
-  { label: 'Calendar', href: '/activity-dashboard/calendar', icon: Calendar },
+  { label: 'Availability', href: '/activity-dashboard/availability', icon: Calendar },
   { label: 'Bookings', href: '/activity-dashboard/bookings', icon: Ticket },
   { label: 'Customers', href: '/activity-dashboard/customers', icon: Users },
   { label: 'Transactions', href: '/activity-dashboard/transactions', icon: CreditCard },
