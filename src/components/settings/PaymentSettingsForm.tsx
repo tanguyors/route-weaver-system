@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentSettingsFormProps {
   settings: PartnerSettings;
-  onSave: (updates: Partial<PartnerSettings>) => Promise<boolean>;
+  onSave: (updates: Partial<PartnerSettings>, onboardingSection?: 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications') => Promise<boolean>;
   saving: boolean;
 }
 
@@ -67,7 +67,7 @@ const PaymentSettingsForm = ({ settings, onSave, saving }: PaymentSettingsFormPr
   };
 
   const handleSave = () => {
-    onSave(formData);
+    onSave(formData, 'payments');
   };
 
   return (

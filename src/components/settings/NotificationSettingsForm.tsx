@@ -8,7 +8,7 @@ import { PartnerSettings } from '@/hooks/useSettingsData';
 
 interface NotificationSettingsFormProps {
   settings: PartnerSettings;
-  onSave: (updates: Partial<PartnerSettings>) => Promise<boolean>;
+  onSave: (updates: Partial<PartnerSettings>, onboardingSection?: 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications') => Promise<boolean>;
   saving: boolean;
 }
 
@@ -22,7 +22,7 @@ const NotificationSettingsForm = ({ settings, onSave, saving }: NotificationSett
   });
 
   const handleSave = () => {
-    onSave(formData);
+    onSave(formData, 'notifications');
   };
 
   return (

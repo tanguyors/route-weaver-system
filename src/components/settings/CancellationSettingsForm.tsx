@@ -16,7 +16,7 @@ import { PartnerSettings } from '@/hooks/useSettingsData';
 
 interface CancellationSettingsFormProps {
   settings: PartnerSettings;
-  onSave: (updates: Partial<PartnerSettings>) => Promise<boolean>;
+  onSave: (updates: Partial<PartnerSettings>, onboardingSection?: 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications') => Promise<boolean>;
   saving: boolean;
 }
 
@@ -30,7 +30,7 @@ const CancellationSettingsForm = ({ settings, onSave, saving }: CancellationSett
   });
 
   const handleSave = () => {
-    onSave(formData);
+    onSave(formData, 'cancellation');
   };
 
   return (
