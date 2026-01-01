@@ -18,11 +18,11 @@ const DirectBookingCTA = () => {
             {/* Content */}
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Transformez votre site en machine à réservations
+                Turn your website into a booking machine
               </h2>
               <p className="text-primary-foreground/80 mb-6">
-                Intégrez notre widget en 5 minutes. Vos clients réservent directement 
-                sur votre site, vous gardez le contrôle total de votre marque.
+                Embed our widget in 5 minutes. Your customers book directly 
+                on your site, you keep full control of your brand.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
@@ -31,7 +31,7 @@ const DirectBookingCTA = () => {
                   asChild
                 >
                   <Link to="/auth">
-                    Créer mon widget
+                    Create my widget
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
@@ -47,13 +47,13 @@ const DirectBookingCTA = () => {
                 <span className="ml-4 text-xs text-primary-foreground/60">embed-code.html</span>
               </div>
               <div className="font-mono text-sm space-y-1">
-                <p className="text-primary-foreground/60">&lt;!-- Widget SriBooking --&gt;</p>
-                <p><span className="text-accent">&lt;script</span> <span className="text-green-300">src</span>=<span className="text-yellow-300">"sribooking.js"</span><span className="text-accent">&gt;&lt;/script&gt;</span></p>
-                <p><span className="text-accent">&lt;div</span> <span className="text-green-300">id</span>=<span className="text-yellow-300">"booking-widget"</span><span className="text-accent">&gt;&lt;/div&gt;</span></p>
+                <p className="text-primary-foreground/60">&lt;!-- SriBooking Widget --&gt;</p>
+                <p><span className="text-accent">&lt;script</span> <span className="text-green-300">src</span>=<span className="text-yellow-300">&quot;sribooking.js&quot;</span><span className="text-accent">&gt;&lt;/script&gt;</span></p>
+                <p><span className="text-accent">&lt;div</span> <span className="text-green-300">id</span>=<span className="text-yellow-300">&quot;booking-widget&quot;</span><span className="text-accent">&gt;&lt;/div&gt;</span></p>
               </div>
               <div className="mt-4 pt-4 border-t border-primary-foreground/20 flex items-center gap-2">
                 <Code2 className="w-4 h-4 text-accent" />
-                <span className="text-xs text-primary-foreground/60">Copiez-collez sur votre site</span>
+                <span className="text-xs text-primary-foreground/60">Copy-paste on your site</span>
               </div>
             </div>
           </div>

@@ -6,57 +6,57 @@ const ProductsSection = () => {
   const products = [
     {
       icon: Code2,
-      title: "Widget de Réservation",
-      subtitle: "Intégrable sur n'importe quel site",
+      title: "Booking Widget",
+      subtitle: "Embeddable on any website",
       features: [
-        "Code embed simple à copier-coller",
-        "Design personnalisable",
-        "Compatible tous CMS (WordPress, Wix...)",
+        "Simple copy-paste embed code",
+        "Customizable design",
+        "Works with any CMS (WordPress, Wix...)",
         "Responsive mobile & desktop",
-        "Paiements intégrés",
+        "Integrated payments",
       ],
-      description: "Un widget de booking que vos clients peuvent intégrer sur leur site en quelques minutes. Réservations 24/7 sans intervention.",
+      description: "A booking widget your partners can embed on their website in minutes. 24/7 reservations without intervention.",
       highlight: true,
     },
     {
       icon: RefreshCw,
       title: "Channel Manager",
-      subtitle: "Un dashboard, tous vos canaux",
+      subtitle: "One dashboard, all your channels",
       features: [
-        "Synchronisation OTAs en temps réel",
-        "Évite les double-bookings",
-        "Mise à jour prix & disponibilités",
-        "Gestion agents & resellers",
-        "Notifications automatiques",
+        "Real-time OTA synchronization",
+        "Prevent double-bookings",
+        "Update prices & availability",
+        "Manage agents & resellers",
+        "Automatic notifications",
       ],
-      description: "Gérez toutes vos réservations depuis un seul endroit. Widget, agents, OTAs - tout synchronisé automatiquement.",
+      description: "Manage all your reservations from one place. Widget, agents, OTAs - everything synced automatically.",
       highlight: true,
     },
     {
       icon: Calendar,
-      title: "Gestion des Départs",
-      subtitle: "Calendrier intelligent",
+      title: "Departure Management",
+      subtitle: "Smart calendar",
       features: [
-        "Planning visuel des départs",
-        "Gestion de capacité",
-        "Check-in QR code",
-        "Manifeste passagers",
-        "Alertes remplissage",
+        "Visual departure planning",
+        "Capacity management",
+        "QR code check-in",
+        "Passenger manifest",
+        "Fill rate alerts",
       ],
-      description: "Organisez vos départs, gérez les capacités et suivez vos réservations avec un calendrier intuitif.",
+      description: "Organize your departures, manage capacity and track your bookings with an intuitive calendar.",
     },
     {
       icon: BarChart3,
-      title: "Rapports & Analytics",
-      subtitle: "Données en temps réel",
+      title: "Reports & Analytics",
+      subtitle: "Real-time data",
       features: [
-        "Dashboard de performance",
-        "Revenus par canal",
-        "Taux de conversion",
-        "Rapports personnalisés",
-        "Export des données",
+        "Performance dashboard",
+        "Revenue by channel",
+        "Conversion rates",
+        "Custom reports",
+        "Data export",
       ],
-      description: "Analysez vos performances, identifiez vos meilleurs canaux et optimisez votre business.",
+      description: "Analyze your performance, identify your best channels and optimize your business.",
     },
   ];
 
@@ -66,13 +66,13 @@ const ProductsSection = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-medium rounded-full mb-4">
-            Nos Solutions
+            Our Solutions
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Tout ce dont vous avez besoin pour vendre en ligne
+            Everything you need to sell online
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Un système complet de réservation conçu pour les opérateurs de tourisme en Indonésie
+            A complete reservation system designed for tourism operators in Indonesia
           </p>
         </div>
 
@@ -87,7 +87,7 @@ const ProductsSection = () => {
             >
               {product.highlight && (
                 <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full mb-4 self-start">
-                  Populaire
+                  Popular
                 </span>
               )}
               
@@ -123,7 +123,7 @@ const ProductsSection = () => {
                 className="w-full rounded-full"
                 asChild
               >
-                <Link to="/auth">Commencer</Link>
+                <Link to="/auth">Get Started</Link>
               </Button>
             </div>
           ))}

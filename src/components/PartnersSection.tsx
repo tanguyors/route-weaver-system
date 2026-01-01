@@ -14,9 +14,9 @@ const PartnersSection = () => {
     <section className="py-16 bg-background border-y border-border">
       <div className="container mx-auto px-4">
         <div className="text-center mb-10">
-          <p className="text-muted-foreground mb-2">Conçu pour les opérateurs de tourisme</p>
+          <p className="text-muted-foreground mb-2">Built for tourism operators</p>
           <h3 className="text-xl font-semibold text-foreground">
-            Bateaux, Tours, Activités & plus encore
+            Boats, Tours, Activities & more
           </h3>
         </div>
         
@@ -34,7 +34,7 @@ const PartnersSection = () => {
         </div>
 
         <p className="text-center text-muted-foreground">
-          Plus de <strong className="text-foreground">400+ opérateurs</strong> nous font confiance à travers Bali et l&apos;Indonésie
+          More than <strong className="text-foreground">400+ operators</strong> trust us across Bali and Indonesia
         </p>
       </div>
     </section>

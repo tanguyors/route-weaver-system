@@ -5,13 +5,13 @@ const TestimonialsSection = () => {
     {
       company: "Be Bali Hut Farm Stay",
       date: "13 Feb 2025",
-      content: "Kemudahan kita alami pada saat tamu melakukan booking, jenis metode pembayaran itu sangat mudah sekali",
+      content: "The booking process is so easy for our guests. The payment options are very convenient and simple to use.",
       avatar: "🏡",
     },
     {
       company: "Lembongan Water Sport",
       date: "13 Jan 2025",
-      content: "Selama saya pakai SriBooking, saya merasa sangat sangat puas karena semuanya serba praktis, pelanggan sangat mudah sekali untuk booking activities yang mereka mau dan begitu juga dengan sistem pembayarannya.",
+      content: "Since using SriBooking, I am extremely satisfied because everything is so practical. Customers find it very easy to book activities they want, and the payment system is equally smooth.",
       avatar: "🏄",
     },
   ];
@@ -25,7 +25,7 @@ const TestimonialsSection = () => {
             Testimonials
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            What our Client Say About Us
+            What Our Clients Say About Us
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Hear from our clients: real stories of success and satisfaction with SriBooking
