@@ -12,17 +12,17 @@ import {
 
 const HeroSection = () => {
   const channels = [
-    { icon: Globe, label: "Your Website", desc: "Widget intégré" },
-    { icon: Users, label: "Travel Agents", desc: "Réseau partenaires" },
+    { icon: Globe, label: "Your Website", desc: "Embedded widget" },
+    { icon: Users, label: "Travel Agents", desc: "Partner network" },
     { icon: Share2, label: "OTAs & Resellers", desc: "Multi-channel" },
     { icon: Code2, label: "Any Website", desc: "Embed anywhere" },
   ];
 
   const features = [
-    "Widget de réservation personnalisable",
-    "Synchronisation temps réel",
-    "Gestion multi-canaux",
-    "Zéro frais d'installation",
+    "Customizable booking widget",
+    "Real-time synchronization",
+    "Multi-channel management",
+    "Zero setup fees",
   ];
 
   return (
@@ -38,7 +38,7 @@ const HeroSection = () => {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/15 border border-accent/30">
               <Percent className="w-4 h-4 text-accent" />
               <span className="text-sm font-medium text-foreground">
-                100% Gratuit • Nous prenons seulement 7% sur vos ventes
+                100% Free • We only earn a small % on your sales
               </span>
             </div>
           </div>
@@ -46,25 +46,25 @@ const HeroSection = () => {
           {/* Main heading */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
-              Le <span className="text-gradient-primary">Widget de Réservation</span>
-              <br />qui se connecte partout
+              The <span className="text-gradient-primary">Booking Widget</span>
+              <br />That Connects Everywhere
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              Intégrez notre widget de booking sur <strong className="text-foreground">n'importe quel site web</strong>. 
-              Gérez vos bateaux, tours & activités à travers Bali et l'Indonésie depuis un seul dashboard. 
-              <strong className="text-foreground"> Aucun frais de setup, aucun coût mensuel.</strong>
+              Embed our booking widget on <strong className="text-foreground">any website</strong>. 
+              Manage your boats, tours & activities across Bali and Indonesia from a single dashboard. 
+              <strong className="text-foreground"> No setup fees, no monthly costs.</strong>
             </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <Button size="lg" className="rounded-full px-8 text-base" asChild>
                 <Link to="/auth">
-                  Commencer Gratuitement
+                  Start Free Today
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
               <Button variant="outline" size="lg" className="rounded-full px-8 text-base" asChild>
-                <a href="#products">Découvrir les fonctionnalités</a>
+                <a href="#products">Discover Features</a>
               </Button>
             </div>
           </div>
@@ -81,7 +81,7 @@ const HeroSection = () => {
                   <span className="text-xs md:text-sm font-bold text-primary-foreground">WIDGET</span>
                 </div>
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-accent text-accent-foreground text-xs font-bold rounded-full whitespace-nowrap shadow-lg">
-                  Votre Booking Engine
+                  Your Booking Engine
                 </div>
               </div>
             </div>
@@ -135,16 +135,16 @@ const HeroSection = () => {
           {/* Trust badges */}
           <div className="mt-16 grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto">
             <div className="text-center p-4 md:p-6 rounded-2xl bg-card border border-border">
-              <div className="text-2xl md:text-4xl font-bold text-primary">0€</div>
-              <div className="text-xs md:text-sm text-muted-foreground mt-1">Frais de setup</div>
+              <div className="text-2xl md:text-4xl font-bold text-primary">$0</div>
+              <div className="text-xs md:text-sm text-muted-foreground mt-1">Setup Fees</div>
             </div>
             <div className="text-center p-4 md:p-6 rounded-2xl bg-card border border-border">
-              <div className="text-2xl md:text-4xl font-bold text-primary">0€</div>
-              <div className="text-xs md:text-sm text-muted-foreground mt-1">Abonnement mensuel</div>
+              <div className="text-2xl md:text-4xl font-bold text-primary">$0</div>
+              <div className="text-xs md:text-sm text-muted-foreground mt-1">Monthly Cost</div>
             </div>
             <div className="text-center p-4 md:p-6 rounded-2xl bg-card border border-border">
-              <div className="text-2xl md:text-4xl font-bold text-accent">7%</div>
-              <div className="text-xs md:text-sm text-muted-foreground mt-1">Commission uniquement</div>
+              <div className="text-xl md:text-3xl font-bold text-accent">Small %</div>
+              <div className="text-xs md:text-sm text-muted-foreground mt-1">Commission Only</div>
             </div>
           </div>
         </div>
