@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { usePartnerModules } from "@/hooks/usePartnerModules";
-import sribookingLogo from "@/assets/sribooking-logo.jpg";
+import sribookingLogo from "@/assets/logo-sribooking.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
