@@ -77,7 +77,7 @@ const FeaturesSection = () => {
             Everything You Need to Grow Your Tourism Business
           </h2>
           <p className="text-muted-foreground text-lg">
-            From boats to tours, we've got every step covered with powerful, easy-to-use tools tailored for Sri Lanka tourism.
+            From boats to tours, we've got every step covered with powerful, easy-to-use tools tailored for Bali & Indonesia tourism.
           </p>
         </div>
 

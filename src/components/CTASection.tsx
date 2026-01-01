@@ -26,7 +26,7 @@ const CTASection = () => {
                 <div>
                   <span className="text-sm font-semibold text-primary uppercase tracking-wider mb-4 block">Join Our Network</span>
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Ready to Transform Your Business?</h2>
-                  <p className="text-muted-foreground mb-6">Join 50+ tourism operators in Sri Lanka who trust SriBooking.com to manage their reservations.</p>
+                  <p className="text-muted-foreground mb-6">Join 50+ tourism operators across Bali & Indonesia who trust SriBooking.com to manage their reservations.</p>
                   <Button variant="hero" size="lg" asChild>
                     <Link to="/auth">Become a Partner <ArrowRight className="w-4 h-4 ml-2" /></Link>
                   </Button>

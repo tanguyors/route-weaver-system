@@ -16,11 +16,11 @@ const Footer = () => {
               />
             </a>
             <p className="text-background/60 text-sm leading-relaxed mb-4">
-              The complete reservation system for tourism operators in Sri Lanka. Boats, tours, and activities - all in one platform.
+              The complete reservation system for tourism operators in Bali & Indonesia. Boats, tours, and activities - all in one platform.
             </p>
             <div className="flex items-center gap-2 text-background/60 text-sm">
               <MapPin className="w-4 h-4" />
-              <span>Sri Lanka</span>
+              <span>Bali, Indonesia</span>
             </div>
           </div>
 
@@ -63,9 +63,9 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="tel:+94112345678" className="text-background/60 hover:text-background transition-colors text-sm flex items-center gap-2">
+                <a href="tel:+62812345678" className="text-background/60 hover:text-background transition-colors text-sm flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  +94 11 234 5678
+                  +62 812 345 678
                 </a>
               </li>
             </ul>
