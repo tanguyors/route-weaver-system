@@ -26,7 +26,7 @@ const Header = () => {
 
   const navLinks = [
     { name: "Home", href: "#" },
-    { name: "Our Product", href: "#products", badge: "Must See" },
+    { name: "Our Product", href: "#products" },
     { name: "Pricing", href: "#pricing" },
     { name: "How It Works", href: "#how-it-works" },
     { name: "Contact Us", href: "#contact" },
@@ -86,12 +86,7 @@ const Header = () => {
 
           <nav className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a key={link.name} href={link.href} className="relative text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                {link.badge && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary text-primary-foreground text-[10px] font-semibold rounded-full">
-                    {link.badge}
-                  </span>
-                )}
+              <a key={link.name} href={link.href} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 {link.name}
               </a>
             ))}
