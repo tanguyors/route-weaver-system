@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Trip } from '@/hooks/useTripsData';
-import { Plus, X } from 'lucide-react';
+import { Boat, useBoatsData } from '@/hooks/useBoatsData';
+import { Plus, X, Ship } from 'lucide-react';
 
 interface ScheduleFormProps {
   open: boolean;
@@ -28,6 +29,7 @@ interface ScheduleFormProps {
     seasonal_start_date?: string;
     seasonal_end_date?: string;
     status: 'active' | 'inactive';
+    boat_id?: string;
   }) => Promise<{ error: Error | null }>;
   trips: Trip[];
   initialData?: {
@@ -37,6 +39,7 @@ interface ScheduleFormProps {
     seasonal_start_date?: string;
     seasonal_end_date?: string;
     status?: 'active' | 'inactive';
+    boat_id?: string;
   };
   isEdit?: boolean;
 }
@@ -52,6 +55,7 @@ const DAYS = [
 ];
 
 const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: ScheduleFormProps) => {
+  const { boats } = useBoatsData();
   const [tripId, setTripId] = useState(initialData?.trip_id || '');
   const [departureTimes, setDepartureTimes] = useState<string[]>(
     initialData?.departure_time ? [initialData.departure_time] : ['08:00']
@@ -60,10 +64,25 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
   const [seasonalStart, setSeasonalStart] = useState(initialData?.seasonal_start_date || '');
   const [seasonalEnd, setSeasonalEnd] = useState(initialData?.seasonal_end_date || '');
   const [status, setStatus] = useState<'active' | 'inactive'>(initialData?.status || 'active');
+  const [boatId, setBoatId] = useState(initialData?.boat_id || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const activeTrips = trips.filter(t => t.status === 'active');
+  const activeBoats = boats.filter(b => b.status === 'active');
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setTripId(initialData.trip_id || '');
+      setDepartureTimes(initialData.departure_time ? [initialData.departure_time] : ['08:00']);
+      setDaysOfWeek(initialData.days_of_week || [0, 1, 2, 3, 4, 5, 6]);
+      setSeasonalStart(initialData.seasonal_start_date || '');
+      setSeasonalEnd(initialData.seasonal_end_date || '');
+      setStatus(initialData.status || 'active');
+      setBoatId(initialData.boat_id || '');
+    }
+  }, [initialData]);
 
   const toggleDay = (day: number) => {
     if (daysOfWeek.includes(day)) {
@@ -129,6 +148,7 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
       seasonal_start_date: seasonalStart || undefined,
       seasonal_end_date: seasonalEnd || undefined,
       status,
+      boat_id: boatId || undefined,
     });
 
     setLoading(false);
@@ -143,6 +163,7 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
       setSeasonalStart('');
       setSeasonalEnd('');
       setStatus('active');
+      setBoatId('');
     }
   };
 
@@ -169,6 +190,32 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
                     </SelectItem>
                   ))
                 )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Boat Selection */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Ship className="h-4 w-4" />
+              Boat (Optional)
+            </Label>
+            <Select value={boatId} onValueChange={setBoatId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a boat" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No boat assigned</SelectItem>
+                {activeBoats.map(boat => (
+                  <SelectItem key={boat.id} value={boat.id}>
+                    <div className="flex items-center gap-2">
+                      {boat.image_url && (
+                        <img src={boat.image_url} alt={boat.name} className="w-6 h-4 object-cover rounded" />
+                      )}
+                      {boat.name} ({boat.capacity} pax)
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

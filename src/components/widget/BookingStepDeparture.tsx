@@ -1,8 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, Users, ChevronLeft, Ship } from 'lucide-react';
+import { Clock, Users, ChevronLeft, Ship, Sailboat } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+
+interface Boat {
+  id: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  image_url: string | null;
+}
 
 interface Departure {
   id: string;
@@ -13,6 +21,7 @@ interface Departure {
   capacity_total: number;
   capacity_reserved: number;
   status: string;
+  boat_id: string | null;
 }
 
 interface Trip {
@@ -25,6 +34,7 @@ interface Trip {
 interface BookingStepDepartureProps {
   departures: Departure[];
   trips: Trip[];
+  boats: Boat[];
   getPricing: (tripId: string, date: string) => { adult: number; child: number };
   onSelect: (departure: Departure) => void;
   onBack: () => void;
@@ -33,6 +43,7 @@ interface BookingStepDepartureProps {
 export const BookingStepDeparture = ({
   departures,
   trips,
+  boats,
   getPricing,
   onSelect,
   onBack,
@@ -52,6 +63,11 @@ export const BookingStepDeparture = ({
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  const getBoat = (boatId: string | null) => {
+    if (!boatId) return null;
+    return boats.find(b => b.id === boatId);
   };
 
   return (
@@ -83,6 +99,7 @@ export const BookingStepDeparture = ({
               <div className="space-y-2">
                 {deps.map(dep => {
                   const trip = trips.find(t => t.id === dep.trip_id);
+                  const boat = getBoat(dep.boat_id);
                   const available = dep.capacity_total - dep.capacity_reserved;
                   const pricing = getPricing(dep.trip_id, dep.departure_date);
                   const isLimited = available <= 5;
@@ -99,13 +116,32 @@ export const BookingStepDeparture = ({
                       )}
                     >
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className="flex-1">
                           <div className="text-lg font-bold">
                             {dep.departure_time.slice(0, 5)}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {trip?.trip_name}
                           </div>
+                          {/* Boat Info */}
+                          {boat && (
+                            <div className="flex items-center gap-2 mt-2">
+                              {boat.image_url ? (
+                                <img 
+                                  src={boat.image_url} 
+                                  alt={boat.name} 
+                                  className="w-10 h-8 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-10 h-8 bg-muted rounded flex items-center justify-center">
+                                  <Sailboat className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              )}
+                              <span className="text-sm font-medium text-foreground">
+                                {boat.name}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
                           <div className="font-semibold text-primary">

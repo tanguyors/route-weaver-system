@@ -65,6 +65,13 @@ serve(async (req) => {
       .eq('partner_id', partnerId)
       .eq('status', 'active');
 
+    // Get boats for this partner
+    const { data: boats } = await supabase
+      .from('boats')
+      .select('id, name, description, capacity, image_url')
+      .eq('partner_id', partnerId)
+      .eq('status', 'active');
+
     // Get price rules
     const { data: priceRules } = await supabase
       .from('price_rules')
@@ -108,7 +115,7 @@ serve(async (req) => {
     // Build departures query
     let departuresQuery = supabase
       .from('departures')
-      .select('id, trip_id, route_id, departure_date, departure_time, capacity_total, capacity_reserved, status')
+      .select('id, trip_id, route_id, departure_date, departure_time, capacity_total, capacity_reserved, status, boat_id')
       .eq('partner_id', partnerId)
       .eq('status', 'open')
       .gte('departure_date', date || new Date().toISOString().split('T')[0])
@@ -147,6 +154,7 @@ serve(async (req) => {
         ports: Array.from(ports.values()),
         routes: routes || [],
         trips: trips || [],
+        boats: boats || [],
         price_rules: priceRules || [],
         departures: filteredDepartures,
         addons: addonsWithZones,

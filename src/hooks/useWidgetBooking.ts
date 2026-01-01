@@ -32,6 +32,14 @@ interface PriceRule {
   end_date: string | null;
 }
 
+interface Boat {
+  id: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  image_url: string | null;
+}
+
 interface Departure {
   id: string;
   trip_id: string;
@@ -41,6 +49,7 @@ interface Departure {
   capacity_total: number;
   capacity_reserved: number;
   status: string;
+  boat_id: string | null;
 }
 
 export interface PickupZone {
@@ -91,6 +100,7 @@ export interface WidgetData {
   ports: Port[];
   routes: Route[];
   trips: Trip[];
+  boats: Boat[];
   price_rules: PriceRule[];
   departures: Departure[];
   addons: WidgetAddon[];
