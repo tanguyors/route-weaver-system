@@ -997,6 +997,50 @@ export type Database = {
           },
         ]
       }
+      boats: {
+        Row: {
+          capacity: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          partner_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          partner_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          partner_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boats_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_addons: {
         Row: {
           addon_id: string | null
@@ -1262,6 +1306,7 @@ export type Database = {
       }
       departure_templates: {
         Row: {
+          boat_id: string | null
           created_at: string
           days_of_week: number[]
           departure_time: string
@@ -1274,6 +1319,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          boat_id?: string | null
           created_at?: string
           days_of_week?: number[]
           departure_time: string
@@ -1286,6 +1332,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          boat_id?: string | null
           created_at?: string
           days_of_week?: number[]
           departure_time?: string
@@ -1298,6 +1345,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "departure_templates_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "departure_templates_partner_id_fkey"
             columns: ["partner_id"]
@@ -1316,6 +1370,7 @@ export type Database = {
       }
       departures: {
         Row: {
+          boat_id: string | null
           capacity_reserved: number
           capacity_total: number
           created_at: string
@@ -1329,6 +1384,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          boat_id?: string | null
           capacity_reserved?: number
           capacity_total: number
           created_at?: string
@@ -1342,6 +1398,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          boat_id?: string | null
           capacity_reserved?: number
           capacity_total?: number
           created_at?: string
@@ -1355,6 +1412,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "departures_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "departures_partner_id_fkey"
             columns: ["partner_id"]
