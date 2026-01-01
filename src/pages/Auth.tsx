@@ -309,7 +309,8 @@ const Auth = () => {
                       >
                         <Checkbox 
                           checked={selectedModules.includes('boat')}
-                          onCheckedChange={() => handleModuleToggle('boat')}
+                          onCheckedChange={() => {}}
+                          onClick={(e) => e.stopPropagation()}
                           className="mt-0.5"
                         />
                         <div className="flex-1">
@@ -334,7 +335,8 @@ const Auth = () => {
                       >
                         <Checkbox 
                           checked={selectedModules.includes('activity')}
-                          onCheckedChange={() => handleModuleToggle('activity')}
+                          onCheckedChange={() => {}}
+                          onClick={(e) => e.stopPropagation()}
                           className="mt-0.5"
                         />
                         <div className="flex-1">
