@@ -24,10 +24,18 @@ const Header = () => {
   const hasActivityModule = activeModules.includes('activity');
   const hasDashboardAccess = isAdmin || hasBoatModule || hasActivityModule;
 
+  const navLinks = [
+    { name: "Home", href: "#" },
+    { name: "Our Product", href: "#products", badge: "Must See" },
+    { name: "Pricing", href: "#pricing" },
+    { name: "How It Works", href: "#how-it-works" },
+    { name: "Contact Us", href: "#contact" },
+  ];
+
   const DashboardDropdown = ({ isMobile = false }: { isMobile?: boolean }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="hero" size={isMobile ? "default" : "sm"} className={isMobile ? "w-full justify-between" : ""}>
+        <Button className={`rounded-full ${isMobile ? "w-full justify-between" : ""}`}>
           <span className="flex items-center">
             <LayoutDashboard className="w-4 h-4 mr-2" />
             Dashboard
@@ -35,7 +43,7 @@ const Header = () => {
           <ChevronDown className="w-4 h-4 ml-2" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48 bg-background border border-border shadow-lg z-50">
+      <DropdownMenuContent align="end" className="w-48 bg-card border border-border shadow-lg z-50">
         {isAdmin && (
           <DropdownMenuItem asChild>
             <Link to="/admin" className="flex items-center cursor-pointer">
@@ -65,108 +73,77 @@ const Header = () => {
   );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
-        <nav className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo */}
-          <a href="/" className="flex items-center gap-3 group">
-            <img 
-              src={sribookingLogo} 
-              alt="SriBooking.com" 
-              className="h-14 md:h-16 w-auto object-contain"
-            />
-          </a>
+        <div className="flex items-center justify-between h-20">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={sribookingLogo} alt="SriBooking" className="h-12 w-auto rounded-lg" />
+            <div className="hidden sm:block">
+              <span className="text-xl font-bold text-foreground">SriBooking</span>
+              <span className="block text-xs text-muted-foreground">Reservation System</span>
+            </div>
+          </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
-              Features
-            </a>
-            <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
-              How It Works
-            </a>
-            <a href="#partners" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
-              Partners
-            </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
-              Pricing
-            </a>
-          </div>
+          <nav className="hidden lg:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <a key={link.name} href={link.href} className="relative text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                {link.badge && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary text-primary-foreground text-[10px] font-semibold rounded-full">
+                    {link.badge}
+                  </span>
+                )}
+                {link.name}
+              </a>
+            ))}
+          </nav>
 
-          {/* CTA Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             {user ? (
               hasDashboardAccess && !roleLoading && !modulesLoading ? (
                 <DashboardDropdown />
               ) : (
-                <Button variant="hero" size="sm" asChild>
-                  <Link to="/select-module">
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </Link>
+                <Button className="rounded-full px-6" asChild>
+                  <Link to="/select-module"><LayoutDashboard className="w-4 h-4 mr-2" />Dashboard</Link>
                 </Button>
               )
             ) : (
               <>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/auth">Login</Link>
+                <Button variant="outline" className="rounded-full px-6" asChild>
+                  <Link to="/auth">Sign In</Link>
                 </Button>
-                <Button variant="hero" size="sm" asChild>
-                  <Link to="/auth">Become a Partner</Link>
+                <Button className="rounded-full px-6" asChild>
+                  <Link to="/auth">Sign Up</Link>
                 </Button>
               </>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 text-muted-foreground hover:text-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
+          <button className="lg:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-        </nav>
+        </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border animate-fade-up">
-            <div className="flex flex-col gap-4">
-              <a href="#features" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium py-2">
-                Features
-              </a>
-              <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium py-2">
-                How It Works
-              </a>
-              <a href="#partners" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium py-2">
-                Partners
-              </a>
-              <a href="#pricing" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium py-2">
-                Pricing
-              </a>
+          <div className="lg:hidden py-4 border-t border-border">
+            <nav className="flex flex-col gap-4">
+              {navLinks.map((link) => (
+                <a key={link.name} href={link.href} className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>
+                  {link.name}
+                </a>
+              ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
                 {user ? (
-                  hasDashboardAccess && !roleLoading && !modulesLoading ? (
-                    <DashboardDropdown isMobile />
-                  ) : (
-                    <Button variant="hero" asChild>
-                      <Link to="/select-module">
-                        <LayoutDashboard className="w-4 h-4 mr-2" />
-                        Dashboard
-                      </Link>
-                    </Button>
+                  hasDashboardAccess && !roleLoading && !modulesLoading ? <DashboardDropdown isMobile /> : (
+                    <Button asChild><Link to="/select-module">Dashboard</Link></Button>
                   )
                 ) : (
                   <>
-                    <Button variant="ghost" className="justify-start" asChild>
-                      <Link to="/auth">Login</Link>
-                    </Button>
-                    <Button variant="hero" asChild>
-                      <Link to="/auth">Become a Partner</Link>
-                    </Button>
+                    <Button variant="outline" asChild><Link to="/auth">Sign In</Link></Button>
+                    <Button asChild><Link to="/auth">Sign Up</Link></Button>
                   </>
                 )}
               </div>
-            </div>
+            </nav>
           </div>
         )}
       </div>

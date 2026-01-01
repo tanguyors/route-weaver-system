@@ -1,104 +1,157 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Code2, Globe, Percent, CheckCircle, Zap, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { 
+  Mail, 
+  Tag, 
+  Database, 
+  Package, 
+  Receipt, 
+  Megaphone, 
+  HardDrive,
+  TrendingUp,
+  BarChart3
+} from "lucide-react";
 
 const HeroSection = () => {
+  const leftFeatures = [
+    { icon: Mail, label: "Emailing" },
+    { icon: Tag, label: "Discount" },
+    { icon: Database, label: "Data" },
+    { icon: Package, label: "Product" },
+    { icon: Receipt, label: "Billing" },
+  ];
+
+  const centerFeatures = [
+    { icon: HardDrive, label: "Storage" },
+    { icon: Megaphone, label: "Marketing" },
+  ];
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden bg-gradient-hero">
+    <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-hero">
       {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-20 left-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-float animation-delay-300" />
-      </div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
 
-      <div className="container mx-auto px-4 py-16 relative z-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Badge */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/20 border border-accent/30 animate-fade-up">
-              <Percent className="w-4 h-4 text-accent" />
-              <span className="text-sm font-medium text-foreground">
-                100% Free • We only earn a small % on your sales
-              </span>
-            </div>
-          </div>
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Main heading */}
+        <div className="text-center max-w-4xl mx-auto mb-16">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
+            <span className="text-gradient-primary">Solution</span> to well managed booking
+          </h1>
+          <p className="text-lg text-muted-foreground mb-8">
+            and reservation and get more bookings by connecting more agent and reseller
+          </p>
+          <Button 
+            size="lg" 
+            className="rounded-full px-8 py-6 text-base bg-primary hover:bg-primary/90"
+            asChild
+          >
+            <Link to="/auth">Sign Up</Link>
+          </Button>
+        </div>
 
-          {/* Main heading */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-fade-up animation-delay-100 leading-tight">
-              The Booking Widget That{" "}
-              <span className="text-gradient-sribooking">Connects Everywhere</span>
-            </h1>
-
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-fade-up animation-delay-200">
-              Embed our powerful booking widget on any website. Manage fastboat transfers, tours & activities across Bali and Indonesia. 
-              <strong className="text-foreground"> Zero setup fees, zero monthly costs</strong> — we only take a small commission on successful bookings.
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-up animation-delay-300">
-              <Button variant="hero" size="lg" asChild>
-                <Link to="/auth">Start Free — No Risk <ArrowRight className="w-4 h-4 ml-2" /></Link>
-              </Button>
-              <Button variant="outline" size="lg" className="border-primary/30 hover:bg-primary/5">
-                <Play className="w-4 h-4 mr-2" /> Watch Demo
-              </Button>
-            </div>
-          </div>
-
-          {/* Widget Connectivity Visual */}
-          <div className="animate-fade-up animation-delay-400">
-            <div className="relative max-w-4xl mx-auto">
-              {/* Central Hub */}
-              <div className="flex justify-center mb-8">
-                <div className="relative">
-                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-gradient-sribooking shadow-glow flex items-center justify-center">
-                    <Code2 className="w-12 h-12 md:w-16 md:h-16 text-primary-foreground" />
-                  </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-accent text-accent-foreground text-xs font-semibold rounded-full whitespace-nowrap">
-                    Your Widget
-                  </div>
-                </div>
-              </div>
-
-              {/* Connection Lines & Sites */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                {[
-                  { icon: Globe, label: "Your Website", desc: "Direct integration" },
-                  { icon: Zap, label: "Travel Agents", desc: "Partner network" },
-                  { icon: BarChart3, label: "OTAs & Resellers", desc: "Multi-channel" },
-                  { icon: CheckCircle, label: "Social Media", desc: "Link in bio" },
-                ].map((item, index) => (
-                  <div key={index} className="relative group">
-                    {/* Connection line */}
-                    <div className="absolute -top-8 left-1/2 w-px h-8 bg-gradient-to-b from-primary/50 to-transparent hidden md:block" />
-                    
-                    <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                        <item.icon className="w-6 h-6 text-primary" />
-                      </div>
-                      <h3 className="font-semibold text-foreground text-sm md:text-base">{item.label}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+        {/* Features Visual */}
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12">
+            {/* Left Features */}
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                {leftFeatures.slice(0, 2).map((feature, index) => (
+                  <div 
+                    key={index}
+                    className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <feature.icon className="w-5 h-5 text-primary" />
                     </div>
+                    <span className="text-xs font-medium text-foreground">{feature.label}</span>
                   </div>
                 ))}
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                {leftFeatures.slice(2, 4).map((feature, index) => (
+                  <div 
+                    key={index}
+                    className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <feature.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground">{feature.label}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Package className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">15+ More Features</span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Trust badges */}
-          <div className="mt-16 grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto animate-fade-up animation-delay-500">
-            <div className="text-center p-4 rounded-xl bg-card/50 border border-border/50">
-              <div className="text-2xl md:text-3xl font-bold text-primary">0%</div>
-              <div className="text-xs md:text-sm text-muted-foreground">Setup Fees</div>
+            {/* Center Hub with Connection Lines */}
+            <div className="flex flex-col items-center gap-4">
+              {centerFeatures.map((feature, index) => (
+                <div 
+                  key={index}
+                  className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border shadow-sm"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
+                    <feature.icon className="w-5 h-5 text-accent" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{feature.label}</span>
+                </div>
+              ))}
+              
+              {/* Central Logo/Icon */}
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-primary shadow-glow flex items-center justify-center">
+                  <TrendingUp className="w-10 h-10 text-primary-foreground" />
+                </div>
+              </div>
             </div>
-            <div className="text-center p-4 rounded-xl bg-card/50 border border-border/50">
-              <div className="text-2xl md:text-3xl font-bold text-primary">0$</div>
-              <div className="text-xs md:text-sm text-muted-foreground">Monthly Cost</div>
-            </div>
-            <div className="text-center p-4 rounded-xl bg-card/50 border border-border/50">
-              <div className="text-2xl md:text-3xl font-bold text-accent">7%</div>
-              <div className="text-xs md:text-sm text-muted-foreground">Commission Only</div>
+
+            {/* Right - Business Growth Chart */}
+            <div className="bg-card rounded-2xl border border-border p-6 shadow-lg">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                </div>
+                <span className="font-semibold text-foreground">Business Growth</span>
+              </div>
+              
+              {/* Mini Chart */}
+              <div className="flex items-end gap-2 h-24 mb-2">
+                {[40, 60, 45, 85, 70, 95].map((height, index) => (
+                  <div 
+                    key={index}
+                    className="w-6 rounded-t-md bg-primary/20 hover:bg-primary/40 transition-colors"
+                    style={{ height: `${height}%` }}
+                  />
+                ))}
+              </div>
+              
+              {/* Chart Labels */}
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>5 Sept</span>
+                <span>12 Sept</span>
+                <span className="text-primary font-medium">19 Sept</span>
+                <span>26 Sept</span>
+              </div>
+              
+              {/* Trend Line */}
+              <div className="mt-4 h-8 relative">
+                <svg className="w-full h-full" viewBox="0 0 200 30">
+                  <path 
+                    d="M0 25 Q50 20 100 15 T200 5" 
+                    fill="none" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
