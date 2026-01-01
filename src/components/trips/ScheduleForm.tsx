@@ -182,7 +182,7 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
               </SelectTrigger>
               <SelectContent>
                 {activeTrips.length === 0 ? (
-                  <SelectItem value="" disabled>No active trips available</SelectItem>
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">No active trips available</div>
                 ) : (
                   activeTrips.map(trip => (
                     <SelectItem key={trip.id} value={trip.id}>
@@ -200,12 +200,12 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
               <Ship className="h-4 w-4" />
               Boat (Optional)
             </Label>
-            <Select value={boatId} onValueChange={setBoatId}>
+            <Select value={boatId || "none"} onValueChange={(v) => setBoatId(v === "none" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a boat" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No boat assigned</SelectItem>
+                <SelectItem value="none">No boat assigned</SelectItem>
                 {activeBoats.map(boat => (
                   <SelectItem key={boat.id} value={boat.id}>
                     <div className="flex items-center gap-2">
