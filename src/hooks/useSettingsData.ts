@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnboarding, OnboardingStatus } from '@/contexts/OnboardingContext';
 
 export type OnboardingSection = 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications';
 
@@ -89,6 +90,7 @@ export const useSettingsData = () => {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { markSectionComplete } = useOnboarding();
 
   // Get partner ID
   useEffect(() => {
@@ -218,6 +220,9 @@ export const useSettingsData = () => {
       });
 
       setPartnerInfo((prev) => (prev ? { ...prev, ...updates } : null));
+      
+      // Update onboarding context immediately (optimistic update)
+      markSectionComplete('business');
 
       toast({
         title: 'Settings Saved',
@@ -275,6 +280,11 @@ export const useSettingsData = () => {
       }]);
 
       setSettings((prev) => (prev ? { ...prev, ...updates } : null));
+
+      // Update onboarding context immediately (optimistic update)
+      if (onboardingSection) {
+        markSectionComplete(onboardingSection);
+      }
 
       toast({
         title: 'Settings Saved',

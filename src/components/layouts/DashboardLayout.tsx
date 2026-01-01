@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { usePartnerModules } from '@/hooks/usePartnerModules';
-import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
 import OnboardingBlockedOverlay from '@/components/onboarding/OnboardingBlockedOverlay';
@@ -75,7 +75,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, signOut } = useAuth();
   const { role, loading } = useUserRole();
   const { activeModules } = usePartnerModules();
-  const { status: onboardingStatus, isComplete: onboardingComplete, completedCount, totalSections, loading: onboardingLoading } = useOnboardingStatus();
+  const { status: onboardingStatus, isComplete: onboardingComplete, completedCount, totalSections, loading: onboardingLoading } = useOnboarding();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
