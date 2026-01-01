@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+
+export type OnboardingSection = 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications';
 
 export interface CancellationTier {
   days_min: number;
@@ -186,7 +188,7 @@ export const useSettingsData = () => {
     }
   }, [partnerId]);
 
-  // Update partner info
+  // Update partner info and mark business section complete
   const updatePartnerInfo = async (updates: Partial<PartnerInfo>): Promise<boolean> => {
     if (!partnerId || !user) return false;
 
@@ -198,6 +200,12 @@ export const useSettingsData = () => {
         .eq('id', partnerId);
 
       if (error) throw error;
+
+      // Mark business section as complete
+      await supabase
+        .from('partner_settings')
+        .update({ onboarding_business_completed: true })
+        .eq('partner_id', partnerId);
 
       // Log audit
       await supabase.from('audit_logs').insert({
@@ -230,19 +238,24 @@ export const useSettingsData = () => {
     }
   };
 
-  // Update settings
-  const updateSettings = async (updates: Partial<PartnerSettings>): Promise<boolean> => {
+  // Update settings with optional onboarding section marking
+  const updateSettings = async (updates: Partial<PartnerSettings>, onboardingSection?: OnboardingSection): Promise<boolean> => {
     if (!partnerId || !user || !settings) return false;
 
     setSaving(true);
     try {
       // Convert CancellationTier[] to Json for Supabase
-      const supabaseUpdates = {
+      const supabaseUpdates: Record<string, unknown> = {
         ...updates,
         cancellation_policy_tiers: updates.cancellation_policy_tiers 
           ? JSON.parse(JSON.stringify(updates.cancellation_policy_tiers))
           : undefined,
       };
+
+      // Mark onboarding section as complete if provided
+      if (onboardingSection) {
+        supabaseUpdates[`onboarding_${onboardingSection}_completed`] = true;
+      }
 
       const { error } = await supabase
         .from('partner_settings')
@@ -258,7 +271,7 @@ export const useSettingsData = () => {
         action: 'update_settings',
         entity_type: 'partner_settings',
         entity_id: settings.id,
-        metadata: { updates: supabaseUpdates },
+        metadata: { updates: JSON.parse(JSON.stringify(supabaseUpdates)) },
       }]);
 
       setSettings((prev) => (prev ? { ...prev, ...updates } : null));

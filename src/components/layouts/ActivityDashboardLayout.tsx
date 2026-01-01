@@ -2,6 +2,9 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
+import OnboardingBlockedOverlay from '@/components/onboarding/OnboardingBlockedOverlay';
 import {
   Compass,
   LayoutDashboard,
@@ -22,6 +25,7 @@ import {
   FileText,
   Code2,
   QrCode,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,6 +45,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
+  alwaysAccessible?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -56,7 +61,7 @@ const navItems: NavItem[] = [
   { label: 'Payouts', href: '/activity-dashboard/payouts', icon: Wallet },
   { label: 'Invoices', href: '/activity-dashboard/invoices', icon: FileText },
   { label: 'Reports', href: '/activity-dashboard/reports', icon: BarChart3 },
-  { label: 'Settings', href: '/activity-dashboard/settings', icon: Settings },
+  { label: 'Settings', href: '/activity-dashboard/settings', icon: Settings, alwaysAccessible: true },
 ];
 
 const ActivityDashboardLayout = ({ children }: ActivityDashboardLayoutProps) => {
@@ -65,6 +70,11 @@ const ActivityDashboardLayout = ({ children }: ActivityDashboardLayoutProps) => 
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { role } = useUserRole();
+  const { status: onboardingStatus, isComplete: onboardingComplete, completedCount, totalSections, loading: onboardingLoading } = useOnboardingStatus();
+
+  const isAdmin = role === 'admin';
+  const isOnSettingsPage = location.pathname.startsWith('/activity-dashboard/settings');
+  const isPageBlocked = !onboardingComplete && !isOnSettingsPage && !isAdmin && !onboardingLoading;
 
   const handleSignOut = async () => {
     await signOut();
@@ -130,22 +140,40 @@ const ActivityDashboardLayout = ({ children }: ActivityDashboardLayoutProps) => 
 
           {/* Navigation */}
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isActive(item.href)
-                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isLocked = !onboardingComplete && !item.alwaysAccessible && !isAdmin;
+              
+              if (isLocked) {
+                return (
+                  <div
+                    key={item.href}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
+                    title="Complete your settings to unlock"
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.label}
+                    <Lock className="w-3 h-3 ml-auto" />
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive(item.href)
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* User Profile */}
@@ -191,9 +219,25 @@ const ActivityDashboardLayout = ({ children }: ActivityDashboardLayoutProps) => 
         />
       )}
 
+      {/* Blocked overlay when onboarding not complete */}
+      {isPageBlocked && (
+        <OnboardingBlockedOverlay settingsPath="/activity-dashboard/settings" />
+      )}
+
       {/* Main Content */}
       <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen">
-        <div className="p-4 lg:p-8">{children}</div>
+        <div className="p-4 lg:p-8">
+          {/* Show onboarding banner on settings page if not complete */}
+          {!onboardingComplete && isOnSettingsPage && !isAdmin && (
+            <OnboardingBanner
+              status={onboardingStatus}
+              completedCount={completedCount}
+              totalSections={totalSections}
+              settingsPath="/activity-dashboard/settings"
+            />
+          )}
+          {children}
+        </div>
       </main>
     </div>
   );

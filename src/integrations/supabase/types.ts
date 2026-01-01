@@ -1601,6 +1601,12 @@ export type Database = {
           max_booking_advance_days: number | null
           min_deposit_percent: number | null
           no_show_policy: string | null
+          onboarding_business_completed: boolean
+          onboarding_cancellation_completed: boolean
+          onboarding_notifications_completed: boolean
+          onboarding_payments_completed: boolean
+          onboarding_terms_completed: boolean
+          onboarding_tickets_completed: boolean
           partner_id: string
           payment_methods_enabled: string[] | null
           qr_override_allowed: boolean | null
@@ -1632,6 +1638,12 @@ export type Database = {
           max_booking_advance_days?: number | null
           min_deposit_percent?: number | null
           no_show_policy?: string | null
+          onboarding_business_completed?: boolean
+          onboarding_cancellation_completed?: boolean
+          onboarding_notifications_completed?: boolean
+          onboarding_payments_completed?: boolean
+          onboarding_terms_completed?: boolean
+          onboarding_tickets_completed?: boolean
           partner_id: string
           payment_methods_enabled?: string[] | null
           qr_override_allowed?: boolean | null
@@ -1663,6 +1675,12 @@ export type Database = {
           max_booking_advance_days?: number | null
           min_deposit_percent?: number | null
           no_show_policy?: string | null
+          onboarding_business_completed?: boolean
+          onboarding_cancellation_completed?: boolean
+          onboarding_notifications_completed?: boolean
+          onboarding_payments_completed?: boolean
+          onboarding_terms_completed?: boolean
+          onboarding_tickets_completed?: boolean
           partner_id?: string
           payment_methods_enabled?: string[] | null
           qr_override_allowed?: boolean | null
@@ -2532,6 +2550,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_partner_onboarding_complete: {
+        Args: { _partner_id: string }
+        Returns: boolean
+      }
       is_partner_owner: {
         Args: { _partner_id: string; _user_id: string }
         Returns: boolean
