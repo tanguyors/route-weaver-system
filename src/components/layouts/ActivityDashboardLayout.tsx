@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
 import OnboardingBlockedOverlay from '@/components/onboarding/OnboardingBlockedOverlay';
 import {
@@ -70,7 +70,7 @@ const ActivityDashboardLayout = ({ children }: ActivityDashboardLayoutProps) => 
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { role } = useUserRole();
-  const { status: onboardingStatus, isComplete: onboardingComplete, completedCount, totalSections, loading: onboardingLoading } = useOnboardingStatus();
+  const { status: onboardingStatus, isComplete: onboardingComplete, completedCount, totalSections, loading: onboardingLoading } = useOnboarding();
 
   const isAdmin = role === 'admin';
   const isOnSettingsPage = location.pathname.startsWith('/activity-dashboard/settings');
