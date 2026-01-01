@@ -1,42 +1,40 @@
+import { Anchor, Compass, Car, Ship, Bike, Mountain } from "lucide-react";
+
 const PartnersSection = () => {
-  const partners = [
-    "Bali ATV Quad",
-    "Rocky Adventure",
-    "Wanderlust Cruise",
-    "Semaya One",
-    "SunTrip",
-    "Bali Ocean Ferries",
-    "Semara Hills",
-    "Padang Bali Tour",
-    "ATV Quad Bike",
-    "BaliMade Tour",
-    "Golden Queen",
-    "Giligate",
-    "Adrian Tour",
-    "Nomads That Indonesia",
+  const partnerTypes = [
+    { icon: Ship, label: "Fast Boats" },
+    { icon: Anchor, label: "Ferries" },
+    { icon: Compass, label: "Tours" },
+    { icon: Mountain, label: "Activities" },
+    { icon: Car, label: "Transfers" },
+    { icon: Bike, label: "Rentals" },
   ];
 
   return (
-    <section className="py-16 bg-background">
+    <section className="py-16 bg-background border-y border-border">
       <div className="container mx-auto px-4">
-        <p className="text-center text-muted-foreground mb-8">Our Vendors:</p>
+        <div className="text-center mb-10">
+          <p className="text-muted-foreground mb-2">Conçu pour les opérateurs de tourisme</p>
+          <h3 className="text-xl font-semibold text-foreground">
+            Bateaux, Tours, Activités & plus encore
+          </h3>
+        </div>
         
-        {/* Partners Grid */}
-        <div className="grid grid-cols-4 md:grid-cols-7 gap-4 md:gap-6 max-w-5xl mx-auto mb-8">
-          {partners.map((partner, index) => (
+        {/* Partner Types */}
+        <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-10">
+          {partnerTypes.map((type, index) => (
             <div 
               key={index}
-              className="flex items-center justify-center p-3 bg-card rounded-lg border border-border hover:shadow-md transition-shadow"
+              className="flex items-center gap-3 px-5 py-3 bg-card rounded-full border border-border hover:border-primary/30 hover:shadow-md transition-all"
             >
-              <span className="text-xs font-medium text-muted-foreground text-center leading-tight">
-                {partner}
-              </span>
+              <type.icon className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-foreground">{type.label}</span>
             </div>
           ))}
         </div>
 
         <p className="text-center text-muted-foreground">
-          And more than <strong className="text-foreground">400+ merchants</strong>
+          Plus de <strong className="text-foreground">400+ opérateurs</strong> nous font confiance à travers Bali et l&apos;Indonésie
         </p>
       </div>
     </section>
