@@ -3,8 +3,8 @@ import { ArrowRight } from "lucide-react";
 const steps = [
   {
     number: "01",
-    title: "Set Up Your Routes",
-    description: "Define your routes, schedules, and pricing. Configure capacity and special offers in minutes.",
+    title: "Sign Up & Configure",
+    description: "Create your partner account, set up your routes or activities, define schedules and pricing.",
     color: "from-primary to-primary-glow",
   },
   {
@@ -15,9 +15,15 @@ const steps = [
   },
   {
     number: "03",
-    title: "Start Selling",
-    description: "Customers book directly on your site. Tickets are generated, payments processed automatically.",
+    title: "Receive Bookings",
+    description: "Customers book directly on your site. Tickets with QR codes are generated automatically.",
     color: "from-accent to-accent",
+  },
+  {
+    number: "04",
+    title: "Get Paid",
+    description: "Payments are processed automatically. Track revenue and receive payouts seamlessly.",
+    color: "from-accent to-primary",
   },
 ];
 
@@ -34,7 +40,7 @@ const HowItWorksSection = () => {
             How It Works
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Get Started in Three Simple Steps
+            Get Started in Four Simple Steps
           </h2>
           <p className="text-muted-foreground text-lg">
             No technical knowledge required. We've made it as simple as possible to start selling tickets.
@@ -42,8 +48,8 @@ const HowItWorksSection = () => {
         </div>
 
         {/* Steps */}
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8">
             {steps.map((step, index) => (
               <div key={index} className="relative">
                 {/* Connector line */}

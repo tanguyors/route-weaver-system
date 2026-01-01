@@ -6,10 +6,22 @@ import {
   Users, 
   Shield,
   Smartphone,
-  Globe
+  Globe,
+  Ship,
+  Compass
 } from "lucide-react";
 
 const features = [
+  {
+    icon: Ship,
+    title: "Boat & Ferry Bookings",
+    description: "Manage fastboat transfers between islands with real-time capacity and schedules.",
+  },
+  {
+    icon: Compass,
+    title: "Tours & Activities",
+    description: "Sell excursions, day trips, and experiences with flexible pricing tiers.",
+  },
   {
     icon: Code2,
     title: "Embeddable Widgets",
@@ -22,8 +34,8 @@ const features = [
   },
   {
     icon: CreditCard,
-    title: "Split Payments",
-    description: "Automatic 7% commission deduction. Transparent revenue tracking for partners.",
+    title: "Integrated Payments",
+    description: "Accept payments online with automatic commission handling and transparent tracking.",
   },
   {
     icon: BarChart3,
@@ -62,21 +74,21 @@ const FeaturesSection = () => {
             Features
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Everything You Need to Run Your Fastboat Business
+            Everything You Need to Grow Your Tourism Business
           </h2>
           <p className="text-muted-foreground text-lg">
-            From booking to boarding, we've got every step covered with powerful, easy-to-use tools.
+            From boats to tours, we've got every step covered with powerful, easy-to-use tools tailored for Sri Lanka tourism.
           </p>
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
           {features.map((feature, index) => (
             <div
               key={index}
               className="group p-6 rounded-2xl bg-gradient-card border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300"
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-gradient-ocean group-hover:shadow-glow transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-gradient-sribooking group-hover:shadow-glow transition-all duration-300">
                 <feature.icon className="w-6 h-6 text-primary group-hover:text-primary-foreground transition-colors" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">

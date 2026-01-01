@@ -1,10 +1,11 @@
-import { Ship, Menu, X, LayoutDashboard, ChevronDown, Shield, Anchor, Compass } from "lucide-react";
+import { Menu, X, LayoutDashboard, ChevronDown, Shield, Anchor, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { usePartnerModules } from "@/hooks/usePartnerModules";
+import sribookingLogo from "@/assets/sribooking-logo.jpg";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,27 +69,26 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <nav className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-ocean flex items-center justify-center shadow-sm group-hover:shadow-glow transition-shadow duration-300">
-              <Ship className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground">
-              Sri<span className="text-gradient-ocean">booking</span>
-            </span>
+          <a href="/" className="flex items-center gap-3 group">
+            <img 
+              src={sribookingLogo} 
+              alt="SriBooking.com" 
+              className="h-12 w-auto object-contain"
+            />
           </a>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+            <a href="#features" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
               Features
             </a>
-            <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+            <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
               How It Works
             </a>
-            <a href="#partners" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+            <a href="#partners" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
               Partners
             </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+            <a href="#pricing" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
               Pricing
             </a>
           </div>
@@ -131,16 +131,16 @@ const Header = () => {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border animate-fade-up">
             <div className="flex flex-col gap-4">
-              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2">
+              <a href="#features" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium py-2">
                 Features
               </a>
-              <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2">
+              <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium py-2">
                 How It Works
               </a>
-              <a href="#partners" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2">
+              <a href="#partners" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium py-2">
                 Partners
               </a>
-              <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2">
+              <a href="#pricing" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium py-2">
                 Pricing
               </a>
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
