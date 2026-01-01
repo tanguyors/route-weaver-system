@@ -13,13 +13,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
   User, Mail, Phone, Calendar, Shield, Building2, Key, Smartphone, Copy, 
-  Route, Ship, Ticket, Percent, Save, TrendingUp, Compass 
+  Route, Ship, Ticket, Percent, Save, TrendingUp, Compass, Check, X, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface PartnerModule {
+  id?: string;
   module_type: 'boat' | 'activity';
   status: 'active' | 'pending' | 'disabled';
 }
@@ -155,6 +156,24 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
     },
     onError: () => {
       toast.error('Error updating commission');
+    },
+  });
+
+  // Update module status mutation
+  const updateModuleStatusMutation = useMutation({
+    mutationFn: async ({ moduleId, newStatus }: { moduleId: string; newStatus: 'active' | 'disabled' }) => {
+      const { error } = await supabase
+        .from('partner_modules')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', moduleId);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      toast.success(`Module ${variables.newStatus === 'active' ? 'approved' : 'rejected'}`);
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: () => {
+      toast.error('Error updating module status');
     },
   });
 
@@ -323,23 +342,84 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
                   </div>
                   {/* Modules */}
                   {user.modules && user.modules.length > 0 && (
-                    <div className="space-y-1 col-span-2">
-                      <p className="text-xs text-muted-foreground">Active Modules</p>
-                      <div className="flex gap-2 flex-wrap">
+                    <div className="space-y-2 col-span-2">
+                      <p className="text-xs text-muted-foreground">Modules</p>
+                      <div className="space-y-2">
                         {user.modules.map((module, idx) => (
-                          <Badge 
-                            key={idx}
-                            variant={module.status === 'active' ? 'default' : 'secondary'}
-                            className={`gap-1 ${
-                              module.module_type === 'boat' 
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' 
-                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                            }`}
-                          >
-                            {module.module_type === 'boat' ? <Ship className="w-3 h-3" /> : <Compass className="w-3 h-3" />}
-                            {module.module_type === 'boat' ? 'Boat' : 'Activity'}
-                            <span className="opacity-70">({module.status})</span>
-                          </Badge>
+                          <div key={idx} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50">
+                            <Badge 
+                              variant={module.status === 'active' ? 'default' : module.status === 'pending' ? 'secondary' : 'outline'}
+                              className={`gap-1 ${
+                                module.module_type === 'boat' 
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' 
+                                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                              }`}
+                            >
+                              {module.module_type === 'boat' ? <Ship className="w-3 h-3" /> : <Compass className="w-3 h-3" />}
+                              {module.module_type === 'boat' ? 'Boat' : 'Activity'}
+                              <span className="opacity-70">({module.status})</span>
+                            </Badge>
+                            
+                            {/* Action buttons for pending modules */}
+                            {module.status === 'pending' && module.id && (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-7 px-2 bg-green-600 hover:bg-green-700"
+                                  onClick={() => updateModuleStatusMutation.mutate({ moduleId: module.id!, newStatus: 'active' })}
+                                  disabled={updateModuleStatusMutation.isPending}
+                                >
+                                  {updateModuleStatusMutation.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Check className="w-3 h-3 mr-1" />
+                                      Approve
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-7 px-2"
+                                  onClick={() => updateModuleStatusMutation.mutate({ moduleId: module.id!, newStatus: 'disabled' })}
+                                  disabled={updateModuleStatusMutation.isPending}
+                                >
+                                  {updateModuleStatusMutation.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <X className="w-3 h-3 mr-1" />
+                                      Reject
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {/* Action button for active/disabled modules */}
+                            {module.status !== 'pending' && module.id && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2"
+                                onClick={() => updateModuleStatusMutation.mutate({ 
+                                  moduleId: module.id!, 
+                                  newStatus: module.status === 'active' ? 'disabled' : 'active' 
+                                })}
+                                disabled={updateModuleStatusMutation.isPending}
+                              >
+                                {updateModuleStatusMutation.isPending ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : module.status === 'active' ? (
+                                  'Disable'
+                                ) : (
+                                  'Enable'
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>

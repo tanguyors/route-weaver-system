@@ -78,6 +78,7 @@ const AdminUsersPage = () => {
         const partnerUser = partnerUsers?.find(pu => pu.user_id === profile.user_id) || null;
         const modules = partnerUser 
           ? (partnerModules?.filter(pm => pm.partner_id === partnerUser.partner_id) || []).map(m => ({
+              id: m.id,
               module_type: m.module_type as 'boat' | 'activity',
               status: m.status as 'active' | 'pending' | 'disabled'
             }))
