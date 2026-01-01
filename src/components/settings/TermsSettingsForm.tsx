@@ -19,7 +19,7 @@ interface CancellationTier {
 interface TermsSettingsFormProps {
   settings: PartnerSettings;
   partnerInfo: PartnerInfo | null;
-  onSave: (updates: Partial<PartnerSettings>) => Promise<boolean>;
+  onSave: (updates: Partial<PartnerSettings>, onboardingSection?: 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications') => Promise<boolean>;
   saving: boolean;
 }
 
@@ -114,7 +114,7 @@ const TermsSettingsForm = ({ settings, partnerInfo, onSave, saving }: TermsSetti
       cancellation_policy_tiers: cancellationTiers as unknown as PartnerSettings['cancellation_policy_tiers'],
       tax_service_percent: taxServicePercent,
       max_booking_advance_days: maxBookingAdvanceDays,
-    });
+    }, 'terms');
   };
 
   return (

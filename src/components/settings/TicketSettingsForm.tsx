@@ -11,7 +11,7 @@ import TicketPreview from './TicketPreview';
 interface TicketSettingsFormProps {
   settings: PartnerSettings;
   partnerInfo: PartnerInfo | null;
-  onSave: (updates: Partial<PartnerSettings>) => Promise<boolean>;
+  onSave: (updates: Partial<PartnerSettings>, onboardingSection?: 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications') => Promise<boolean>;
   saving: boolean;
 }
 
@@ -24,7 +24,7 @@ const TicketSettingsForm = ({ settings, partnerInfo, onSave, saving }: TicketSet
   });
 
   const handleSave = () => {
-    onSave(formData);
+    onSave(formData, 'tickets');
   };
 
   return (
