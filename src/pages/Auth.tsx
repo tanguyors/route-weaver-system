@@ -297,59 +297,59 @@ const Auth = () => {
                     <Label className="text-base font-semibold">Select your business type *</Label>
                     <p className="text-sm text-muted-foreground">Choose the services you provide. You can select both.</p>
                     
-                    <div className="space-y-3">
-                      {/* Boat Module */}
-                      <div 
-                        className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          selectedModules.includes('boat') 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-border hover:border-muted-foreground/50'
-                        }`}
-                        onClick={() => handleModuleToggle('boat')}
-                      >
-                        <Checkbox 
-                          checked={selectedModules.includes('boat')}
-                          onCheckedChange={() => {}}
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-0.5"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Ship className="w-5 h-5 text-primary" />
-                            <span className="font-medium">Fastboat Provider</span>
+                      <div className="space-y-3">
+                        {/* Boat Module */}
+                        <label
+                          htmlFor="module-boat"
+                          className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                            selectedModules.includes('boat')
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-muted-foreground/50'
+                          }`}
+                        >
+                          <Checkbox
+                            id="module-boat"
+                            checked={selectedModules.includes('boat')}
+                            onCheckedChange={() => handleModuleToggle('boat')}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Ship className="w-5 h-5 text-primary" />
+                              <span className="font-medium">Fastboat Provider</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Manage boat routes, schedules, and ticket sales
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Manage boat routes, schedules, and ticket sales
-                          </p>
-                        </div>
-                      </div>
+                        </label>
 
-                      {/* Activity Module */}
-                      <div 
-                        className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          selectedModules.includes('activity') 
-                            ? 'border-emerald-500 bg-emerald-500/5' 
-                            : 'border-border hover:border-muted-foreground/50'
-                        }`}
-                        onClick={() => handleModuleToggle('activity')}
-                      >
-                        <Checkbox 
-                          checked={selectedModules.includes('activity')}
-                          onCheckedChange={() => {}}
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-0.5"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Compass className="w-5 h-5 text-emerald-500" />
-                            <span className="font-medium">Activity Provider</span>
+                        {/* Activity Module */}
+                        <label
+                          htmlFor="module-activity"
+                          className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                            selectedModules.includes('activity')
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-muted-foreground/50'
+                          }`}
+                        >
+                          <Checkbox
+                            id="module-activity"
+                            checked={selectedModules.includes('activity')}
+                            onCheckedChange={() => handleModuleToggle('activity')}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Compass className="w-5 h-5 text-primary" />
+                              <span className="font-medium">Activity Provider</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Manage tours, excursions, and experience bookings
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Manage tours, excursions, and experience bookings
-                          </p>
-                        </div>
+                        </label>
                       </div>
-                    </div>
 
                     {errors.modules && (
                       <p className="text-sm text-destructive">{errors.modules}</p>
