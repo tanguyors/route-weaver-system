@@ -9,6 +9,7 @@ import { Ship, ArrowLeft, Compass, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import sribookingLogo from '@/assets/logo-sribooking.png';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -175,12 +176,10 @@ const Auth = () => {
         {/* Card */}
         <div className="bg-card rounded-2xl shadow-lg border border-border p-8">
           {/* Logo */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-ocean flex items-center justify-center">
-              <Ship className="w-6 h-6 text-primary-foreground" />
-            </div>
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <img src={sribookingLogo} alt="SriBooking" className="h-12 w-auto rounded-lg" />
             <span className="text-2xl font-bold text-foreground">
-              Sri<span className="text-gradient-ocean">booking</span>
+              Sri<span className="text-primary">booking</span>
             </span>
           </div>
 
@@ -359,9 +358,8 @@ const Auth = () => {
 
                 <Button
                   type="submit"
-                  variant="hero"
                   size="lg"
-                  className="w-full mt-6"
+                  className="w-full mt-6 bg-primary hover:bg-primary/90 text-primary-foreground"
                   disabled={loading}
                 >
                   {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Partner Account'}
