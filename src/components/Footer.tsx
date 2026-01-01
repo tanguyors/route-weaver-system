@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Youtube, Linkedin } from "lucide-react";
-import logo from "@/assets/sribooking-logo.jpg";
+import logo from "@/assets/logo-sribooking.png";
 
 const Footer = () => {
   return (
