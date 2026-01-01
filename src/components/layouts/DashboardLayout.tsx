@@ -3,7 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { usePartnerModules } from '@/hooks/usePartnerModules';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { Button } from '@/components/ui/button';
+import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
+import OnboardingBlockedOverlay from '@/components/onboarding/OnboardingBlockedOverlay';
 import {
   Ship,
   LayoutDashboard,
@@ -24,6 +27,7 @@ import {
   Building2,
   Wallet,
   ArrowLeftRight,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +41,7 @@ interface NavItem {
   icon: React.ElementType;
   adminOnly?: boolean;
   ownerOnly?: boolean;
+  alwaysAccessible?: boolean; // For settings - always accessible during onboarding
 }
 
 const navItems: NavItem[] = [
@@ -52,7 +57,7 @@ const navItems: NavItem[] = [
   { label: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
   { label: 'Transactions', href: '/dashboard/transactions', icon: Wallet, ownerOnly: true },
   { label: 'Widget', href: '/dashboard/widget', icon: Code2, ownerOnly: true },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings, ownerOnly: true },
+  { label: 'Settings', href: '/dashboard/settings', icon: Settings, ownerOnly: true, alwaysAccessible: true },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -70,11 +75,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, signOut } = useAuth();
   const { role, loading } = useUserRole();
   const { activeModules } = usePartnerModules();
+  const { status: onboardingStatus, isComplete: onboardingComplete, completedCount, totalSections, loading: onboardingLoading } = useOnboardingStatus();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const hasBothModules = activeModules.includes('boat') && activeModules.includes('activity');
+  const isAdmin = role === 'admin';
+  const isOnSettingsPage = location.pathname.startsWith('/dashboard/settings');
+
+  // Check if current page is blocked (not settings and onboarding not complete)
+  const isPageBlocked = !onboardingComplete && !isOnSettingsPage && !isAdmin && !onboardingLoading;
 
   const handleSignOut = async () => {
     await signOut();
@@ -88,8 +99,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (item.ownerOnly && role === 'partner_staff') return false;
     return true;
   });
-
-  const isAdmin = role === 'admin';
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -176,22 +185,40 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 {isAdmin ? 'Partner View' : 'Menu'}
               </span>
             </div>
-            {filteredNavItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1',
-                  isActive(item.href)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.label}
-              </Link>
-            ))}
+            {filteredNavItems.map((item) => {
+              const isLocked = !onboardingComplete && !item.alwaysAccessible && !isAdmin;
+              
+              if (isLocked) {
+                return (
+                  <div
+                    key={item.href}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 text-muted-foreground/50 cursor-not-allowed"
+                    title="Complete your settings to unlock"
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.label}
+                    <Lock className="w-3 h-3 ml-auto" />
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1',
+                    isActive(item.href)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* User section */}
@@ -232,9 +259,25 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         />
       )}
 
+      {/* Blocked overlay when onboarding not complete */}
+      {isPageBlocked && (
+        <OnboardingBlockedOverlay settingsPath="/dashboard/settings" />
+      )}
+
       {/* Main content */}
       <main className="lg:pl-64 pt-16 lg:pt-0 min-h-screen">
-        <div className="p-4 md:p-6 lg:p-8">{children}</div>
+        <div className="p-4 md:p-6 lg:p-8">
+          {/* Show onboarding banner on settings page if not complete */}
+          {!onboardingComplete && isOnSettingsPage && !isAdmin && (
+            <OnboardingBanner
+              status={onboardingStatus}
+              completedCount={completedCount}
+              totalSections={totalSections}
+              settingsPath="/dashboard/settings"
+            />
+          )}
+          {children}
+        </div>
       </main>
     </div>
   );
