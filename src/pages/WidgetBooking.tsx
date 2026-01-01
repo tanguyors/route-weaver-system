@@ -369,6 +369,7 @@ const WidgetBooking = () => {
               <BookingStepDeparture
                 departures={getAvailableDepartures()}
                 trips={data?.trips || []}
+                boats={data?.boats || []}
                 getPricing={getPricing}
                 onSelect={handleDepartureSelect}
                 onBack={goBack}
@@ -491,6 +492,7 @@ const WidgetBooking = () => {
           <BookingStepDeparture
             departures={getAvailableDepartures()}
             trips={data?.trips || []}
+            boats={data?.boats || []}
             getPricing={getPricing}
             onSelect={handleDepartureSelect}
             onBack={goBack}

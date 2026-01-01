@@ -45,6 +45,7 @@ export interface DepartureTemplate {
   seasonal_start_date: string | null;
   seasonal_end_date: string | null;
   status: 'active' | 'inactive';
+  boat_id: string | null;
   created_at: string;
   trip?: Trip;
 }
@@ -59,6 +60,7 @@ export interface Departure {
   capacity_total: number;
   capacity_reserved: number;
   status: 'open' | 'closed' | 'sold_out' | 'cancelled';
+  boat_id: string | null;
 }
 
 export const useTripsData = () => {
@@ -253,6 +255,7 @@ export const useTripsData = () => {
     seasonal_start_date?: string;
     seasonal_end_date?: string;
     status?: 'active' | 'inactive';
+    boat_id?: string;
   }) => {
     if (!partnerId && !isAdmin) return { error: new Error('No partner assigned') };
     
@@ -265,6 +268,7 @@ export const useTripsData = () => {
       seasonal_start_date: data.seasonal_start_date || null,
       seasonal_end_date: data.seasonal_end_date || null,
       status: data.status || 'active',
+      boat_id: data.boat_id || null,
     }));
 
     const { error } = await supabase.from('departure_templates').insert(schedulesToCreate);
@@ -328,6 +332,7 @@ export const useTripsData = () => {
           capacity_total: trip.capacity_default,
           capacity_reserved: 0,
           status: 'open',
+          boat_id: schedule.boat_id || null,
         });
       }
     }

@@ -23,6 +23,7 @@ import ReportsPage from "./pages/dashboard/ReportsPage";
 import TransactionsPage from "./pages/dashboard/TransactionsPage";
 import WidgetPage from "./pages/dashboard/WidgetPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
+import BoatsPage from "./pages/dashboard/BoatsPage";
 import ActivityDashboard from "./pages/activity-dashboard/ActivityDashboard";
 import ActivityCategoriesPage from "./pages/activity-dashboard/ActivityCategoriesPage";
 import ActivityProductsPage from "./pages/activity-dashboard/ActivityProductsPage";
@@ -81,6 +82,7 @@ const App = () => (
             
             {/* Boat Partner Dashboard Routes */}
             <Route path="/dashboard" element={<ModuleProtectedRoute requiredModule="boat"><Dashboard /></ModuleProtectedRoute>} />
+            <Route path="/dashboard/boats" element={<ModuleProtectedRoute requiredModule="boat"><BoatsPage /></ModuleProtectedRoute>} />
             <Route path="/dashboard/trips" element={<ModuleProtectedRoute requiredModule="boat"><TripsPage /></ModuleProtectedRoute>} />
             <Route path="/dashboard/schedules" element={<ModuleProtectedRoute requiredModule="boat"><SchedulesPage /></ModuleProtectedRoute>} />
             <Route path="/dashboard/discounts" element={<ModuleProtectedRoute requiredModule="boat"><DiscountsPage /></ModuleProtectedRoute>} />
