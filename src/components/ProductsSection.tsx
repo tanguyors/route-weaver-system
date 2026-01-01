@@ -16,7 +16,8 @@ const ProductsSection = () => {
         "Integrated payments",
       ],
       description: "A booking widget your partners can embed on their website in minutes. 24/7 reservations without intervention.",
-      highlight: true,
+      badge: "Popular",
+      badgeStyle: "primary",
     },
     {
       icon: RefreshCw,
@@ -30,7 +31,8 @@ const ProductsSection = () => {
         "Automatic notifications",
       ],
       description: "Manage all your reservations from one place. Widget, agents, OTAs - everything synced automatically.",
-      highlight: true,
+      badge: "Coming Soon",
+      badgeStyle: "soon",
     },
     {
       icon: Calendar,
@@ -81,21 +83,25 @@ const ProductsSection = () => {
           {products.map((product, index) => (
             <div 
               key={index}
-              className={`bg-card rounded-2xl border p-6 md:p-8 hover:shadow-lg transition-shadow flex flex-col ${
-                product.highlight ? 'border-primary/30 shadow-md' : 'border-border'
+              className={`bg-card rounded-2xl border p-6 md:p-8 hover:shadow-lg transition-shadow flex flex-col relative overflow-hidden ${
+                product.badge ? 'border-primary/30 shadow-md' : 'border-border'
               }`}
             >
-              {product.highlight && (
-                <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full mb-4 self-start">
-                  Popular
+              {product.badge && (
+                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full mb-4 self-start ${
+                  product.badgeStyle === 'soon' 
+                    ? 'bg-accent text-accent-foreground' 
+                    : 'bg-primary text-primary-foreground'
+                }`}>
+                  {product.badge}
                 </span>
               )}
               
               <div className="flex items-start gap-4 mb-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                  product.highlight ? 'bg-primary text-primary-foreground' : 'bg-primary/10'
+                  product.badge === 'Popular' ? 'bg-primary text-primary-foreground' : 'bg-primary/10'
                 }`}>
-                  <product.icon className={`w-6 h-6 ${product.highlight ? '' : 'text-primary'}`} />
+                  <product.icon className={`w-6 h-6 ${product.badge === 'Popular' ? '' : 'text-primary'}`} />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-foreground">{product.title}</h3>
@@ -119,11 +125,16 @@ const ProductsSection = () => {
               </p>
 
               <Button 
-                variant={product.highlight ? "default" : "outline"}
+                variant={product.badge === 'Popular' ? "default" : "outline"}
                 className="w-full rounded-full"
-                asChild
+                disabled={product.badgeStyle === 'soon'}
+                asChild={product.badgeStyle !== 'soon'}
               >
-                <Link to="/auth">Get Started</Link>
+                {product.badgeStyle === 'soon' ? (
+                  <span>Coming Soon</span>
+                ) : (
+                  <Link to="/auth">Get Started</Link>
+                )}
               </Button>
             </div>
           ))}
