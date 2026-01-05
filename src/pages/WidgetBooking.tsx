@@ -9,11 +9,11 @@ import { BookingStepConfirm } from '@/components/widget/BookingStepConfirm';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import WidgetBarView from '@/components/widget/WidgetBarView';
 import { Card } from '@/components/ui/card';
-import { Loader2, Ship, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, Ship, AlertCircle, ArrowLeft, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
-type BookingStep = 'route' | 'departure' | 'passengers' | 'addons' | 'confirm' | 'success';
+type BookingStep = 'route' | 'departure' | 'return-departure' | 'passengers' | 'addons' | 'confirm' | 'success';
 type WidgetStyle = 'block' | 'bar';
 
 interface BarSelectionState {
@@ -22,7 +22,7 @@ interface BarSelectionState {
   paxInfant: number;
 }
 
-interface BookingState {
+interface TripBooking {
   departureId: string;
   routeId: string;
   tripId: string;
@@ -30,10 +30,20 @@ interface BookingState {
   tripName: string;
   departureDate: string;
   departureTime: string;
-  paxAdult: number;
-  paxChild: number;
   adultPrice: number;
   childPrice: number;
+}
+
+interface BookingState {
+  // Outbound trip
+  outbound: TripBooking;
+  // Return trip (for round-trip)
+  returnTrip: TripBooking | null;
+  // Passengers
+  paxAdult: number;
+  paxChild: number;
+  paxInfant: number;
+  // Pricing
   subtotal: number;
   addonsTotal: number;
   discount: number;
@@ -47,6 +57,18 @@ interface BookingState {
     country: string;
   };
 }
+
+const emptyTrip: TripBooking = {
+  departureId: '',
+  routeId: '',
+  tripId: '',
+  routeName: '',
+  tripName: '',
+  departureDate: '',
+  departureTime: '',
+  adultPrice: 0,
+  childPrice: 0,
+};
 
 const WidgetBooking = () => {
   const [searchParams] = useSearchParams();
@@ -62,19 +84,17 @@ const WidgetBooking = () => {
     paxInfant: 0,
   });
   
+  // Block widget trip type state
+  const [blockTripType, setBlockTripType] = useState<'one-way' | 'round-trip'>('one-way');
+  const [blockReturnDate, setBlockReturnDate] = useState('');
+  
   const [step, setStep] = useState<BookingStep>('route');
   const [booking, setBooking] = useState<BookingState>({
-    departureId: '',
-    routeId: '',
-    tripId: '',
-    routeName: '',
-    tripName: '',
-    departureDate: '',
-    departureTime: '',
+    outbound: { ...emptyTrip },
+    returnTrip: null,
     paxAdult: 1,
     paxChild: 0,
-    adultPrice: 0,
-    childPrice: 0,
+    paxInfant: 0,
     subtotal: 0,
     addonsTotal: 0,
     discount: 0,
@@ -102,6 +122,29 @@ const WidgetBooking = () => {
     getPricing,
     createBooking,
   } = useWidgetBooking(widgetKey);
+
+  // Get current trip type based on widget style
+  const currentTripType = widgetStyle === 'bar' ? barSelection.tripType : blockTripType;
+  const currentReturnDate = widgetStyle === 'bar' ? barSelection.returnDate : blockReturnDate;
+  const currentPaxInfant = widgetStyle === 'bar' ? barSelection.paxInfant : booking.paxInfant;
+
+  // Get return departures (from destination back to origin)
+  const getReturnDepartures = () => {
+    if (!data || !selectedDestination || !selectedOrigin || !currentReturnDate) return [];
+    
+    // Find routes from destination back to origin
+    const returnRoutes = data.routes.filter(
+      r => r.origin_port_id === selectedDestination && r.destination_port_id === selectedOrigin
+    );
+    const routeIds = returnRoutes.map(r => r.id);
+    
+    // Filter departures for return date
+    return data.departures.filter(d => {
+      const matchesRoute = routeIds.includes(d.route_id);
+      const matchesDate = d.departure_date >= currentReturnDate;
+      return matchesRoute && matchesDate;
+    });
+  };
 
   // Invalid widget key
   if (!widgetKey) {
@@ -149,6 +192,7 @@ const WidgetBooking = () => {
           ...prev,
           paxAdult: barPaxAdult,
           paxChild: barPaxChild,
+          paxInfant: barSelection.paxInfant,
         }));
       }
       setStep('departure');
@@ -166,8 +210,7 @@ const WidgetBooking = () => {
     const trip = data?.trips.find(t => t.id === departure.trip_id);
     const pricing = getPricing(departure.trip_id, departure.departure_date);
     
-    setBooking(prev => ({
-      ...prev,
+    const tripBooking: TripBooking = {
       departureId: departure.id,
       routeId: departure.route_id,
       tripId: departure.trip_id,
@@ -177,23 +220,65 @@ const WidgetBooking = () => {
       departureTime: departure.departure_time,
       adultPrice: pricing.adult,
       childPrice: pricing.child,
+    };
+
+    setBooking(prev => ({
+      ...prev,
+      outbound: tripBooking,
+    }));
+    
+    // If round-trip, go to return departure selection
+    if (currentTripType === 'round-trip' && currentReturnDate) {
+      setStep('return-departure');
+    } else {
+      setStep('passengers');
+    }
+  };
+
+  const handleReturnDepartureSelect = (departure: any) => {
+    const route = data?.routes.find(r => r.id === departure.route_id);
+    const trip = data?.trips.find(t => t.id === departure.trip_id);
+    const pricing = getPricing(departure.trip_id, departure.departure_date);
+    
+    const returnTripBooking: TripBooking = {
+      departureId: departure.id,
+      routeId: departure.route_id,
+      tripId: departure.trip_id,
+      routeName: route?.route_name || '',
+      tripName: trip?.trip_name || '',
+      departureDate: departure.departure_date,
+      departureTime: departure.departure_time,
+      adultPrice: pricing.adult,
+      childPrice: pricing.child,
+    };
+
+    setBooking(prev => ({
+      ...prev,
+      returnTrip: returnTripBooking,
     }));
     setStep('passengers');
   };
 
-  const handlePassengersConfirm = (paxAdult: number, paxChild: number, promoCode: string) => {
-    const subtotal = (paxAdult * booking.adultPrice) + (paxChild * booking.childPrice);
+  const handlePassengersConfirm = (paxAdult: number, paxChild: number, paxInfant: number, promoCode: string) => {
+    // Calculate subtotal including return trip if applicable
+    let subtotal = (paxAdult * booking.outbound.adultPrice) + (paxChild * booking.outbound.childPrice);
+    
+    if (booking.returnTrip) {
+      subtotal += (paxAdult * booking.returnTrip.adultPrice) + (paxChild * booking.returnTrip.childPrice);
+    }
+
     setBooking(prev => ({
       ...prev,
       paxAdult,
       paxChild,
+      paxInfant,
       promoCode,
       subtotal,
       total: subtotal,
     }));
     
     // Check if there are applicable add-ons
-    const applicableAddons = getApplicableAddons(booking.routeId, booking.tripId);
+    const applicableAddons = getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId);
     if (applicableAddons.length > 0) {
       setStep('addons');
     } else {
@@ -216,7 +301,7 @@ const WidgetBooking = () => {
     setIsSubmitting(true);
     try {
       const result = await createBooking(
-        booking.departureId,
+        booking.outbound.departureId,
         customer,
         booking.paxAdult,
         booking.paxChild,
@@ -240,14 +325,21 @@ const WidgetBooking = () => {
       case 'departure':
         setStep('route');
         break;
-      case 'passengers':
+      case 'return-departure':
         setStep('departure');
+        break;
+      case 'passengers':
+        if (currentTripType === 'round-trip' && booking.returnTrip) {
+          setStep('return-departure');
+        } else {
+          setStep('departure');
+        }
         break;
       case 'addons':
         setStep('passengers');
         break;
       case 'confirm':
-        const applicableAddons = getApplicableAddons(booking.routeId, booking.tripId);
+        const applicableAddons = getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId);
         if (applicableAddons.length > 0) {
           setStep('addons');
         } else {
@@ -260,10 +352,14 @@ const WidgetBooking = () => {
   const originPort = data?.ports.find(p => p.id === selectedOrigin);
   const destPort = data?.ports.find(p => p.id === selectedDestination);
 
-  // Get steps for progress indicator - defined here so it's available for bar widget too
+  // Get steps for progress indicator
   const getSteps = () => {
-    const applicableAddons = booking.routeId ? getApplicableAddons(booking.routeId, booking.tripId) : [];
-    const baseSteps = ['route', 'departure', 'passengers'];
+    const applicableAddons = booking.outbound.routeId ? getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId) : [];
+    const baseSteps: BookingStep[] = ['route', 'departure'];
+    if (currentTripType === 'round-trip') {
+      baseSteps.push('return-departure');
+    }
+    baseSteps.push('passengers');
     if (applicableAddons.length > 0) {
       baseSteps.push('addons');
     }
@@ -271,7 +367,7 @@ const WidgetBooking = () => {
     return baseSteps;
   };
 
-  // BAR WIDGET VIEW - Shows summary header after initial search
+  // BAR WIDGET VIEW
   if (widgetStyle === 'bar') {
     // Initial search state
     if (step === 'route') {
@@ -322,6 +418,9 @@ const WidgetBooking = () => {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-purple-800">Route:</span>
                   <span>{originPort?.name} → {destPort?.name}</span>
+                  {barSelection.tripType === 'round-trip' && (
+                    <ArrowLeftRight className="h-4 w-4 text-purple-600" />
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-purple-800">Date:</span>
@@ -376,16 +475,37 @@ const WidgetBooking = () => {
               />
             )}
 
+            {step === 'return-departure' && (
+              <Card className="p-4 mb-4">
+                <div className="flex items-center gap-2 mb-4 text-purple-700">
+                  <ArrowLeftRight className="h-5 w-5" />
+                  <span className="font-semibold">Select Return Trip</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {destPort?.name} → {originPort?.name}
+                </p>
+                <BookingStepDeparture
+                  departures={getReturnDepartures()}
+                  trips={data?.trips || []}
+                  boats={data?.boats || []}
+                  getPricing={getPricing}
+                  onSelect={handleReturnDepartureSelect}
+                  onBack={goBack}
+                />
+              </Card>
+            )}
+
             {step === 'passengers' && (
               <BookingStepPassengers
-                adultPrice={booking.adultPrice}
-                childPrice={booking.childPrice}
+                adultPrice={booking.outbound.adultPrice + (booking.returnTrip?.adultPrice || 0)}
+                childPrice={booking.outbound.childPrice + (booking.returnTrip?.childPrice || 0)}
                 maxSeats={
-                  (data?.departures.find(d => d.id === booking.departureId)?.capacity_total || 0) -
-                  (data?.departures.find(d => d.id === booking.departureId)?.capacity_reserved || 0)
+                  (data?.departures.find(d => d.id === booking.outbound.departureId)?.capacity_total || 0) -
+                  (data?.departures.find(d => d.id === booking.outbound.departureId)?.capacity_reserved || 0)
                 }
                 initialAdult={barPaxAdult}
                 initialChild={barPaxChild}
+                initialInfant={barSelection.paxInfant}
                 onConfirm={handlePassengersConfirm}
                 onBack={goBack}
               />
@@ -393,7 +513,7 @@ const WidgetBooking = () => {
 
             {step === 'addons' && (
               <BookingStepAddons
-                addons={getApplicableAddons(booking.routeId, booking.tripId)}
+                addons={getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId)}
                 paxTotal={booking.paxAdult + booking.paxChild}
                 onConfirm={handleAddonsConfirm}
                 onBack={goBack}
@@ -403,8 +523,19 @@ const WidgetBooking = () => {
             {step === 'confirm' && (
               <BookingStepConfirm
                 booking={{
-                  ...booking,
+                  departureId: booking.outbound.departureId,
+                  routeName: booking.outbound.routeName,
+                  tripName: booking.outbound.tripName,
+                  departureDate: booking.outbound.departureDate,
+                  departureTime: booking.outbound.departureTime,
+                  paxAdult: booking.paxAdult,
+                  paxChild: booking.paxChild,
+                  paxInfant: booking.paxInfant,
+                  adultPrice: booking.outbound.adultPrice,
+                  childPrice: booking.outbound.childPrice,
                   subtotal: booking.subtotal + booking.addonsTotal,
+                  promoCode: booking.promoCode,
+                  returnTrip: booking.returnTrip,
                 }}
                 isSubmitting={isSubmitting}
                 onSubmit={handleCustomerSubmit}
@@ -417,10 +548,18 @@ const WidgetBooking = () => {
                 bookingId={bookingResult.booking_id}
                 qrToken={bookingResult.qr_token}
                 departure={{
-                  route: booking.routeName,
-                  date: booking.departureDate,
-                  time: booking.departureTime,
+                  route: booking.outbound.routeName,
+                  date: booking.outbound.departureDate,
+                  time: booking.outbound.departureTime,
                 }}
+                returnTrip={booking.returnTrip ? {
+                  route: booking.returnTrip.routeName,
+                  date: booking.returnTrip.departureDate,
+                  time: booking.returnTrip.departureTime,
+                } : undefined}
+                paxAdult={booking.paxAdult}
+                paxChild={booking.paxChild}
+                paxInfant={booking.paxInfant}
                 totalAmount={bookingResult.total_amount}
                 subtotalAmount={bookingResult.subtotal_amount}
                 addonsAmount={bookingResult.addons_amount}
@@ -479,12 +618,16 @@ const WidgetBooking = () => {
             selectedDate={selectedDate}
             onOriginChange={(origin) => {
               setSelectedOrigin(origin);
-              setSelectedDestination(''); // Reset destination when origin changes
+              setSelectedDestination('');
             }}
             onDestinationChange={setSelectedDestination}
             onDateChange={setSelectedDate}
             availableDestinations={getAvailableDestinations()}
             onContinue={handleRouteSelect}
+            tripType={blockTripType}
+            returnDate={blockReturnDate}
+            onTripTypeChange={setBlockTripType}
+            onReturnDateChange={setBlockReturnDate}
           />
         )}
 
@@ -499,13 +642,33 @@ const WidgetBooking = () => {
           />
         )}
 
+        {step === 'return-departure' && (
+          <Card className="p-4 mb-4">
+            <div className="flex items-center gap-2 mb-4 text-primary">
+              <ArrowLeftRight className="h-5 w-5" />
+              <span className="font-semibold">Select Return Trip</span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              {destPort?.name} → {originPort?.name}
+            </p>
+            <BookingStepDeparture
+              departures={getReturnDepartures()}
+              trips={data?.trips || []}
+              boats={data?.boats || []}
+              getPricing={getPricing}
+              onSelect={handleReturnDepartureSelect}
+              onBack={goBack}
+            />
+          </Card>
+        )}
+
         {step === 'passengers' && (
           <BookingStepPassengers
-            adultPrice={booking.adultPrice}
-            childPrice={booking.childPrice}
+            adultPrice={booking.outbound.adultPrice + (booking.returnTrip?.adultPrice || 0)}
+            childPrice={booking.outbound.childPrice + (booking.returnTrip?.childPrice || 0)}
             maxSeats={
-              (data?.departures.find(d => d.id === booking.departureId)?.capacity_total || 0) -
-              (data?.departures.find(d => d.id === booking.departureId)?.capacity_reserved || 0)
+              (data?.departures.find(d => d.id === booking.outbound.departureId)?.capacity_total || 0) -
+              (data?.departures.find(d => d.id === booking.outbound.departureId)?.capacity_reserved || 0)
             }
             onConfirm={handlePassengersConfirm}
             onBack={goBack}
@@ -514,7 +677,7 @@ const WidgetBooking = () => {
 
         {step === 'addons' && (
           <BookingStepAddons
-            addons={getApplicableAddons(booking.routeId, booking.tripId)}
+            addons={getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId)}
             paxTotal={booking.paxAdult + booking.paxChild}
             onConfirm={handleAddonsConfirm}
             onBack={goBack}
@@ -524,8 +687,19 @@ const WidgetBooking = () => {
         {step === 'confirm' && (
           <BookingStepConfirm
             booking={{
-              ...booking,
+              departureId: booking.outbound.departureId,
+              routeName: booking.outbound.routeName,
+              tripName: booking.outbound.tripName,
+              departureDate: booking.outbound.departureDate,
+              departureTime: booking.outbound.departureTime,
+              paxAdult: booking.paxAdult,
+              paxChild: booking.paxChild,
+              paxInfant: booking.paxInfant,
+              adultPrice: booking.outbound.adultPrice,
+              childPrice: booking.outbound.childPrice,
               subtotal: booking.subtotal + booking.addonsTotal,
+              promoCode: booking.promoCode,
+              returnTrip: booking.returnTrip,
             }}
             isSubmitting={isSubmitting}
             onSubmit={handleCustomerSubmit}
@@ -538,10 +712,18 @@ const WidgetBooking = () => {
             bookingId={bookingResult.booking_id}
             qrToken={bookingResult.qr_token}
             departure={{
-              route: booking.routeName,
-              date: booking.departureDate,
-              time: booking.departureTime,
+              route: booking.outbound.routeName,
+              date: booking.outbound.departureDate,
+              time: booking.outbound.departureTime,
             }}
+            returnTrip={booking.returnTrip ? {
+              route: booking.returnTrip.routeName,
+              date: booking.returnTrip.departureDate,
+              time: booking.returnTrip.departureTime,
+            } : undefined}
+            paxAdult={booking.paxAdult}
+            paxChild={booking.paxChild}
+            paxInfant={booking.paxInfant}
             totalAmount={bookingResult.total_amount}
             subtotalAmount={bookingResult.subtotal_amount}
             addonsAmount={bookingResult.addons_amount}
