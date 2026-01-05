@@ -13,7 +13,7 @@ import { Loader2, Ship, AlertCircle, ArrowLeft, ArrowLeftRight } from 'lucide-re
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
-type BookingStep = 'route' | 'departure' | 'return-departure' | 'passengers' | 'addons' | 'confirm' | 'success';
+type BookingStep = 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'addons' | 'confirm' | 'success';
 type WidgetStyle = 'block' | 'bar';
 
 interface BarSelectionState {
@@ -88,6 +88,10 @@ const WidgetBooking = () => {
   const [blockTripType, setBlockTripType] = useState<'one-way' | 'round-trip'>('one-way');
   const [blockReturnDate, setBlockReturnDate] = useState('');
   
+  // Return trip route selection
+  const [returnOrigin, setReturnOrigin] = useState(''); // The arrival port of outbound = origin of return
+  const [returnDestination, setReturnDestination] = useState(''); // User can choose any available destination
+  
   const [step, setStep] = useState<BookingStep>('route');
   const [booking, setBooking] = useState<BookingState>({
     outbound: { ...emptyTrip },
@@ -128,13 +132,22 @@ const WidgetBooking = () => {
   const currentReturnDate = widgetStyle === 'bar' ? barSelection.returnDate : blockReturnDate;
   const currentPaxInfant = widgetStyle === 'bar' ? barSelection.paxInfant : booking.paxInfant;
 
-  // Get return departures (from destination back to origin)
+  // Get available destinations for return trip (from the arrival port of outbound)
+  const getReturnAvailableDestinations = () => {
+    if (!data || !returnOrigin) return [];
+    const routeDestinations = data.routes
+      .filter(r => r.origin_port_id === returnOrigin)
+      .map(r => r.destination_port_id);
+    return data.ports.filter(p => routeDestinations.includes(p.id));
+  };
+
+  // Get return departures (from returnOrigin to returnDestination)
   const getReturnDepartures = () => {
-    if (!data || !selectedDestination || !selectedOrigin || !currentReturnDate) return [];
+    if (!data || !returnOrigin || !returnDestination || !currentReturnDate) return [];
     
-    // Find routes from destination back to origin
+    // Find routes from return origin to return destination
     const returnRoutes = data.routes.filter(
-      r => r.origin_port_id === selectedDestination && r.destination_port_id === selectedOrigin
+      r => r.origin_port_id === returnOrigin && r.destination_port_id === returnDestination
     );
     const routeIds = returnRoutes.map(r => r.id);
     
@@ -227,9 +240,12 @@ const WidgetBooking = () => {
       outbound: tripBooking,
     }));
     
-    // If round-trip, go to return departure selection
+    // If round-trip, go to return route selection (choose destination for return)
     if (currentTripType === 'round-trip' && currentReturnDate) {
-      setStep('return-departure');
+      // Set the return origin to the outbound destination
+      setReturnOrigin(selectedDestination);
+      setReturnDestination(''); // Reset return destination so user can choose
+      setStep('return-route');
     } else {
       setStep('passengers');
     }
@@ -325,8 +341,11 @@ const WidgetBooking = () => {
       case 'departure':
         setStep('route');
         break;
-      case 'return-departure':
+      case 'return-route':
         setStep('departure');
+        break;
+      case 'return-departure':
+        setStep('return-route');
         break;
       case 'passengers':
         if (currentTripType === 'round-trip' && booking.returnTrip) {
@@ -351,12 +370,15 @@ const WidgetBooking = () => {
 
   const originPort = data?.ports.find(p => p.id === selectedOrigin);
   const destPort = data?.ports.find(p => p.id === selectedDestination);
+  const returnOriginPort = data?.ports.find(p => p.id === returnOrigin);
+  const returnDestPort = data?.ports.find(p => p.id === returnDestination);
 
   // Get steps for progress indicator
   const getSteps = () => {
     const applicableAddons = booking.outbound.routeId ? getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId) : [];
     const baseSteps: BookingStep[] = ['route', 'departure'];
     if (currentTripType === 'round-trip') {
+      baseSteps.push('return-route');
       baseSteps.push('return-departure');
     }
     baseSteps.push('passengers');
@@ -365,6 +387,13 @@ const WidgetBooking = () => {
     }
     baseSteps.push('confirm');
     return baseSteps;
+  };
+
+  // Handle return route selection
+  const handleReturnRouteSelect = () => {
+    if (returnOrigin && returnDestination) {
+      setStep('return-departure');
+    }
   };
 
   // BAR WIDGET VIEW
@@ -416,19 +445,22 @@ const WidgetBooking = () => {
               
               <div className="flex items-center gap-6 text-sm flex-wrap">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-purple-800">Route:</span>
+                  <span className="font-semibold text-purple-800">Outbound:</span>
                   <span>{originPort?.name} → {destPort?.name}</span>
-                  {barSelection.tripType === 'round-trip' && (
-                    <ArrowLeftRight className="h-4 w-4 text-purple-600" />
-                  )}
                 </div>
+                {barSelection.tripType === 'round-trip' && returnDestination && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-purple-800">Return:</span>
+                    <span>{returnOriginPort?.name} → {returnDestPort?.name}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-purple-800">Date:</span>
                   <span>{selectedDate}</span>
                 </div>
                 {barSelection.tripType === 'round-trip' && barSelection.returnDate && (
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-purple-800">Return:</span>
+                    <span className="font-semibold text-purple-800">Return Date:</span>
                     <span>{barSelection.returnDate}</span>
                   </div>
                 )}
@@ -475,6 +507,49 @@ const WidgetBooking = () => {
               />
             )}
 
+            {step === 'return-route' && (
+              <Card className="p-4 mb-4">
+                <div className="flex items-center gap-2 mb-4 text-purple-700">
+                  <ArrowLeftRight className="h-5 w-5" />
+                  <span className="font-semibold">Select Return Destination</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  From: <span className="font-medium">{returnOriginPort?.name}</span>
+                </p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Where do you want to return to?</label>
+                    <select
+                      value={returnDestination}
+                      onChange={(e) => setReturnDestination(e.target.value)}
+                      className="w-full p-3 border rounded-lg bg-background"
+                    >
+                      <option value="">Select destination</option>
+                      {getReturnAvailableDestinations().map((port) => (
+                        <option key={port.id} value={port.id}>
+                          {port.name} ({port.area})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={goBack} className="flex-1">
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleReturnRouteSelect} 
+                      disabled={!returnDestination}
+                      className="flex-1"
+                    >
+                      Continue
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             {step === 'return-departure' && (
               <Card className="p-4 mb-4">
                 <div className="flex items-center gap-2 mb-4 text-purple-700">
@@ -482,7 +557,7 @@ const WidgetBooking = () => {
                   <span className="font-semibold">Select Return Trip</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {destPort?.name} → {originPort?.name}
+                  {returnOriginPort?.name} → {returnDestPort?.name}
                 </p>
                 <BookingStepDeparture
                   departures={getReturnDepartures()}
@@ -642,6 +717,49 @@ const WidgetBooking = () => {
           />
         )}
 
+        {step === 'return-route' && (
+          <Card className="p-4 mb-4">
+            <div className="flex items-center gap-2 mb-4 text-primary">
+              <ArrowLeftRight className="h-5 w-5" />
+              <span className="font-semibold">Select Return Destination</span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              From: <span className="font-medium">{returnOriginPort?.name}</span>
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Where do you want to return to?</label>
+                <select
+                  value={returnDestination}
+                  onChange={(e) => setReturnDestination(e.target.value)}
+                  className="w-full p-3 border rounded-lg bg-background"
+                >
+                  <option value="">Select destination</option>
+                  {getReturnAvailableDestinations().map((port) => (
+                    <option key={port.id} value={port.id}>
+                      {port.name} ({port.area})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={goBack} className="flex-1">
+                  Back
+                </Button>
+                <Button 
+                  onClick={handleReturnRouteSelect} 
+                  disabled={!returnDestination}
+                  className="flex-1"
+                >
+                  Continue
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {step === 'return-departure' && (
           <Card className="p-4 mb-4">
             <div className="flex items-center gap-2 mb-4 text-primary">
@@ -649,7 +767,7 @@ const WidgetBooking = () => {
               <span className="font-semibold">Select Return Trip</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              {destPort?.name} → {originPort?.name}
+              {returnOriginPort?.name} → {returnDestPort?.name}
             </p>
             <BookingStepDeparture
               departures={getReturnDepartures()}
