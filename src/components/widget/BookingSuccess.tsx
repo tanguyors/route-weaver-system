@@ -1,17 +1,23 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Calendar, Clock, Users, QrCode, Download, Ship, Package, MapPin } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, Users, QrCode, Download, Ship, Package, MapPin, Baby, ArrowLeftRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { SelectedAddon } from '@/hooks/useWidgetBooking';
+
+interface TripInfo {
+  route: string;
+  date: string;
+  time: string;
+}
 
 interface BookingSuccessProps {
   bookingId: string;
   qrToken: string;
-  departure: {
-    route: string;
-    date: string;
-    time: string;
-  };
+  departure: TripInfo;
+  returnTrip?: TripInfo;
+  paxAdult?: number;
+  paxChild?: number;
+  paxInfant?: number;
   totalAmount: number;
   subtotalAmount?: number;
   addonsAmount?: number;
@@ -27,6 +33,10 @@ export const BookingSuccess = ({
   bookingId,
   qrToken,
   departure,
+  returnTrip,
+  paxAdult = 1,
+  paxChild = 0,
+  paxInfant = 0,
   totalAmount,
   subtotalAmount,
   addonsAmount,
@@ -45,13 +55,17 @@ export const BookingSuccess = ({
   // Generate QR code URL (using a free QR code API)
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}`;
 
+  const isRoundTrip = !!returnTrip;
+
   return (
     <Card className="overflow-hidden">
       {/* Success Header */}
       <div className="bg-emerald-500 text-white p-6 text-center">
         <CheckCircle className="h-16 w-16 mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-2">Booking Confirmed!</h2>
-        <p className="text-emerald-100">Your ticket has been generated</p>
+        <p className="text-emerald-100">
+          {isRoundTrip ? 'Your round trip tickets have been generated' : 'Your ticket has been generated'}
+        </p>
       </div>
 
       <CardContent className="p-6 space-y-6">
@@ -59,24 +73,70 @@ export const BookingSuccess = ({
         <div className="text-center p-3 bg-muted rounded-lg">
           <p className="text-xs text-muted-foreground">Booking Reference</p>
           <p className="font-mono font-bold text-lg">{bookingId.slice(0, 8).toUpperCase()}</p>
+          {isRoundTrip && (
+            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
+              <ArrowLeftRight className="h-3 w-3" />
+              Round Trip
+            </span>
+          )}
         </div>
 
         {/* Trip Details */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Ship className="h-5 w-5 text-primary" />
-            <div>
+        <div className="space-y-4">
+          {/* Outbound */}
+          <div className="border-l-2 border-primary pl-3 space-y-2">
+            <p className="text-xs font-medium text-primary uppercase">
+              {isRoundTrip ? 'Outbound Trip' : 'Trip Details'}
+            </p>
+            <div className="flex items-center gap-3">
+              <Ship className="h-5 w-5 text-primary" />
               <p className="font-medium">{departure.route}</p>
             </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              <p>{format(new Date(departure.date), 'EEEE, MMMM d, yyyy')}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <p>{departure.time.slice(0, 5)}</p>
+            </div>
           </div>
+
+          {/* Return Trip */}
+          {returnTrip && (
+            <div className="border-l-2 border-emerald-500 pl-3 space-y-2">
+              <p className="text-xs font-medium text-emerald-600 uppercase">Return Trip</p>
+              <div className="flex items-center gap-3">
+                <Ship className="h-5 w-5 text-emerald-500" />
+                <p className="font-medium">{returnTrip.route}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <p>{format(new Date(returnTrip.date), 'EEEE, MMMM d, yyyy')}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <p>{returnTrip.time.slice(0, 5)}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Passengers */}
           <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-muted-foreground" />
-            <p>{format(new Date(departure.date), 'EEEE, MMMM d, yyyy')}</p>
+            <Users className="h-5 w-5 text-muted-foreground" />
+            <p>
+              {paxAdult} Adult{paxAdult > 1 ? 's' : ''}
+              {paxChild > 0 && `, ${paxChild} Child${paxChild > 1 ? 'ren' : ''}`}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Clock className="h-5 w-5 text-muted-foreground" />
-            <p>{departure.time.slice(0, 5)}</p>
-          </div>
+          
+          {paxInfant > 0 && (
+            <div className="flex items-center gap-3 text-emerald-600">
+              <Baby className="h-5 w-5" />
+              <p>{paxInfant} Infant{paxInfant > 1 ? 's' : ''} (Free)</p>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <Users className="h-5 w-5 text-muted-foreground" />
             <p>{customer.full_name}</p>
@@ -134,7 +194,7 @@ export const BookingSuccess = ({
         <div className="text-center p-6 border rounded-lg">
           <div className="flex items-center justify-center gap-2 mb-4">
             <QrCode className="h-5 w-5" />
-            <span className="font-medium">Your Ticket</span>
+            <span className="font-medium">Your Ticket{isRoundTrip ? 's' : ''}</span>
           </div>
           <img 
             src={qrCodeUrl} 
@@ -152,7 +212,9 @@ export const BookingSuccess = ({
         <div className="space-y-2 text-sm">
           {subtotalAmount !== undefined && subtotalAmount > 0 && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Ticket Price</span>
+              <span className="text-muted-foreground">
+                Ticket Price {isRoundTrip && '(Round Trip)'}
+              </span>
               <span>{formatPrice(subtotalAmount)}</span>
             </div>
           )}
@@ -180,6 +242,9 @@ export const BookingSuccess = ({
         <div className="text-sm text-muted-foreground space-y-2">
           <p>✓ Please arrive at the port at least 30 minutes before departure</p>
           <p>✓ Bring a valid ID for check-in</p>
+          {paxInfant > 0 && (
+            <p>✓ Infants (0-2 years) travel free but must be accompanied by an adult</p>
+          )}
           <p>✓ Screenshot this ticket for offline access</p>
         </div>
 
@@ -191,7 +256,7 @@ export const BookingSuccess = ({
 
         <Button variant="outline" className="w-full" onClick={() => window.print()}>
           <Download className="h-4 w-4 mr-2" />
-          Save Ticket
+          Save Ticket{isRoundTrip ? 's' : ''}
         </Button>
       </CardContent>
     </Card>
