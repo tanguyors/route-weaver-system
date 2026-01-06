@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, MapPin, Loader2, Car, ArrowDownToLine } from 'lucide-react';
+import { Plus, Pencil, Trash2, MapPin, Loader2, Car, ArrowDownToLine, X } from 'lucide-react';
 import { usePickupDropoffRulesData, ServiceType, PickupDropoffRule } from '@/hooks/usePickupDropoffRulesData';
 
 const formatCurrency = (amount: number) => {
@@ -47,122 +47,202 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+interface RuleRow {
+  id?: string;
+  city_name: string;
+  price: string;
+  constraint_minutes: string;
+  status: 'active' | 'inactive';
+  sort_order: number;
+  isNew?: boolean;
+  toDelete?: boolean;
+}
+
 const PickupDropoffRulesTab = () => {
   const [selectedPortId, setSelectedPortId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<ServiceType>('pickup');
   
-  const { rules, ports, loading, isAdmin, createRule, updateRule, deleteRule } = usePickupDropoffRulesData(
-    selectedPortId || undefined,
-    activeTab
-  );
+  const { rules, ports, loading, isAdmin, createRule, updateRule, deleteRule, fetchRules } = usePickupDropoffRulesData();
 
   const [showForm, setShowForm] = useState(false);
-  const [editingRule, setEditingRule] = useState<PickupDropoffRule | null>(null);
-  const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  // Form state
   const [formPortId, setFormPortId] = useState('');
-  const [cityName, setCityName] = useState('');
   const [formServiceType, setFormServiceType] = useState<ServiceType>('pickup');
-  const [price, setPrice] = useState('');
-  const [constraintMinutes, setConstraintMinutes] = useState('');
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
-  const [sortOrder, setSortOrder] = useState('0');
+  const [rows, setRows] = useState<RuleRow[]>([]);
+  const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
 
-  const resetForm = () => {
-    setFormPortId(selectedPortId || '');
-    setCityName('');
-    setFormServiceType(activeTab);
-    setPrice('');
-    setConstraintMinutes('');
-    setStatus('active');
-    setSortOrder('0');
-    setEditingRule(null);
-    setFormError('');
-  };
+  // Filter rules based on selected port and service type
+  const filteredRules = rules.filter(r => {
+    const matchesType = r.service_type === activeTab;
+    const matchesPort = !selectedPortId || r.from_port_id === selectedPortId;
+    return matchesType && matchesPort;
+  });
 
-  const handleOpenForm = (rule?: PickupDropoffRule) => {
-    if (rule) {
-      setEditingRule(rule);
-      setFormPortId(rule.from_port_id);
-      setCityName(rule.city_name);
-      setFormServiceType(rule.service_type);
-      setPrice(rule.price.toString());
-      setConstraintMinutes(
-        rule.service_type === 'pickup'
-          ? rule.pickup_before_departure_minutes?.toString() || ''
-          : rule.dropoff_after_arrival_minutes?.toString() || ''
-      );
-      setStatus(rule.status);
-      setSortOrder(rule.sort_order.toString());
-    } else {
-      resetForm();
+  // Group rules by port for display
+  const rulesByPort = filteredRules.reduce((acc, rule) => {
+    const portId = rule.from_port_id;
+    if (!acc[portId]) {
+      acc[portId] = {
+        portName: rule.port?.name || 'Unknown',
+        rules: []
+      };
     }
+    acc[portId].rules.push(rule);
+    return acc;
+  }, {} as Record<string, { portName: string; rules: PickupDropoffRule[] }>);
+
+  const handleOpenForm = (portId?: string) => {
+    const targetPortId = portId || '';
+    const targetServiceType = activeTab;
+    
+    setFormPortId(targetPortId);
+    setFormServiceType(targetServiceType);
+    
+    // Load existing rules for this port and service type
+    const existingRules = rules.filter(
+      r => r.from_port_id === targetPortId && r.service_type === targetServiceType
+    );
+    
+    if (existingRules.length > 0) {
+      setRows(existingRules.map(r => ({
+        id: r.id,
+        city_name: r.city_name,
+        price: r.price.toString(),
+        constraint_minutes: (r.service_type === 'pickup' 
+          ? r.pickup_before_departure_minutes 
+          : r.dropoff_after_arrival_minutes)?.toString() || '',
+        status: r.status,
+        sort_order: r.sort_order,
+      })));
+    } else {
+      // Start with one empty row
+      setRows([{
+        city_name: '',
+        price: '',
+        constraint_minutes: '',
+        status: 'active',
+        sort_order: 0,
+        isNew: true,
+      }]);
+    }
+    
+    setFormError('');
     setShowForm(true);
   };
 
   const handleCloseForm = () => {
     setShowForm(false);
-    resetForm();
+    setRows([]);
+    setFormPortId('');
+    setFormError('');
+  };
+
+  const addRow = () => {
+    setRows([...rows, {
+      city_name: '',
+      price: '',
+      constraint_minutes: '',
+      status: 'active',
+      sort_order: rows.length,
+      isNew: true,
+    }]);
+  };
+
+  const removeRow = (index: number) => {
+    const row = rows[index];
+    if (row.id) {
+      // Mark existing row for deletion
+      setRows(rows.map((r, i) => i === index ? { ...r, toDelete: true } : r));
+    } else {
+      // Remove new row directly
+      setRows(rows.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateRow = (index: number, field: keyof RuleRow, value: string | number) => {
+    setRows(rows.map((row, i) => {
+      if (i === index) {
+        return { ...row, [field]: value };
+      }
+      return row;
+    }));
   };
 
   const handleSubmit = async () => {
     setFormError('');
 
     if (!formPortId) {
-      setFormError('Port is required');
+      setFormError('Please select a port');
       return;
     }
 
-    if (!cityName.trim()) {
-      setFormError('City name is required');
-      return;
-    }
-
-    const priceNum = parseFloat(price);
-    if (isNaN(priceNum) || priceNum < 0) {
-      setFormError('Price must be a positive number');
-      return;
+    const activeRows = rows.filter(r => !r.toDelete);
+    
+    // Validate all rows
+    for (let i = 0; i < activeRows.length; i++) {
+      const row = activeRows[i];
+      if (!row.city_name.trim()) {
+        setFormError(`Row ${i + 1}: City name is required`);
+        return;
+      }
+      const price = parseFloat(row.price);
+      if (isNaN(price) || price < 0) {
+        setFormError(`Row ${i + 1}: Price must be a valid positive number`);
+        return;
+      }
     }
 
     setSaving(true);
 
-    const data = {
-      from_port_id: formPortId,
-      city_name: cityName.trim(),
-      service_type: formServiceType,
-      price: priceNum,
-      pickup_before_departure_minutes: formServiceType === 'pickup' && constraintMinutes ? parseInt(constraintMinutes) : undefined,
-      dropoff_after_arrival_minutes: formServiceType === 'dropoff' && constraintMinutes ? parseInt(constraintMinutes) : undefined,
-      status,
-      sort_order: parseInt(sortOrder) || 0,
-    };
+    try {
+      // Delete marked rows
+      const toDelete = rows.filter(r => r.toDelete && r.id);
+      for (const row of toDelete) {
+        await deleteRule(row.id!);
+      }
 
-    let result;
-    if (editingRule) {
-      result = await updateRule(editingRule.id, data);
-    } else {
-      result = await createRule(data);
+      // Create or update rows
+      for (let i = 0; i < activeRows.length; i++) {
+        const row = activeRows[i];
+        const data = {
+          from_port_id: formPortId,
+          city_name: row.city_name.trim(),
+          service_type: formServiceType,
+          price: parseFloat(row.price) || 0,
+          pickup_before_departure_minutes: formServiceType === 'pickup' && row.constraint_minutes 
+            ? parseInt(row.constraint_minutes) 
+            : undefined,
+          dropoff_after_arrival_minutes: formServiceType === 'dropoff' && row.constraint_minutes 
+            ? parseInt(row.constraint_minutes) 
+            : undefined,
+          status: row.status,
+          sort_order: i,
+        };
+
+        if (row.id) {
+          await updateRule(row.id, data);
+        } else {
+          await createRule(data);
+        }
+      }
+
+      await fetchRules();
+      handleCloseForm();
+    } catch (error: any) {
+      setFormError(error.message || 'Failed to save rules');
     }
 
     setSaving(false);
-
-    if (!result.error) {
-      handleCloseForm();
-    } else {
-      setFormError(result.error.message);
-    }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteRule = async () => {
     if (!deleteRuleId) return;
     await deleteRule(deleteRuleId);
     setDeleteRuleId(null);
   };
 
-  const filteredRules = rules.filter(r => r.service_type === activeTab);
+  const visibleRows = rows.filter(r => !r.toDelete);
 
   return (
     <div className="space-y-4">
@@ -188,7 +268,7 @@ const PickupDropoffRulesTab = () => {
         {isAdmin && (
           <Button onClick={() => handleOpenForm()} size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Add Rule
+            Configure Port Rules
           </Button>
         )}
       </div>
@@ -210,7 +290,7 @@ const PickupDropoffRulesTab = () => {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : filteredRules.length === 0 ? (
+          ) : Object.keys(rulesByPort).length === 0 ? (
             <div className="text-center py-12 border rounded-lg">
               <MapPin className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground">
@@ -219,175 +299,198 @@ const PickupDropoffRulesTab = () => {
               {isAdmin && (
                 <Button className="mt-4" onClick={() => handleOpenForm()} size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add First Rule
+                  Add First Rules
                 </Button>
               )}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Port</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>
-                    {activeTab === 'pickup' ? 'Before Departure' : 'After Arrival'}
-                  </TableHead>
-                  <TableHead>Status</TableHead>
-                  {isAdmin && <TableHead className="w-24">Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRules.map((rule) => (
-                  <TableRow key={rule.id}>
-                    <TableCell className="font-medium">
-                      {rule.port?.name || '-'}
-                    </TableCell>
-                    <TableCell>{rule.city_name}</TableCell>
-                    <TableCell>{formatCurrency(rule.price)}</TableCell>
-                    <TableCell>
-                      {activeTab === 'pickup'
-                        ? rule.pickup_before_departure_minutes
-                          ? `${rule.pickup_before_departure_minutes} min`
-                          : '-'
-                        : rule.dropoff_after_arrival_minutes
-                          ? `${rule.dropoff_after_arrival_minutes} min`
-                          : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={rule.status === 'active' ? 'default' : 'secondary'}>
-                        {rule.status}
-                      </Badge>
-                    </TableCell>
+            <div className="space-y-6">
+              {Object.entries(rulesByPort).map(([portId, { portName, rules: portRules }]) => (
+                <div key={portId} className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted/50 px-4 py-3 flex items-center justify-between">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {portName}
+                    </h3>
                     {isAdmin && (
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenForm(rule)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteRuleId(rule.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      <Button variant="ghost" size="sm" onClick={() => handleOpenForm(portId)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
                     )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>City</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>
+                          {activeTab === 'pickup' ? 'Before Departure' : 'After Arrival'}
+                        </TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {portRules.map((rule) => (
+                        <TableRow key={rule.id}>
+                          <TableCell className="font-medium">{rule.city_name}</TableCell>
+                          <TableCell>{formatCurrency(rule.price)}</TableCell>
+                          <TableCell>
+                            {activeTab === 'pickup'
+                              ? rule.pickup_before_departure_minutes
+                                ? `${rule.pickup_before_departure_minutes} min`
+                                : '-'
+                              : rule.dropoff_after_arrival_minutes
+                                ? `${rule.dropoff_after_arrival_minutes} min`
+                                : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={rule.status === 'active' ? 'default' : 'secondary'}>
+                              {rule.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))}
+            </div>
           )}
         </TabsContent>
       </Tabs>
 
-      {/* Add/Edit Rule Dialog */}
+      {/* Configure Port Rules Dialog */}
       <Dialog open={showForm} onOpenChange={handleCloseForm}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
-              {editingRule ? 'Edit Rule' : 'Add Rule'}
+              Configure {formServiceType === 'pickup' ? 'Pickup' : 'Dropoff'} Rules
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>From Port *</Label>
-              <Select value={formPortId} onValueChange={setFormPortId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select port" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ports.map((port) => (
-                    <SelectItem key={port.id} value={port.id}>
-                      {port.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cityName">City Name *</Label>
-              <Input
-                id="cityName"
-                value={cityName}
-                onChange={(e) => setCityName(e.target.value)}
-                placeholder="e.g. Ubud, Seminyak, Kuta"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Service Type</Label>
-              <Select value={formServiceType} onValueChange={(v: ServiceType) => setFormServiceType(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pickup">Pickup</SelectItem>
-                  <SelectItem value="dropoff">Dropoff</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
+          
+          <div className="space-y-4 py-4 flex-1 overflow-y-auto">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Price (IDR) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0"
-                  min={0}
-                />
+                <Label>From Port *</Label>
+                <Select value={formPortId} onValueChange={setFormPortId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select port" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ports.map((port) => (
+                      <SelectItem key={port.id} value={port.id}>
+                        {port.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-
+              
               <div className="space-y-2">
-                <Label htmlFor="constraint">
-                  {formServiceType === 'pickup' ? 'Before Departure (min)' : 'After Arrival (min)'}
-                </Label>
-                <Input
-                  id="constraint"
-                  type="number"
-                  value={constraintMinutes}
-                  onChange={(e) => setConstraintMinutes(e.target.value)}
-                  placeholder="e.g. 60"
-                  min={0}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={status} onValueChange={(v: 'active' | 'inactive') => setStatus(v)}>
+                <Label>Service Type</Label>
+                <Select value={formServiceType} onValueChange={(v: ServiceType) => setFormServiceType(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="pickup">Pickup</SelectItem>
+                    <SelectItem value="dropoff">Dropoff</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sortOrder">Sort Order</Label>
-                <Input
-                  id="sortOrder"
-                  type="number"
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                  min={0}
-                />
-              </div>
             </div>
+
+            {/* Editable Table */}
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">City *</TableHead>
+                    <TableHead className="w-[150px]">Price (IDR) *</TableHead>
+                    <TableHead className="w-[150px]">
+                      {formServiceType === 'pickup' ? 'Before Dep. (min)' : 'After Arr. (min)'}
+                    </TableHead>
+                    <TableHead className="w-[120px]">Status</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No cities added yet. Click "Add City" to start.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    visibleRows.map((row, index) => {
+                      const actualIndex = rows.findIndex(r => r === row || (r.id && r.id === row.id));
+                      return (
+                        <TableRow key={row.id || `new-${index}`}>
+                          <TableCell className="p-2">
+                            <Input
+                              value={row.city_name}
+                              onChange={(e) => updateRow(actualIndex, 'city_name', e.target.value)}
+                              placeholder="e.g. Ubud"
+                              className="h-9"
+                            />
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Input
+                              type="number"
+                              value={row.price}
+                              onChange={(e) => updateRow(actualIndex, 'price', e.target.value)}
+                              placeholder="0"
+                              min={0}
+                              className="h-9"
+                            />
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Input
+                              type="number"
+                              value={row.constraint_minutes}
+                              onChange={(e) => updateRow(actualIndex, 'constraint_minutes', e.target.value)}
+                              placeholder="60"
+                              min={0}
+                              className="h-9"
+                            />
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Select 
+                              value={row.status} 
+                              onValueChange={(v: 'active' | 'inactive') => updateRow(actualIndex, 'status', v)}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="inactive">Inactive</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeRow(actualIndex)}
+                              className="h-9 w-9 text-destructive hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <Button variant="outline" size="sm" onClick={addRow} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Add City
+            </Button>
 
             {formError && <p className="text-sm text-destructive">{formError}</p>}
           </div>
@@ -398,7 +501,7 @@ const PickupDropoffRulesTab = () => {
             </Button>
             <Button onClick={handleSubmit} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingRule ? 'Update' : 'Create'}
+              Save All
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -415,7 +518,7 @@ const PickupDropoffRulesTab = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteRule}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
