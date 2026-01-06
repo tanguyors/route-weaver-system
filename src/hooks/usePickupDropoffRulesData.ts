@@ -1,0 +1,181 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useUserRole } from '@/hooks/useUserRole';
+import { toast } from 'sonner';
+
+export type ServiceType = 'pickup' | 'dropoff';
+
+export interface PickupDropoffRule {
+  id: string;
+  from_port_id: string;
+  city_name: string;
+  service_type: ServiceType;
+  price: number;
+  pickup_before_departure_minutes: number | null;
+  dropoff_after_arrival_minutes: number | null;
+  status: 'active' | 'inactive';
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  port?: { id: string; name: string };
+}
+
+export interface Port {
+  id: string;
+  name: string;
+  area: string | null;
+}
+
+export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: ServiceType) => {
+  const [rules, setRules] = useState<PickupDropoffRule[]>([]);
+  const [ports, setPorts] = useState<Port[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { role } = useUserRole();
+
+  const isAdmin = role === 'admin';
+
+  const fetchRules = useCallback(async () => {
+    setLoading(true);
+    
+    let query = supabase
+      .from('private_pickup_dropoff_rules')
+      .select(`
+        *,
+        port:ports!private_pickup_dropoff_rules_from_port_id_fkey(id, name)
+      `)
+      .order('sort_order')
+      .order('city_name');
+
+    if (fromPortId) {
+      query = query.eq('from_port_id', fromPortId);
+    }
+
+    if (serviceType) {
+      query = query.eq('service_type', serviceType);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching pickup/dropoff rules:', error);
+      toast.error('Failed to load pickup/dropoff rules');
+    } else {
+      setRules((data || []) as PickupDropoffRule[]);
+    }
+    setLoading(false);
+  }, [fromPortId, serviceType]);
+
+  const fetchPorts = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('ports')
+      .select('id, name, area')
+      .order('name');
+
+    if (!error) {
+      setPorts(data || []);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRules();
+    fetchPorts();
+  }, [fetchRules, fetchPorts]);
+
+  const createRule = async (data: {
+    from_port_id: string;
+    city_name: string;
+    service_type: ServiceType;
+    price: number;
+    pickup_before_departure_minutes?: number;
+    dropoff_after_arrival_minutes?: number;
+    status: 'active' | 'inactive';
+    sort_order?: number;
+  }): Promise<{ error: Error | null }> => {
+    if (!isAdmin) {
+      toast.error('Only admins can manage pickup/dropoff rules');
+      return { error: new Error('Unauthorized') };
+    }
+
+    const { error } = await supabase
+      .from('private_pickup_dropoff_rules')
+      .insert({
+        ...data,
+        pickup_before_departure_minutes: data.service_type === 'pickup' ? data.pickup_before_departure_minutes : null,
+        dropoff_after_arrival_minutes: data.service_type === 'dropoff' ? data.dropoff_after_arrival_minutes : null,
+      });
+
+    if (error) {
+      toast.error('Failed to create rule');
+      return { error };
+    }
+
+    toast.success('Rule created successfully');
+    await fetchRules();
+    return { error: null };
+  };
+
+  const updateRule = async (
+    id: string,
+    data: Partial<{
+      from_port_id: string;
+      city_name: string;
+      service_type: ServiceType;
+      price: number;
+      pickup_before_departure_minutes: number;
+      dropoff_after_arrival_minutes: number;
+      status: 'active' | 'inactive';
+      sort_order: number;
+    }>
+  ): Promise<{ error: Error | null }> => {
+    if (!isAdmin) {
+      toast.error('Only admins can manage pickup/dropoff rules');
+      return { error: new Error('Unauthorized') };
+    }
+
+    const { error } = await supabase
+      .from('private_pickup_dropoff_rules')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to update rule');
+      return { error };
+    }
+
+    toast.success('Rule updated successfully');
+    await fetchRules();
+    return { error: null };
+  };
+
+  const deleteRule = async (id: string): Promise<{ error: Error | null }> => {
+    if (!isAdmin) {
+      toast.error('Only admins can manage pickup/dropoff rules');
+      return { error: new Error('Unauthorized') };
+    }
+
+    const { error } = await supabase
+      .from('private_pickup_dropoff_rules')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to delete rule');
+      return { error };
+    }
+
+    toast.success('Rule deleted successfully');
+    await fetchRules();
+    return { error: null };
+  };
+
+  return {
+    rules,
+    ports,
+    loading,
+    isAdmin,
+    fetchRules,
+    createRule,
+    updateRule,
+    deleteRule,
+  };
+};

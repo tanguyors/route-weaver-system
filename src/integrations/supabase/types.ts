@@ -2185,6 +2185,164 @@ export type Database = {
           },
         ]
       }
+      private_boat_routes: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          from_port_id: string
+          id: string
+          price: number
+          private_boat_id: string
+          status: Database["public"]["Enums"]["route_status"]
+          to_port_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          from_port_id: string
+          id?: string
+          price?: number
+          private_boat_id: string
+          status?: Database["public"]["Enums"]["route_status"]
+          to_port_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          from_port_id?: string
+          id?: string
+          price?: number
+          private_boat_id?: string
+          status?: Database["public"]["Enums"]["route_status"]
+          to_port_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_boat_routes_from_port_id_fkey"
+            columns: ["from_port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_boat_routes_private_boat_id_fkey"
+            columns: ["private_boat_id"]
+            isOneToOne: false
+            referencedRelation: "private_boats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_boat_routes_to_port_id_fkey"
+            columns: ["to_port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_boats: {
+        Row: {
+          capacity: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          max_departure_time: string
+          min_departure_time: string
+          name: string
+          partner_id: string
+          status: Database["public"]["Enums"]["private_boat_status"]
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          max_departure_time?: string
+          min_departure_time?: string
+          name: string
+          partner_id: string
+          status?: Database["public"]["Enums"]["private_boat_status"]
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          max_departure_time?: string
+          min_departure_time?: string
+          name?: string
+          partner_id?: string
+          status?: Database["public"]["Enums"]["private_boat_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_boats_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_pickup_dropoff_rules: {
+        Row: {
+          city_name: string
+          created_at: string
+          dropoff_after_arrival_minutes: number | null
+          from_port_id: string
+          id: string
+          pickup_before_departure_minutes: number | null
+          price: number
+          service_type: Database["public"]["Enums"]["pickup_dropoff_service_type"]
+          sort_order: number
+          status: Database["public"]["Enums"]["route_status"]
+          updated_at: string
+        }
+        Insert: {
+          city_name: string
+          created_at?: string
+          dropoff_after_arrival_minutes?: number | null
+          from_port_id: string
+          id?: string
+          pickup_before_departure_minutes?: number | null
+          price?: number
+          service_type: Database["public"]["Enums"]["pickup_dropoff_service_type"]
+          sort_order?: number
+          status?: Database["public"]["Enums"]["route_status"]
+          updated_at?: string
+        }
+        Update: {
+          city_name?: string
+          created_at?: string
+          dropoff_after_arrival_minutes?: number | null
+          from_port_id?: string
+          id?: string
+          pickup_before_departure_minutes?: number | null
+          price?: number
+          service_type?: Database["public"]["Enums"]["pickup_dropoff_service_type"]
+          sort_order?: number
+          status?: Database["public"]["Enums"]["route_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_pickup_dropoff_rules_from_port_id_fkey"
+            columns: ["from_port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2789,7 +2947,9 @@ export type Database = {
       payment_method: "card" | "qris" | "transfer" | "cash" | "payment_link"
       payment_provider: "stripe" | "xendit" | "midtrans" | "manual"
       payment_status: "unpaid" | "paid" | "failed" | "refunded" | "partial"
+      pickup_dropoff_service_type: "pickup" | "dropoff"
       price_rule_type: "base" | "seasonal" | "custom"
+      private_boat_status: "draft" | "active" | "inactive"
       route_status: "active" | "inactive"
       ticket_status:
         | "pending"
@@ -2979,7 +3139,9 @@ export const Constants = {
       payment_method: ["card", "qris", "transfer", "cash", "payment_link"],
       payment_provider: ["stripe", "xendit", "midtrans", "manual"],
       payment_status: ["unpaid", "paid", "failed", "refunded", "partial"],
+      pickup_dropoff_service_type: ["pickup", "dropoff"],
       price_rule_type: ["base", "seasonal", "custom"],
+      private_boat_status: ["draft", "active", "inactive"],
       route_status: ["active", "inactive"],
       ticket_status: [
         "pending",
