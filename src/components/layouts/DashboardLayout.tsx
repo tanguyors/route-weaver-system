@@ -29,6 +29,7 @@ import {
   Wallet,
   ArrowLeftRight,
   Lock,
+  Anchor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +49,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Boats', href: '/dashboard/boats', icon: Sailboat, ownerOnly: true },
+  { label: 'Private Boats', href: '/dashboard/private-boats', icon: Anchor, ownerOnly: true },
   { label: 'Routes & Trips', href: '/dashboard/trips', icon: Route },
   { label: 'Schedules', href: '/dashboard/schedules', icon: Calendar },
   { label: 'Add-ons', href: '/dashboard/addons', icon: Ship, ownerOnly: true },
