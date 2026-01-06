@@ -169,12 +169,12 @@ const PickupDropoffRulesTab = () => {
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-64">
-            <Select value={selectedPortId} onValueChange={setSelectedPortId}>
+            <Select value={selectedPortId || "all"} onValueChange={(v) => setSelectedPortId(v === "all" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="All Ports" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Ports</SelectItem>
+                <SelectItem value="all">All Ports</SelectItem>
                 {ports.map((port) => (
                   <SelectItem key={port.id} value={port.id}>
                     {port.name}
