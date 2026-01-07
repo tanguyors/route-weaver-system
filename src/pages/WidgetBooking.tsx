@@ -427,6 +427,12 @@ const WidgetBooking = () => {
           onSearch={handleBarSearch}
           onBarSelectionChange={setBarSelection}
           barSelection={barSelection}
+          privateBoats={data?.private_boats || []}
+          onPrivateBoatSearch={(selection) => {
+            setPrivateBoatSelection(selection);
+            setServiceType('private-boat');
+            setStep('private-confirm');
+          }}
         />
       );
     }
