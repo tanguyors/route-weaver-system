@@ -1,0 +1,279 @@
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { CalendarDays, Trash2, Ship, Tag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { WidgetOrderSummary } from './WidgetOrderSummary';
+import { cn } from '@/lib/utils';
+
+interface Boat {
+  id: string;
+  name: string;
+  image_url: string | null;
+}
+
+interface Trip {
+  id: string;
+  route_id: string;
+  trip_name: string;
+}
+
+interface CartItem {
+  id: string;
+  departure: {
+    id: string;
+    trip_id: string;
+    route_id: string;
+    departure_date: string;
+    departure_time: string;
+    boat_id: string | null;
+  };
+  trip: Trip | undefined;
+  originName: string;
+  destName: string;
+  pricing: { adult: number; child: number };
+  direction: 'outbound' | 'return';
+}
+
+interface WidgetShoppingCartProps {
+  items: CartItem[];
+  boats: Boat[];
+  paxAdult: number;
+  paxChild: number;
+  paxInfant: number;
+  promoCode: string;
+  onPromoCodeChange: (code: string) => void;
+  onApplyPromo: () => void;
+  onRemoveItem: (id: string) => void;
+  onProceed: () => void;
+  onBack: () => void;
+  primaryColor?: string;
+}
+
+export const WidgetShoppingCart = ({
+  items,
+  boats,
+  paxAdult,
+  paxChild,
+  paxInfant,
+  promoCode,
+  onPromoCodeChange,
+  onApplyPromo,
+  onRemoveItem,
+  onProceed,
+  onBack,
+  primaryColor = '#22c55e',
+}: WidgetShoppingCartProps) => {
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const getBoat = (boatId: string | null) => {
+    if (!boatId) return null;
+    return boats.find(b => b.id === boatId);
+  };
+
+  const calculateItemTotal = (item: CartItem) => {
+    return (paxAdult * item.pricing.adult) + (paxChild * item.pricing.child);
+  };
+
+  const CartItemCard = ({ item }: { item: CartItem }) => {
+    const boat = getBoat(item.departure.boat_id);
+    const total = calculateItemTotal(item);
+
+    return (
+      <div className="bg-white rounded-lg border-2 border-gray-200 p-4 mb-4">
+        {/* Date Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
+              style={{ borderTopColor: item.direction === 'outbound' ? primaryColor : '#3b82f6' }}
+            />
+            <div className="flex items-center gap-2" style={{ color: primaryColor }}>
+              <CalendarDays className="w-4 h-4" />
+              <span className="font-medium">
+                {format(new Date(item.departure.departure_date), 'EEE, dd MMM yyyy')}
+              </span>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemoveItem(item.id)}
+            className="text-gray-400 hover:text-red-500"
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Delete
+          </Button>
+        </div>
+
+        <div className="flex gap-4">
+          {/* Boat Image */}
+          <div className="w-44 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+            {boat?.image_url ? (
+              <img 
+                src={boat.image_url} 
+                alt={boat.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Ship className="w-12 h-12 text-gray-300" />
+              </div>
+            )}
+          </div>
+
+          {/* Trip Info */}
+          <div className="flex-1">
+            <h3 
+              className="font-bold text-lg mb-2"
+              style={{ color: primaryColor }}
+            >
+              {item.trip?.trip_name || 'Trip'}
+            </h3>
+
+            {/* Times */}
+            <div className="flex items-center gap-6 mb-2">
+              <div>
+                <div className="text-xl font-bold">{item.departure.departure_time.slice(0, 5)}</div>
+                <div style={{ color: primaryColor }} className="text-sm">{item.originName}</div>
+              </div>
+              <div className="flex-1 border-t-2 border-dashed border-gray-300" />
+              <div className="text-right">
+                <div className="text-xl font-bold">--:--</div>
+                <div style={{ color: primaryColor }} className="text-sm">{item.destName}</div>
+              </div>
+            </div>
+
+            {/* Price */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">
+                Adult X {paxAdult}, Child X {paxChild}, Infants X {paxInfant}
+              </span>
+              <span className="font-bold" style={{ color: primaryColor }}>
+                {formatPrice(total)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Shuttle option */}
+        <div className="flex items-center justify-end gap-4 mt-4 pt-4 border-t">
+          <span className="text-sm text-gray-500 flex items-center gap-1">
+            <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-xs">i</span>
+            Shuttle Rates
+          </span>
+          <Button
+            variant="outline"
+            className="gap-2"
+            style={{ borderColor: primaryColor, color: primaryColor }}
+          >
+            <input type="checkbox" className="w-4 h-4" />
+            Pick Up
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // Calculate totals for order summary
+  const outboundItem = items.find(i => i.direction === 'outbound');
+  const returnItem = items.find(i => i.direction === 'return');
+
+  const outboundSummary = outboundItem ? {
+    routeName: `${outboundItem.originName} - ${outboundItem.destName}`,
+    originName: outboundItem.originName,
+    destName: outboundItem.destName,
+    date: outboundItem.departure.departure_date,
+    paxAdult,
+    paxChild,
+    paxInfant,
+    price: calculateItemTotal(outboundItem),
+  } : undefined;
+
+  const returnSummary = returnItem ? {
+    routeName: `${returnItem.originName} - ${returnItem.destName}`,
+    originName: returnItem.originName,
+    destName: returnItem.destName,
+    date: returnItem.departure.departure_date,
+    paxAdult,
+    paxChild,
+    paxInfant,
+    price: calculateItemTotal(returnItem),
+  } : undefined;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content */}
+      <div className="lg:col-span-2">
+        {/* Cart Items */}
+        {items.length === 0 ? (
+          <div className="bg-white rounded-lg p-8 text-center text-gray-500">
+            <Ship className="w-16 h-16 mx-auto mb-4 opacity-30" />
+            <p className="text-lg font-medium">Your cart is empty</p>
+            <p className="text-sm mt-1">Select trips to add them to your cart</p>
+          </div>
+        ) : (
+          items.map(item => (
+            <CartItemCard key={item.id} item={item} />
+          ))
+        )}
+
+        {/* Promo Code */}
+        <div className="bg-white rounded-lg border p-4 mt-4">
+          <div className="flex items-center gap-4">
+            <span className="font-semibold">Promotional Code</span>
+            <div className="flex-1 flex gap-2">
+              <Input
+                placeholder="Enter promo code"
+                value={promoCode}
+                onChange={(e) => onPromoCodeChange(e.target.value.toUpperCase())}
+                className="flex-1"
+              />
+              <Button
+                onClick={onApplyPromo}
+                className="text-white"
+                style={{ backgroundColor: '#0ea5e9' }}
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-4 mt-6">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="flex-1 py-6 text-lg"
+          >
+            Book other trip
+          </Button>
+          <Button
+            onClick={onProceed}
+            disabled={items.length === 0}
+            className="flex-1 py-6 text-lg text-white"
+            style={{ backgroundColor: primaryColor }}
+          >
+            Proceed to Checkout
+          </Button>
+        </div>
+      </div>
+
+      {/* Order Summary Sidebar */}
+      <div className="lg:col-span-1">
+        <WidgetOrderSummary
+          outbound={outboundSummary}
+          returnTrip={returnSummary}
+          primaryColor={primaryColor}
+        />
+      </div>
+    </div>
+  );
+};
