@@ -207,31 +207,54 @@ export const BookingStepRoute = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Service Type Toggle - Only show if both options available */}
-        {hasPrivateBoats && hasPublicFerry && (
-          <div className="flex gap-2 p-1 bg-muted rounded-lg">
-            <button
-              onClick={() => setServiceType('public-ferry')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md text-sm font-medium transition-all ${
-                serviceType === 'public-ferry'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Ship className="h-4 w-4" />
-              Public Fast Ferry
-            </button>
-            <button
-              onClick={() => setServiceType('private-boat')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md text-sm font-medium transition-all ${
-                serviceType === 'private-boat'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Anchor className="h-4 w-4" />
-              Private Boat
-            </button>
+        {/* Service Type Toggle - Always show */}
+        <div className="flex gap-2 p-1 bg-muted rounded-lg">
+          <button
+            onClick={() => hasPublicFerry && setServiceType('public-ferry')}
+            disabled={!hasPublicFerry}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md text-sm font-medium transition-all ${
+              serviceType === 'public-ferry'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : !hasPublicFerry
+                ? 'text-muted-foreground/50 cursor-not-allowed'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Ship className="h-4 w-4" />
+            <span className="hidden sm:inline">Public Fast Ferry</span>
+            <span className="sm:hidden">Fast Ferry</span>
+          </button>
+          <button
+            onClick={() => hasPrivateBoats && setServiceType('private-boat')}
+            disabled={!hasPrivateBoats}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md text-sm font-medium transition-all ${
+              serviceType === 'private-boat'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : !hasPrivateBoats
+                ? 'text-muted-foreground/50 cursor-not-allowed'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Anchor className="h-4 w-4" />
+            <span className="hidden sm:inline">Private Boat</span>
+            <span className="sm:hidden">Private</span>
+          </button>
+        </div>
+
+        {/* Message if selected option not available */}
+        {serviceType === 'private-boat' && !hasPrivateBoats && (
+          <div className="text-center py-6 text-muted-foreground">
+            <Anchor className="h-10 w-10 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Private boats are not available yet.</p>
+            <p className="text-xs">Please select Public Fast Ferry.</p>
+          </div>
+        )}
+
+        {serviceType === 'public-ferry' && !hasPublicFerry && (
+          <div className="text-center py-6 text-muted-foreground">
+            <Ship className="h-10 w-10 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Public ferry routes are not available yet.</p>
+            <p className="text-xs">Please select Private Boat.</p>
           </div>
         )}
 
