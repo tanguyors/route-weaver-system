@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
-export type WidgetStyle = 'block' | 'bar';
+export type WidgetStyle = 'block' | 'bar' | 'test';
 
 export interface ThemeConfig {
   widget_style?: WidgetStyle;
@@ -275,10 +275,28 @@ export const useWidgetConfigData = () => {
 ></iframe>`;
   };
 
+  // Get embed code for test (new) widget
+  const getTestEmbedCode = () => {
+    if (!widget) return '';
+
+    const baseUrl = window.location.origin;
+    return `<iframe 
+  src="${baseUrl}/book-new?key=${widget.public_widget_key}" 
+  width="100%" 
+  height="800px" 
+  frameborder="0" 
+  style="border: none; border-radius: 8px;"
+  allow="payment"
+></iframe>`;
+  };
+
   // Get direct link
-  const getDirectLink = (style: 'block' | 'bar' = 'block') => {
+  const getDirectLink = (style: 'block' | 'bar' | 'test' = 'block') => {
     if (!widget) return '';
     const baseUrl = window.location.origin;
+    if (style === 'test') {
+      return `${baseUrl}/book-new?key=${widget.public_widget_key}`;
+    }
     const styleParam = style === 'bar' ? '&style=bar' : '';
     return `${baseUrl}/book?key=${widget.public_widget_key}${styleParam}`;
   };
@@ -296,6 +314,7 @@ export const useWidgetConfigData = () => {
     copyWidgetKey,
     getEmbedCode,
     getBarEmbedCode,
+    getTestEmbedCode,
     getDirectLink,
     refetch: fetchWidget,
   };

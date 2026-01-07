@@ -4,24 +4,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Check, Copy, ExternalLink, LayoutGrid, GripHorizontal } from 'lucide-react';
+import { Check, Copy, ExternalLink, LayoutGrid, GripHorizontal, Sparkles } from 'lucide-react';
 
 interface WidgetEmbedCodeProps {
   embedCode: string;
   barEmbedCode: string;
+  testEmbedCode?: string;
   directLink: string;
   barDirectLink: string;
+  testDirectLink?: string;
   widgetKey: string;
-  selectedStyle: 'block' | 'bar';
-  onStyleChange: (style: 'block' | 'bar') => void;
+  selectedStyle: 'block' | 'bar' | 'test';
+  onStyleChange: (style: 'block' | 'bar' | 'test') => void;
   onCopyKey: () => void;
 }
 
 const WidgetEmbedCode = ({
   embedCode,
   barEmbedCode,
+  testEmbedCode = '',
   directLink,
   barDirectLink,
+  testDirectLink = '',
   widgetKey,
   selectedStyle,
   onStyleChange,
@@ -39,8 +43,19 @@ const WidgetEmbedCode = ({
     }
   };
 
-  const currentEmbedCode = selectedStyle === 'block' ? embedCode : barEmbedCode;
-  const currentDirectLink = selectedStyle === 'block' ? directLink : barDirectLink;
+  const currentEmbedCode = selectedStyle === 'block' ? embedCode : selectedStyle === 'bar' ? barEmbedCode : testEmbedCode;
+  const currentDirectLink = selectedStyle === 'block' ? directLink : selectedStyle === 'bar' ? barDirectLink : testDirectLink;
+
+  const getStyleDescription = () => {
+    switch (selectedStyle) {
+      case 'block':
+        return 'Full booking form widget (recommended for dedicated pages)';
+      case 'bar':
+        return 'Compact horizontal search bar (recommended for headers/hero sections)';
+      case 'test':
+        return 'New widget style with step-by-step flow (EkaJaya-inspired)';
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -70,7 +85,7 @@ const WidgetEmbedCode = ({
       {/* Widget Style Selector */}
       <div className="space-y-2">
         <Label>Widget Style</Label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button
             variant={selectedStyle === 'block' ? 'default' : 'outline'}
             onClick={() => onStyleChange('block')}
@@ -87,11 +102,17 @@ const WidgetEmbedCode = ({
             <GripHorizontal className="w-4 h-4" />
             Bar
           </Button>
+          <Button
+            variant={selectedStyle === 'test' ? 'default' : 'outline'}
+            onClick={() => onStyleChange('test')}
+            className="flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Test (New)
+          </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {selectedStyle === 'block' 
-            ? 'Full booking form widget (recommended for dedicated pages)'
-            : 'Compact horizontal search bar (recommended for headers/hero sections)'}
+          {getStyleDescription()}
         </p>
       </div>
 
@@ -128,9 +149,7 @@ const WidgetEmbedCode = ({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            {selectedStyle === 'block'
-              ? 'Paste this code on your website where you want the full booking widget to appear.'
-              : 'Paste this code in your header or hero section for a compact search experience.'}
+            Paste this code on your website where you want the booking widget to appear.
           </p>
         </TabsContent>
 

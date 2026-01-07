@@ -31,11 +31,12 @@ const WidgetPage = () => {
     copyWidgetKey,
     getEmbedCode,
     getBarEmbedCode,
+    getTestEmbedCode,
     getDirectLink,
   } = useWidgetConfigData();
 
   const [creating, setCreating] = useState(false);
-  const [widgetStyle, setWidgetStyle] = useState<'block' | 'bar'>('block');
+  const [widgetStyle, setWidgetStyle] = useState<'block' | 'bar' | 'test'>('block');
   const handleCreateWidget = async () => {
     setCreating(true);
     await createWidget();
@@ -118,7 +119,7 @@ const WidgetPage = () => {
               onClick={() => window.open(getDirectLink(widgetStyle), '_blank')}
             >
               <Eye className="w-4 h-4 mr-2" />
-              Preview ({widgetStyle === 'block' ? 'Block' : 'Bar'})
+              Preview ({widgetStyle === 'block' ? 'Block' : widgetStyle === 'bar' ? 'Bar' : 'Test (New)'})
             </Button>
           </div>
         </div>
@@ -153,8 +154,10 @@ const WidgetPage = () => {
                   <WidgetEmbedCode
                     embedCode={getEmbedCode()}
                     barEmbedCode={getBarEmbedCode()}
+                    testEmbedCode={getTestEmbedCode()}
                     directLink={getDirectLink('block')}
                     barDirectLink={getDirectLink('bar')}
+                    testDirectLink={getDirectLink('test')}
                     widgetKey={widget.public_widget_key}
                     selectedStyle={widgetStyle}
                     onStyleChange={setWidgetStyle}
@@ -167,14 +170,14 @@ const WidgetPage = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ExternalLink className="w-5 h-5" />
-                    Widget Preview ({widgetStyle === 'block' ? 'Block' : 'Bar'})
+                    Widget Preview ({widgetStyle === 'block' ? 'Block' : widgetStyle === 'bar' ? 'Bar' : 'Test (New)'})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="border rounded-lg overflow-hidden bg-muted/50">
                     <iframe
                       src={getDirectLink(widgetStyle)}
-                      className={widgetStyle === 'block' ? 'w-full h-[500px] border-0' : 'w-full h-[350px] border-0'}
+                      className={widgetStyle === 'block' ? 'w-full h-[500px] border-0' : widgetStyle === 'bar' ? 'w-full h-[350px] border-0' : 'w-full h-[700px] border-0'}
                       title="Widget Preview"
                     />
                   </div>

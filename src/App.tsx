@@ -50,6 +50,7 @@ import AdminActivityInvoicesPage from "./pages/admin/AdminActivityInvoicesPage";
 import AdminActivityCommissionsPage from "./pages/admin/AdminActivityCommissionsPage";
 import NotFound from "./pages/NotFound";
 import WidgetBooking from "./pages/WidgetBooking";
+import WidgetBookingNew from "./pages/WidgetBookingNew";
 import PaymentPage from "./pages/PaymentPage";
 import ModifyTicket from "./pages/ModifyTicket";
 import ActivityWidgetPage from "./pages/activity-widget/ActivityWidgetPage";
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/book" element={<WidgetBooking />} />
+            <Route path="/book-new" element={<WidgetBookingNew />} />
             <Route path="/modify-ticket" element={<ModifyTicket />} />
             <Route path="/pay/:token" element={<PaymentPage />} />
             
