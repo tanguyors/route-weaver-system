@@ -47,7 +47,7 @@ serve(async (req) => {
 
     const partnerId = widget.partner_id;
 
-    // Get routes for this partner
+    // Get routes for this partner (Public Fast Ferry)
     const { data: routes } = await supabase
       .from('routes')
       .select(`
@@ -65,7 +65,7 @@ serve(async (req) => {
       .eq('partner_id', partnerId)
       .eq('status', 'active');
 
-    // Get boats for this partner
+    // Get boats for this partner (Public Fast Ferry fleet)
     const { data: boats } = await supabase
       .from('boats')
       .select('id, name, description, capacity, image_url')
@@ -110,6 +110,48 @@ serve(async (req) => {
     const addonsWithZones = (addons || []).map(addon => ({
       ...addon,
       pickup_zones: pickupZones.filter(z => z.addon_id === addon.id)
+    }));
+
+    // ========== PRIVATE BOATS DATA ==========
+    // Get private boats for this partner
+    const { data: privateBoats } = await supabase
+      .from('private_boats')
+      .select('id, name, description, capacity, image_url, min_departure_time, max_departure_time')
+      .eq('partner_id', partnerId)
+      .eq('status', 'active');
+
+    // Get private boat routes with port details
+    const privateBoatIds = (privateBoats || []).map(pb => pb.id);
+    let privateBoatRoutes: any[] = [];
+    if (privateBoatIds.length > 0) {
+      const { data: pbRoutes } = await supabase
+        .from('private_boat_routes')
+        .select(`
+          id, private_boat_id, from_port_id, to_port_id, price, duration_minutes,
+          from_port:ports!private_boat_routes_from_port_id_fkey(id, name, area),
+          to_port:ports!private_boat_routes_to_port_id_fkey(id, name, area)
+        `)
+        .in('private_boat_id', privateBoatIds)
+        .eq('status', 'active');
+      privateBoatRoutes = pbRoutes || [];
+    }
+
+    // Get pickup/dropoff rules for private boats
+    let pickupDropoffRules: any[] = [];
+    if (privateBoatIds.length > 0) {
+      const { data: pdRules } = await supabase
+        .from('pickup_dropoff_rules')
+        .select('id, private_boat_id, from_port_id, service_type, city_name, price, before_departure_minutes, status')
+        .in('private_boat_id', privateBoatIds)
+        .eq('status', 'active');
+      pickupDropoffRules = pdRules || [];
+    }
+
+    // Attach routes and rules to private boats
+    const privateBoatsWithData = (privateBoats || []).map(boat => ({
+      ...boat,
+      routes: privateBoatRoutes.filter(r => r.private_boat_id === boat.id),
+      pickup_dropoff_rules: pickupDropoffRules.filter(r => r.private_boat_id === boat.id),
     }));
 
     // Build departures query
@@ -158,6 +200,8 @@ serve(async (req) => {
         price_rules: priceRules || [],
         departures: filteredDepartures,
         addons: addonsWithZones,
+        // Private boats data
+        private_boats: privateBoatsWithData,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
