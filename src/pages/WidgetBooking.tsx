@@ -507,6 +507,18 @@ const WidgetBooking = () => {
               </div>
             )}
 
+            {step === 'private-confirm' && privateBoatSelection && (
+              <BookingStepPrivateConfirm
+                selection={privateBoatSelection}
+                isSubmitting={isSubmitting}
+                onSubmit={async (customer) => {
+                  toast.success('Private boat booking submitted! We will contact you shortly.');
+                  setStep('route');
+                }}
+                onBack={() => setStep('route')}
+              />
+            )}
+
             {step === 'departure' && (
               <BookingStepDeparture
                 departures={getAvailableDepartures()}
