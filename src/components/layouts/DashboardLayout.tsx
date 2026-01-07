@@ -59,18 +59,20 @@ interface NavGroup {
   ownerOnly?: boolean;
 }
 
-// Boats group with all boat-related items
+// Boats group with all boat-related items (excluding Private Boats)
 const boatsGroup: NavGroup = {
   label: 'Boats',
   icon: Sailboat,
   items: [
     { label: 'Fleet', href: '/dashboard/boats', icon: Sailboat, ownerOnly: true },
-    { label: 'Private Boats', href: '/dashboard/private-boats', icon: Anchor, ownerOnly: true },
     { label: 'Routes & Trips', href: '/dashboard/trips', icon: Route },
     { label: 'Schedules', href: '/dashboard/schedules', icon: Calendar },
     { label: 'Add-ons', href: '/dashboard/addons', icon: Ship, ownerOnly: true },
   ],
 };
+
+// Private Boats is a standalone menu item
+const privateBoatsItem: NavItem = { label: 'Private Boats', href: '/dashboard/private-boats', icon: Anchor, ownerOnly: true };
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -260,6 +262,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
             {/* Dashboard link */}
             {renderNavItem({ label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard })}
+
+            {/* Private Boats - standalone menu item */}
+            {(role !== 'partner_staff') && renderNavItem(privateBoatsItem)}
 
             {/* Boats Group */}
             {filteredBoatsItems.length > 0 && (
