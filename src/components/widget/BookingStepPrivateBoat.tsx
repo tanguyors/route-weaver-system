@@ -19,7 +19,6 @@ interface PrivateBoatRoute {
 
 interface PickupDropoffRule {
   id: string;
-  private_boat_id: string;
   from_port_id: string;
   service_type: 'pickup' | 'dropoff';
   city_name: string;
@@ -32,6 +31,8 @@ interface PrivateBoat {
   name: string;
   description: string | null;
   capacity: number;
+  min_capacity: number;
+  max_capacity: number | null;
   image_url: string | null;
   min_departure_time: string | null;
   max_departure_time: string | null;

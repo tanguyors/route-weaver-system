@@ -108,7 +108,6 @@ export interface PrivateBoatRoute {
 
 export interface PickupDropoffRule {
   id: string;
-  private_boat_id: string;
   from_port_id: string;
   service_type: 'pickup' | 'dropoff';
   city_name: string;
@@ -121,6 +120,8 @@ export interface PrivateBoat {
   name: string;
   description: string | null;
   capacity: number;
+  min_capacity: number;
+  max_capacity: number | null;
   image_url: string | null;
   min_departure_time: string | null;
   max_departure_time: string | null;
@@ -128,8 +129,21 @@ export interface PrivateBoat {
   pickup_dropoff_rules: PickupDropoffRule[];
 }
 
+export interface ThemeConfig {
+  primary_color?: string;
+  secondary_color?: string;
+  background_color?: string;
+  text_color?: string;
+  button_text_color?: string;
+  border_color?: string;
+  logo_url?: string;
+  widget_style?: 'block' | 'bar';
+  show_child_pax?: boolean;
+}
+
 export interface WidgetData {
   partner_id: string;
+  theme_config: ThemeConfig | null;
   ports: Port[];
   routes: Route[];
   trips: Trip[];

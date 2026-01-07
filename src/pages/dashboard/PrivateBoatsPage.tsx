@@ -98,6 +98,8 @@ const PrivateBoatsPage = () => {
     name: string;
     description?: string;
     capacity: number;
+    min_capacity: number;
+    max_capacity: number;
     image_url?: string;
     status: PrivateBoatStatus;
     min_departure_time: string;
@@ -261,7 +263,7 @@ const PrivateBoatsPage = () => {
                             <TableCell>
                               <div className="flex items-center gap-1">
                                 <Users className="h-4 w-4 text-muted-foreground" />
-                                {boat.capacity}
+                                {boat.min_capacity || 1}-{boat.max_capacity || boat.capacity} pax
                               </div>
                             </TableCell>
                             <TableCell>
