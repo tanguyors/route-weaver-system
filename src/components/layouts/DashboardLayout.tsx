@@ -25,6 +25,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronRight,
   Building2,
   Wallet,
   ArrowLeftRight,
@@ -32,6 +33,11 @@ import {
   Anchor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -43,16 +49,31 @@ interface NavItem {
   icon: React.ElementType;
   adminOnly?: boolean;
   ownerOnly?: boolean;
-  alwaysAccessible?: boolean; // For settings - always accessible during onboarding
+  alwaysAccessible?: boolean;
 }
+
+interface NavGroup {
+  label: string;
+  icon: React.ElementType;
+  items: NavItem[];
+  ownerOnly?: boolean;
+}
+
+// Boats group with all boat-related items
+const boatsGroup: NavGroup = {
+  label: 'Boats',
+  icon: Sailboat,
+  items: [
+    { label: 'Fleet', href: '/dashboard/boats', icon: Sailboat, ownerOnly: true },
+    { label: 'Private Boats', href: '/dashboard/private-boats', icon: Anchor, ownerOnly: true },
+    { label: 'Routes & Trips', href: '/dashboard/trips', icon: Route },
+    { label: 'Schedules', href: '/dashboard/schedules', icon: Calendar },
+    { label: 'Add-ons', href: '/dashboard/addons', icon: Ship, ownerOnly: true },
+  ],
+};
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Boats', href: '/dashboard/boats', icon: Sailboat, ownerOnly: true },
-  { label: 'Private Boats', href: '/dashboard/private-boats', icon: Anchor, ownerOnly: true },
-  { label: 'Routes & Trips', href: '/dashboard/trips', icon: Route },
-  { label: 'Schedules', href: '/dashboard/schedules', icon: Calendar },
-  { label: 'Add-ons', href: '/dashboard/addons', icon: Ship, ownerOnly: true },
   { label: 'Discounts', href: '/dashboard/discounts', icon: Percent },
   { label: 'Bookings', href: '/dashboard/bookings', icon: BookOpen },
   { label: 'Offline Booking', href: '/dashboard/offline-booking', icon: BookOpen },
@@ -83,6 +104,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [boatsOpen, setBoatsOpen] = useState(true);
   
   const hasBothModules = activeModules.includes('boat') && activeModules.includes('activity');
   const isAdmin = role === 'admin';
@@ -97,12 +119,59 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   const isActive = (href: string) => location.pathname === href;
+  
+  // Check if any item in boats group is active
+  const isBoatsGroupActive = boatsGroup.items.some(item => isActive(item.href));
 
   const filteredNavItems = navItems.filter(item => {
     if (item.adminOnly && role !== 'admin') return false;
     if (item.ownerOnly && role === 'partner_staff') return false;
     return true;
   });
+
+  const filteredBoatsItems = boatsGroup.items.filter(item => {
+    if (item.ownerOnly && role === 'partner_staff') return false;
+    return true;
+  });
+
+  const renderNavItem = (item: NavItem, inGroup: boolean = false) => {
+    const isLocked = !onboardingComplete && !item.alwaysAccessible && !isAdmin;
+    
+    if (isLocked) {
+      return (
+        <div
+          key={item.href}
+          className={cn(
+            "flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium mb-1 text-muted-foreground/50 cursor-not-allowed",
+            inGroup ? "px-3 pl-10" : "px-3"
+          )}
+          title="Complete your settings to unlock"
+        >
+          <item.icon className="w-5 h-5" />
+          {item.label}
+          <Lock className="w-3 h-3 ml-auto" />
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        key={item.href}
+        to={item.href}
+        onClick={() => setSidebarOpen(false)}
+        className={cn(
+          'flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1',
+          inGroup ? "px-3 pl-10" : "px-3",
+          isActive(item.href)
+            ? 'bg-primary text-primary-foreground'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        )}
+      >
+        <item.icon className="w-5 h-5" />
+        {item.label}
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -189,40 +258,38 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 {isAdmin ? 'Partner View' : 'Menu'}
               </span>
             </div>
-            {filteredNavItems.map((item) => {
-              const isLocked = !onboardingComplete && !item.alwaysAccessible && !isAdmin;
-              
-              if (isLocked) {
-                return (
-                  <div
-                    key={item.href}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 text-muted-foreground/50 cursor-not-allowed"
-                    title="Complete your settings to unlock"
-                  >
-                    <item.icon className="w-5 h-5" />
-                    {item.label}
-                    <Lock className="w-3 h-3 ml-auto" />
-                  </div>
-                );
-              }
+            {/* Dashboard link */}
+            {renderNavItem({ label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard })}
 
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1',
-                    isActive(item.href)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  )}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {/* Boats Group */}
+            {filteredBoatsItems.length > 0 && (
+              <Collapsible open={boatsOpen} onOpenChange={setBoatsOpen}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1',
+                      isBoatsGroupActive
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <boatsGroup.icon className="w-5 h-5" />
+                    {boatsGroup.label}
+                    {boatsOpen ? (
+                      <ChevronDown className="w-4 h-4 ml-auto" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 ml-auto" />
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-2">
+                  {filteredBoatsItems.map((item) => renderNavItem(item, true))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* Other nav items */}
+            {filteredNavItems.filter(item => item.href !== '/dashboard').map((item) => renderNavItem(item))}
           </nav>
 
           {/* User section */}
