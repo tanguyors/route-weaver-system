@@ -1,22 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWidgetBooking, SelectedAddon } from '@/hooks/useWidgetBooking';
-import { BookingStepRoute } from '@/components/widget/BookingStepRoute';
+import { BookingStepRoute, PrivateBoatSelection, ServiceType } from '@/components/widget/BookingStepRoute';
 import { BookingStepDeparture } from '@/components/widget/BookingStepDeparture';
 import { BookingStepPassengers } from '@/components/widget/BookingStepPassengers';
 import { BookingStepAddons } from '@/components/widget/BookingStepAddons';
 import { BookingStepConfirm } from '@/components/widget/BookingStepConfirm';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import WidgetBarView from '@/components/widget/WidgetBarView';
-import { BookingStepServiceType, ServiceType } from '@/components/widget/BookingStepServiceType';
-import { BookingStepPrivateBoat, PrivateBoatSelection } from '@/components/widget/BookingStepPrivateBoat';
 import { BookingStepPrivateConfirm } from '@/components/widget/BookingStepPrivateConfirm';
 import { Card } from '@/components/ui/card';
 import { Loader2, Ship, AlertCircle, ArrowLeft, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
-type BookingStep = 'service-type' | 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'addons' | 'confirm' | 'success' | 'private-boat' | 'private-confirm' | 'private-success';
+type BookingStep = 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'addons' | 'confirm' | 'success' | 'private-confirm' | 'private-success';
 type WidgetStyle = 'block' | 'bar';
 
 interface BarSelectionState {
@@ -99,7 +97,7 @@ const WidgetBooking = () => {
   const [serviceType, setServiceType] = useState<ServiceType | null>(null);
   const [privateBoatSelection, setPrivateBoatSelection] = useState<PrivateBoatSelection | null>(null);
   
-  const [step, setStep] = useState<BookingStep>('service-type');
+  const [step, setStep] = useState<BookingStep>('route');
   const [booking, setBooking] = useState<BookingState>({
     outbound: { ...emptyTrip },
     returnTrip: null,
@@ -692,37 +690,15 @@ const WidgetBooking = () => {
         </div>
 
         {/* Steps */}
-        {step === 'service-type' && (
-          <BookingStepServiceType
-            hasPrivateBoats={(data?.private_boats || []).length > 0}
-            hasPublicFerry={(data?.routes || []).length > 0}
-            onSelect={(type) => {
-              setServiceType(type);
-              setStep(type === 'private-boat' ? 'private-boat' : 'route');
-            }}
-          />
-        )}
-
-        {step === 'private-boat' && (
-          <BookingStepPrivateBoat
-            privateBoats={data?.private_boats || []}
-            onSelect={(selection) => {
-              setPrivateBoatSelection(selection);
-              setStep('private-confirm');
-            }}
-            onBack={() => setStep('service-type')}
-          />
-        )}
-
         {step === 'private-confirm' && privateBoatSelection && (
           <BookingStepPrivateConfirm
             selection={privateBoatSelection}
             isSubmitting={isSubmitting}
             onSubmit={async (customer) => {
               toast.success('Private boat booking submitted! We will contact you shortly.');
-              setStep('service-type');
+              setStep('route');
             }}
-            onBack={() => setStep('private-boat')}
+            onBack={() => setStep('route')}
           />
         )}
 
@@ -744,6 +720,11 @@ const WidgetBooking = () => {
             returnDate={blockReturnDate}
             onTripTypeChange={setBlockTripType}
             onReturnDateChange={setBlockReturnDate}
+            privateBoats={data?.private_boats || []}
+            onPrivateBoatContinue={(selection) => {
+              setPrivateBoatSelection(selection);
+              setStep('private-confirm');
+            }}
           />
         )}
 
