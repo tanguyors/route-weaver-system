@@ -95,6 +95,39 @@ export interface SelectedAddon {
   };
 }
 
+export interface PrivateBoatRoute {
+  id: string;
+  private_boat_id: string;
+  from_port_id: string;
+  to_port_id: string;
+  price: number;
+  duration_minutes: number | null;
+  from_port: { id: string; name: string; area: string } | null;
+  to_port: { id: string; name: string; area: string } | null;
+}
+
+export interface PickupDropoffRule {
+  id: string;
+  private_boat_id: string;
+  from_port_id: string;
+  service_type: 'pickup' | 'dropoff';
+  city_name: string;
+  price: number;
+  before_departure_minutes: number;
+}
+
+export interface PrivateBoat {
+  id: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  image_url: string | null;
+  min_departure_time: string | null;
+  max_departure_time: string | null;
+  routes: PrivateBoatRoute[];
+  pickup_dropoff_rules: PickupDropoffRule[];
+}
+
 export interface WidgetData {
   partner_id: string;
   ports: Port[];
@@ -104,6 +137,7 @@ export interface WidgetData {
   price_rules: PriceRule[];
   departures: Departure[];
   addons: WidgetAddon[];
+  private_boats: PrivateBoat[];
 }
 
 export interface BookingDetails {
