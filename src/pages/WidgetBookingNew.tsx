@@ -317,7 +317,7 @@ const WidgetBookingNew = () => {
             addonsAmount={0}
             discountAmount={0}
             addons={[]}
-            customer={{ full_name: '', phone: '', email: '', country: '' }}
+            customer={{ full_name: '', email: '' }}
           />
         )}
       </div>
