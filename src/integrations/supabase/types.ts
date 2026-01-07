@@ -2250,7 +2250,9 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          max_capacity: number | null
           max_departure_time: string
+          min_capacity: number | null
           min_departure_time: string
           name: string
           partner_id: string
@@ -2263,7 +2265,9 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          max_capacity?: number | null
           max_departure_time?: string
+          min_capacity?: number | null
           min_departure_time?: string
           name: string
           partner_id: string
@@ -2276,7 +2280,9 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          max_capacity?: number | null
           max_departure_time?: string
+          min_capacity?: number | null
           min_departure_time?: string
           name?: string
           partner_id?: string

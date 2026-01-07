@@ -26,7 +26,6 @@ interface PrivateBoatRoute {
 
 interface PickupDropoffRule {
   id: string;
-  private_boat_id: string;
   from_port_id: string;
   service_type: 'pickup' | 'dropoff';
   city_name: string;
@@ -39,6 +38,8 @@ interface PrivateBoat {
   name: string;
   description: string | null;
   capacity: number;
+  min_capacity: number;
+  max_capacity: number | null;
   image_url: string | null;
   min_departure_time: string | null;
   max_departure_time: string | null;
@@ -405,7 +406,7 @@ export const BookingStepRoute = ({
                       <div>
                         <h4 className="font-semibold text-sm">{boat.name}</h4>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Users className="h-3 w-3" /> Up to {boat.capacity} pax
+                          <Users className="h-3 w-3" /> {boat.min_capacity || 1}-{boat.max_capacity || boat.capacity} pax
                         </p>
                       </div>
                     </div>
@@ -500,7 +501,7 @@ export const BookingStepRoute = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: selectedBoat?.capacity || 10 }, (_, i) => i + 1).map(n => (
+                      {Array.from({ length: (selectedBoat?.max_capacity || selectedBoat?.capacity || 12) - (selectedBoat?.min_capacity || 1) + 1 }, (_, i) => (selectedBoat?.min_capacity || 1) + i).map(n => (
                         <SelectItem key={n} value={n.toString()}>{n} pax</SelectItem>
                       ))}
                     </SelectContent>

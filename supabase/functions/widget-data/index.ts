@@ -33,7 +33,7 @@ serve(async (req) => {
     // Validate widget
     const { data: widget, error: widgetError } = await supabase
       .from('widgets')
-      .select('id, partner_id, status')
+      .select('id, partner_id, status, theme_config')
       .eq('public_widget_key', widgetKey)
       .eq('status', 'active')
       .maybeSingle();
@@ -116,7 +116,7 @@ serve(async (req) => {
     // Get private boats for this partner
     const { data: privateBoats } = await supabase
       .from('private_boats')
-      .select('id, name, description, capacity, image_url, min_departure_time, max_departure_time')
+      .select('id, name, description, capacity, min_capacity, max_capacity, image_url, min_departure_time, max_departure_time')
       .eq('partner_id', partnerId)
       .eq('status', 'active');
 
@@ -136,22 +136,29 @@ serve(async (req) => {
       privateBoatRoutes = pbRoutes || [];
     }
 
-    // Get pickup/dropoff rules for private boats
-    let pickupDropoffRules: any[] = [];
-    if (privateBoatIds.length > 0) {
-      const { data: pdRules } = await supabase
-        .from('pickup_dropoff_rules')
-        .select('id, private_boat_id, from_port_id, service_type, city_name, price, before_departure_minutes, status')
-        .in('private_boat_id', privateBoatIds)
-        .eq('status', 'active');
-      pickupDropoffRules = pdRules || [];
-    }
+    // Get pickup/dropoff rules for private boats (GLOBAL - from private_pickup_dropoff_rules)
+    const { data: pdRules } = await supabase
+      .from('private_pickup_dropoff_rules')
+      .select('id, from_port_id, service_type, city_name, price, pickup_before_departure_minutes, dropoff_after_arrival_minutes, status')
+      .eq('status', 'active');
+    
+    // Transform the rules to match the expected format (mapping to all boats since rules are global)
+    const pickupDropoffRules = (pdRules || []).map(rule => ({
+      id: rule.id,
+      from_port_id: rule.from_port_id,
+      service_type: rule.service_type,
+      city_name: rule.city_name,
+      price: rule.price,
+      before_departure_minutes: rule.service_type === 'pickup' 
+        ? rule.pickup_before_departure_minutes 
+        : rule.dropoff_after_arrival_minutes,
+    }));
 
-    // Attach routes and rules to private boats
+    // Attach routes and rules to private boats (rules are global, attach to all boats)
     const privateBoatsWithData = (privateBoats || []).map(boat => ({
       ...boat,
       routes: privateBoatRoutes.filter(r => r.private_boat_id === boat.id),
-      pickup_dropoff_rules: pickupDropoffRules.filter(r => r.private_boat_id === boat.id),
+      pickup_dropoff_rules: pickupDropoffRules,
     }));
 
     // Build departures query
@@ -193,6 +200,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         partner_id: partnerId,
+        theme_config: widget.theme_config,
         ports: Array.from(ports.values()),
         routes: routes || [],
         trips: trips || [],

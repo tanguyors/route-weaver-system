@@ -27,6 +27,8 @@ interface PrivateBoatFormProps {
     name: string;
     description?: string;
     capacity: number;
+    min_capacity: number;
+    max_capacity: number;
     image_url?: string;
     status: PrivateBoatStatus;
     min_departure_time: string;
@@ -40,7 +42,8 @@ interface PrivateBoatFormProps {
 const PrivateBoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, isEdit }: PrivateBoatFormProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [capacity, setCapacity] = useState(10);
+  const [minCapacity, setMinCapacity] = useState(8);
+  const [maxCapacity, setMaxCapacity] = useState(12);
   const [imageUrl, setImageUrl] = useState('');
   const [status, setStatus] = useState<PrivateBoatStatus>('draft');
   const [minDepartureTime, setMinDepartureTime] = useState('06:00');
@@ -53,7 +56,8 @@ const PrivateBoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, 
     if (initialData) {
       setName(initialData.name);
       setDescription(initialData.description || '');
-      setCapacity(initialData.capacity);
+      setMinCapacity(initialData.min_capacity || 1);
+      setMaxCapacity(initialData.max_capacity || initialData.capacity);
       setImageUrl(initialData.image_url || '');
       setStatus(initialData.status);
       setMinDepartureTime(initialData.min_departure_time.slice(0, 5));
@@ -61,7 +65,8 @@ const PrivateBoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, 
     } else {
       setName('');
       setDescription('');
-      setCapacity(10);
+      setMinCapacity(8);
+      setMaxCapacity(12);
       setImageUrl('');
       setStatus('draft');
       setMinDepartureTime('06:00');
@@ -97,8 +102,13 @@ const PrivateBoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, 
       return;
     }
 
-    if (capacity < 1) {
+    if (minCapacity < 1 || maxCapacity < 1) {
       setError('Capacity must be at least 1');
+      return;
+    }
+
+    if (minCapacity > maxCapacity) {
+      setError('Min capacity cannot be greater than max capacity');
       return;
     }
 
@@ -111,7 +121,9 @@ const PrivateBoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, 
     const result = await onSubmit({
       name: name.trim(),
       description: description.trim() || undefined,
-      capacity,
+      capacity: maxCapacity,
+      min_capacity: minCapacity,
+      max_capacity: maxCapacity,
       image_url: imageUrl || undefined,
       status,
       min_departure_time: minDepartureTime,
@@ -202,31 +214,44 @@ const PrivateBoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Capacity *</Label>
+          <div className="space-y-2">
+            <Label>Capacity (passengers) *</Label>
+            <div className="flex items-center gap-2">
               <Input
-                id="capacity"
+                id="minCapacity"
                 type="number"
-                value={capacity}
-                onChange={(e) => setCapacity(parseInt(e.target.value) || 0)}
+                value={minCapacity}
+                onChange={(e) => setMinCapacity(parseInt(e.target.value) || 1)}
                 min={1}
+                placeholder="Min"
+                className="w-24"
               />
+              <span className="text-muted-foreground">to</span>
+              <Input
+                id="maxCapacity"
+                type="number"
+                value={maxCapacity}
+                onChange={(e) => setMaxCapacity(parseInt(e.target.value) || 1)}
+                min={1}
+                placeholder="Max"
+                className="w-24"
+              />
+              <span className="text-sm text-muted-foreground">pax</span>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v: PrivateBoatStatus) => setStatus(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={(v: PrivateBoatStatus) => setStatus(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

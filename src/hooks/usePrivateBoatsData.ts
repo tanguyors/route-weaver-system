@@ -11,6 +11,8 @@ export interface PrivateBoat {
   name: string;
   description: string | null;
   capacity: number;
+  min_capacity: number;
+  max_capacity: number | null;
   image_url: string | null;
   status: PrivateBoatStatus;
   min_departure_time: string;
@@ -112,6 +114,8 @@ export const usePrivateBoatsData = () => {
     name: string;
     description?: string;
     capacity: number;
+    min_capacity: number;
+    max_capacity: number;
     image_url?: string;
     status: PrivateBoatStatus;
     min_departure_time: string;
@@ -127,7 +131,9 @@ export const usePrivateBoatsData = () => {
         partner_id: partnerId,
         name: data.name,
         description: data.description || null,
-        capacity: data.capacity,
+        capacity: data.max_capacity,
+        min_capacity: data.min_capacity,
+        max_capacity: data.max_capacity,
         image_url: data.image_url || null,
         status: data.status,
         min_departure_time: data.min_departure_time,
@@ -152,15 +158,22 @@ export const usePrivateBoatsData = () => {
       name: string;
       description: string;
       capacity: number;
+      min_capacity: number;
+      max_capacity: number;
       image_url: string;
       status: PrivateBoatStatus;
       min_departure_time: string;
       max_departure_time: string;
     }>
   ): Promise<{ error: Error | null }> => {
+    // If max_capacity is provided, also update capacity
+    const updateData = { ...data, updated_at: new Date().toISOString() };
+    if (data.max_capacity) {
+      updateData.capacity = data.max_capacity;
+    }
     const { error } = await supabase
       .from('private_boats')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', id);
 
     if (error) {
