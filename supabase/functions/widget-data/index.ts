@@ -139,7 +139,7 @@ serve(async (req) => {
     // Get pickup/dropoff rules for private boats (GLOBAL - from private_pickup_dropoff_rules)
     const { data: pdRules } = await supabase
       .from('private_pickup_dropoff_rules')
-      .select('id, from_port_id, service_type, city_name, price, pickup_before_departure_minutes, dropoff_after_arrival_minutes, status')
+      .select('id, from_port_id, service_type, city_name, price, car_price, bus_price, pickup_before_departure_minutes, dropoff_after_arrival_minutes, status')
       .eq('status', 'active');
     
     // Transform the rules to match the expected format (mapping to all boats since rules are global)
@@ -149,6 +149,8 @@ serve(async (req) => {
       service_type: rule.service_type,
       city_name: rule.city_name,
       price: rule.price,
+      car_price: rule.car_price || rule.price,
+      bus_price: rule.bus_price || rule.price,
       before_departure_minutes: rule.service_type === 'pickup' 
         ? rule.pickup_before_departure_minutes 
         : rule.dropoff_after_arrival_minutes,
