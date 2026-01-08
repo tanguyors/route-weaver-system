@@ -125,6 +125,8 @@ const WidgetBookingNew = () => {
       trip: selectedOutbound.trip,
       originName: origin?.name || '',
       destName: dest?.name || '',
+      originPortId: selectedOutbound.route?.origin_port_id || '',
+      destPortId: selectedOutbound.route?.destination_port_id || '',
       pricing: selectedOutbound.pricing,
       direction: 'outbound' as const,
     });
@@ -138,6 +140,8 @@ const WidgetBookingNew = () => {
       trip: selectedReturn.trip,
       originName: origin?.name || '',
       destName: dest?.name || '',
+      originPortId: selectedReturn.route?.origin_port_id || '',
+      destPortId: selectedReturn.route?.destination_port_id || '',
       pricing: selectedReturn.pricing,
       direction: 'return' as const,
     });
@@ -264,6 +268,7 @@ const WidgetBookingNew = () => {
             }}
             onProceed={() => setStep('details')}
             onBack={() => setStep('select-trip')}
+            pickupDropoffRules={data?.pickup_dropoff_rules || []}
             primaryColor={primaryColor}
           />
         )}

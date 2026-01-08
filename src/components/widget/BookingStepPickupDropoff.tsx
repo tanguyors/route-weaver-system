@@ -19,6 +19,8 @@ interface PickupDropoffRule {
 
 type VehicleType = 'car' | 'bus';
 
+const NONE = '__none__';
+
 export interface PickupDropoffSelection {
   pickup?: {
     rule: PickupDropoffRule;
@@ -58,16 +60,20 @@ export const BookingStepPickupDropoff = ({
     r => r.from_port_id === destinationPortId && r.service_type === 'dropoff'
   );
 
-  const [selectedPickupId, setSelectedPickupId] = useState<string>('');
+  const [selectedPickupId, setSelectedPickupId] = useState<string>(NONE);
   const [pickupDetails, setPickupDetails] = useState<string>('');
   const [pickupVehicleType, setPickupVehicleType] = useState<VehicleType>('car');
-  
-  const [selectedDropoffId, setSelectedDropoffId] = useState<string>('');
+
+  const [selectedDropoffId, setSelectedDropoffId] = useState<string>(NONE);
   const [dropoffDetails, setDropoffDetails] = useState<string>('');
   const [dropoffVehicleType, setDropoffVehicleType] = useState<VehicleType>('car');
 
-  const selectedPickup = availablePickups.find(p => p.id === selectedPickupId);
-  const selectedDropoff = availableDropoffs.find(d => d.id === selectedDropoffId);
+  const selectedPickup = selectedPickupId !== NONE
+    ? availablePickups.find(p => p.id === selectedPickupId)
+    : undefined;
+  const selectedDropoff = selectedDropoffId !== NONE
+    ? availableDropoffs.find(d => d.id === selectedDropoffId)
+    : undefined;
 
   const calculateTotal = (): number => {
     let total = 0;
@@ -159,14 +165,17 @@ export const BookingStepPickupDropoff = ({
               value={selectedPickupId} 
               onValueChange={(v) => {
                 setSelectedPickupId(v);
-                if (!v) setPickupVehicleType('car');
+                if (v === NONE) {
+                  setPickupVehicleType('car');
+                  setPickupDetails('');
+                }
               }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="No pickup needed" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No pickup needed</SelectItem>
+                <SelectItem value={NONE}>No pickup needed</SelectItem>
                 {availablePickups.map(pickup => (
                   <SelectItem key={pickup.id} value={pickup.id}>
                     {pickup.city_name}
@@ -175,7 +184,7 @@ export const BookingStepPickupDropoff = ({
               </SelectContent>
             </Select>
 
-            {selectedPickupId && selectedPickup && (
+            {selectedPickup && (
               <div className="mt-4 space-y-4">
                 {/* Vehicle Type Selection */}
                 <div>
@@ -193,7 +202,7 @@ export const BookingStepPickupDropoff = ({
                       <Car className="h-5 w-5" />
                       <span>Less than 4</span>
                       <span className="text-xs opacity-75">
-                        +IDR {selectedPickup.car_price.toLocaleString()}
+                        +IDR {Number(selectedPickup.car_price ?? 0).toLocaleString()}
                       </span>
                     </button>
                     <button
@@ -208,7 +217,7 @@ export const BookingStepPickupDropoff = ({
                       <Bus className="h-5 w-5" />
                       <span>4 or more</span>
                       <span className="text-xs opacity-75">
-                        +IDR {selectedPickup.bus_price.toLocaleString()}
+                        +IDR {Number(selectedPickup.bus_price ?? 0).toLocaleString()}
                       </span>
                     </button>
                   </div>
@@ -240,14 +249,17 @@ export const BookingStepPickupDropoff = ({
               value={selectedDropoffId} 
               onValueChange={(v) => {
                 setSelectedDropoffId(v);
-                if (!v) setDropoffVehicleType('car');
+                if (v === NONE) {
+                  setDropoffVehicleType('car');
+                  setDropoffDetails('');
+                }
               }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="No dropoff needed" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No dropoff needed</SelectItem>
+                <SelectItem value={NONE}>No dropoff needed</SelectItem>
                 {availableDropoffs.map(dropoff => (
                   <SelectItem key={dropoff.id} value={dropoff.id}>
                     {dropoff.city_name}
@@ -256,7 +268,7 @@ export const BookingStepPickupDropoff = ({
               </SelectContent>
             </Select>
 
-            {selectedDropoffId && selectedDropoff && (
+            {selectedDropoff && (
               <div className="mt-4 space-y-4">
                 {/* Vehicle Type Selection */}
                 <div>
@@ -274,7 +286,7 @@ export const BookingStepPickupDropoff = ({
                       <Car className="h-5 w-5" />
                       <span>Less than 4</span>
                       <span className="text-xs opacity-75">
-                        +IDR {selectedDropoff.car_price.toLocaleString()}
+                        +IDR {Number(selectedDropoff.car_price ?? 0).toLocaleString()}
                       </span>
                     </button>
                     <button
@@ -289,7 +301,7 @@ export const BookingStepPickupDropoff = ({
                       <Bus className="h-5 w-5" />
                       <span>4 or more</span>
                       <span className="text-xs opacity-75">
-                        +IDR {selectedDropoff.bus_price.toLocaleString()}
+                        +IDR {Number(selectedDropoff.bus_price ?? 0).toLocaleString()}
                       </span>
                     </button>
                   </div>
