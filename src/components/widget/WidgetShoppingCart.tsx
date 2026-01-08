@@ -357,6 +357,30 @@ export const WidgetShoppingCart = ({
     price: calculateItemTotal(returnItem),
   } : undefined;
 
+  // Collect selected pickups for order summary
+  const selectedPickups = useMemo(() => {
+    const result: { cityName: string; vehicleType: 'car' | 'bus'; price: number; details?: string }[] = [];
+    for (const item of items) {
+      const enabled = pickupEnabledByItem[item.id];
+      const ruleId = pickupRuleIdByItem[item.id];
+      if (enabled && ruleId && ruleId !== NONE) {
+        const availablePickups = pickupRulesByPort.get(item.originPortId) || [];
+        const rule = availablePickups.find(r => r.id === ruleId);
+        if (rule) {
+          const vehicleType = pickupVehicleTypeByItem[item.id] || 'car';
+          const price = vehicleType === 'car' ? rule.car_price : rule.bus_price;
+          result.push({
+            cityName: rule.city_name,
+            vehicleType,
+            price,
+            details: pickupDetailsByItem[item.id] || undefined,
+          });
+        }
+      }
+    }
+    return result;
+  }, [items, pickupEnabledByItem, pickupRuleIdByItem, pickupVehicleTypeByItem, pickupDetailsByItem, pickupRulesByPort]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Content */}
@@ -421,6 +445,7 @@ export const WidgetShoppingCart = ({
         <WidgetOrderSummary
           outbound={outboundSummary}
           returnTrip={returnSummary}
+          pickups={selectedPickups}
           primaryColor={primaryColor}
         />
       </div>
