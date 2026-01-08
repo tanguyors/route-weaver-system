@@ -4,7 +4,7 @@ import { useWidgetBooking, SelectedAddon } from '@/hooks/useWidgetBooking';
 import { BookingStepRoute, PrivateBoatSelection, ServiceType } from '@/components/widget/BookingStepRoute';
 import { BookingStepDeparture } from '@/components/widget/BookingStepDeparture';
 import { BookingStepPassengers } from '@/components/widget/BookingStepPassengers';
-import { BookingStepAddons } from '@/components/widget/BookingStepAddons';
+import { BookingStepPickupDropoff, PickupDropoffSelection } from '@/components/widget/BookingStepPickupDropoff';
 import { BookingStepConfirm } from '@/components/widget/BookingStepConfirm';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import WidgetBarView from '@/components/widget/WidgetBarView';
@@ -14,7 +14,7 @@ import { Loader2, Ship, AlertCircle, ArrowLeft, ArrowLeftRight } from 'lucide-re
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
-type BookingStep = 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'addons' | 'confirm' | 'success' | 'private-confirm' | 'private-success';
+type BookingStep = 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'pickup-dropoff' | 'confirm' | 'success' | 'private-confirm' | 'private-success';
 type WidgetStyle = 'block' | 'bar';
 
 interface BarSelectionState {
@@ -46,11 +46,12 @@ interface BookingState {
   paxInfant: number;
   // Pricing
   subtotal: number;
-  addonsTotal: number;
+  transportTotal: number;
   discount: number;
   total: number;
   promoCode: string;
   selectedAddons: SelectedAddon[];
+  pickupDropoff: PickupDropoffSelection | null;
   customer: {
     full_name: string;
     phone: string;
@@ -105,11 +106,12 @@ const WidgetBooking = () => {
     paxChild: 0,
     paxInfant: 0,
     subtotal: 0,
-    addonsTotal: 0,
+    transportTotal: 0,
     discount: 0,
     total: 0,
     promoCode: '',
     selectedAddons: [],
+    pickupDropoff: null,
     customer: { full_name: '', phone: '', email: '', country: '' },
   });
   const [bookingResult, setBookingResult] = useState<any>(null);
@@ -298,22 +300,16 @@ const WidgetBooking = () => {
       total: subtotal,
     }));
     
-    // Check if there are applicable add-ons
-    const applicableAddons = getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId);
-    if (applicableAddons.length > 0) {
-      setStep('addons');
-    } else {
-      setStep('confirm');
-    }
+    // Go to pickup/dropoff step
+    setStep('pickup-dropoff');
   };
 
-  const handleAddonsConfirm = (selectedAddons: SelectedAddon[]) => {
-    const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.total, 0);
+  const handlePickupDropoffConfirm = (selection: PickupDropoffSelection) => {
     setBooking(prev => ({
       ...prev,
-      selectedAddons,
-      addonsTotal,
-      total: prev.subtotal + addonsTotal,
+      pickupDropoff: selection,
+      transportTotal: selection.total,
+      total: prev.subtotal + selection.total,
     }));
     setStep('confirm');
   };
@@ -359,16 +355,11 @@ const WidgetBooking = () => {
           setStep('departure');
         }
         break;
-      case 'addons':
+      case 'pickup-dropoff':
         setStep('passengers');
         break;
       case 'confirm':
-        const applicableAddons = getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId);
-        if (applicableAddons.length > 0) {
-          setStep('addons');
-        } else {
-          setStep('passengers');
-        }
+        setStep('pickup-dropoff');
         break;
     }
   };
@@ -380,16 +371,13 @@ const WidgetBooking = () => {
 
   // Get steps for progress indicator
   const getSteps = () => {
-    const applicableAddons = booking.outbound.routeId ? getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId) : [];
     const baseSteps: BookingStep[] = ['route', 'departure'];
     if (currentTripType === 'round-trip') {
       baseSteps.push('return-route');
       baseSteps.push('return-departure');
     }
     baseSteps.push('passengers');
-    if (applicableAddons.length > 0) {
-      baseSteps.push('addons');
-    }
+    baseSteps.push('pickup-dropoff');
     baseSteps.push('confirm');
     return baseSteps;
   };
@@ -609,11 +597,13 @@ const WidgetBooking = () => {
               />
             )}
 
-            {step === 'addons' && (
-              <BookingStepAddons
-                addons={getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId)}
-                paxTotal={booking.paxAdult + booking.paxChild}
-                onConfirm={handleAddonsConfirm}
+            {step === 'pickup-dropoff' && (
+              <BookingStepPickupDropoff
+                pickupRules={data?.private_boats?.[0]?.pickup_dropoff_rules || []}
+                dropoffRules={data?.private_boats?.[0]?.pickup_dropoff_rules || []}
+                originPortId={selectedOrigin}
+                destinationPortId={selectedDestination}
+                onConfirm={handlePickupDropoffConfirm}
                 onBack={goBack}
               />
             )}
@@ -631,7 +621,7 @@ const WidgetBooking = () => {
                   paxInfant: booking.paxInfant,
                   adultPrice: booking.outbound.adultPrice,
                   childPrice: booking.outbound.childPrice,
-                  subtotal: booking.subtotal + booking.addonsTotal,
+                  subtotal: booking.subtotal + booking.transportTotal,
                   promoCode: booking.promoCode,
                   returnTrip: booking.returnTrip,
                 }}
@@ -833,11 +823,13 @@ const WidgetBooking = () => {
           />
         )}
 
-        {step === 'addons' && (
-          <BookingStepAddons
-            addons={getApplicableAddons(booking.outbound.routeId, booking.outbound.tripId)}
-            paxTotal={booking.paxAdult + booking.paxChild}
-            onConfirm={handleAddonsConfirm}
+        {step === 'pickup-dropoff' && (
+          <BookingStepPickupDropoff
+            pickupRules={data?.private_boats?.[0]?.pickup_dropoff_rules || []}
+            dropoffRules={data?.private_boats?.[0]?.pickup_dropoff_rules || []}
+            originPortId={selectedOrigin}
+            destinationPortId={selectedDestination}
+            onConfirm={handlePickupDropoffConfirm}
             onBack={goBack}
           />
         )}
@@ -855,7 +847,7 @@ const WidgetBooking = () => {
               paxInfant: booking.paxInfant,
               adultPrice: booking.outbound.adultPrice,
               childPrice: booking.outbound.childPrice,
-              subtotal: booking.subtotal + booking.addonsTotal,
+              subtotal: booking.subtotal + booking.transportTotal,
               promoCode: booking.promoCode,
               returnTrip: booking.returnTrip,
             }}

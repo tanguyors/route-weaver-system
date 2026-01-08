@@ -131,6 +131,14 @@ const WidgetBarView = ({
   const [privateDateOpen, setPrivateDateOpen] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [passengerCount, setPassengerCount] = useState<number>(8);
+  
+  // Private boat pickup/dropoff state
+  const [selectedPickupId, setSelectedPickupId] = useState<string>('');
+  const [pickupDetails, setPickupDetails] = useState<string>('');
+  const [pickupVehicleType, setPickupVehicleType] = useState<VehicleType>('car');
+  const [selectedDropoffId, setSelectedDropoffId] = useState<string>('');
+  const [dropoffDetails, setDropoffDetails] = useState<string>('');
+  const [dropoffVehicleType, setDropoffVehicleType] = useState<VehicleType>('car');
 
   const tripType = barSelection?.tripType || 'one-way';
   const returnDate = barSelection?.returnDate || null;
@@ -175,6 +183,16 @@ const WidgetBarView = ({
     return Array.from(uniquePorts.values());
   };
 
+  // Get available pickups/dropoffs for private boat
+  const availablePickups = selectedBoat?.pickup_dropoff_rules.filter(
+    r => r.from_port_id === selectedRoute?.from_port_id && r.service_type === 'pickup'
+  ) || [];
+  const availableDropoffs = selectedRoute 
+    ? selectedBoat?.pickup_dropoff_rules.filter(
+        r => r.from_port_id === selectedRoute.to_port_id && r.service_type === 'dropoff'
+      ) || []
+    : [];
+
   const getTimeSlots = () => {
     if (!selectedBoat) return [];
     const minTime = selectedBoat.min_departure_time || '06:00';
@@ -189,17 +207,43 @@ const WidgetBarView = ({
     return slots;
   };
 
+  const calculatePrivateTotal = () => {
+    if (!selectedRoute) return 0;
+    let total = selectedRoute.price;
+    if (selectedPickupId) {
+      const pickup = availablePickups.find(p => p.id === selectedPickupId);
+      if (pickup) total += pickupVehicleType === 'car' ? pickup.car_price : pickup.bus_price;
+    }
+    if (selectedDropoffId) {
+      const dropoff = availableDropoffs.find(d => d.id === selectedDropoffId);
+      if (dropoff) total += dropoffVehicleType === 'car' ? dropoff.car_price : dropoff.bus_price;
+    }
+    return total;
+  };
+
   const canSearchPrivate = selectedBoat && selectedRoute && privateDate && selectedTime && passengerCount > 0;
 
   const handlePrivateSearch = () => {
     if (!selectedBoat || !selectedRoute || !onPrivateBoatSearch) return;
-    onPrivateBoatSearch({
+    
+    const selection: PrivateBoatBarSelection = {
       boat: selectedBoat,
       route: selectedRoute,
       date: privateDate,
       time: selectedTime,
       passengerCount,
-    });
+    };
+
+    if (selectedPickupId) {
+      const pickupRule = availablePickups.find(p => p.id === selectedPickupId);
+      if (pickupRule) selection.pickup = { rule: pickupRule, details: pickupDetails, vehicleType: pickupVehicleType };
+    }
+    if (selectedDropoffId) {
+      const dropoffRule = availableDropoffs.find(d => d.id === selectedDropoffId);
+      if (dropoffRule) selection.dropoff = { rule: dropoffRule, details: dropoffDetails, vehicleType: dropoffVehicleType };
+    }
+
+    onPrivateBoatSearch(selection);
   };
 
   const minDate = new Date().toISOString().split('T')[0];
