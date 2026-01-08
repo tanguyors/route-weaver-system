@@ -11,6 +11,8 @@ export interface PickupDropoffRule {
   city_name: string;
   service_type: ServiceType;
   price: number;
+  car_price: number;
+  bus_price: number;
   pickup_before_departure_minutes: number | null;
   dropoff_after_arrival_minutes: number | null;
   status: 'active' | 'inactive';
@@ -85,7 +87,8 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
     from_port_id: string;
     city_name: string;
     service_type: ServiceType;
-    price: number;
+    car_price: number;
+    bus_price: number;
     pickup_before_departure_minutes?: number;
     dropoff_after_arrival_minutes?: number;
     status: 'active' | 'inactive';
@@ -100,6 +103,7 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
       .from('private_pickup_dropoff_rules')
       .insert({
         ...data,
+        price: data.car_price, // Keep price field updated for backwards compatibility
         pickup_before_departure_minutes: data.service_type === 'pickup' ? data.pickup_before_departure_minutes : null,
         dropoff_after_arrival_minutes: data.service_type === 'dropoff' ? data.dropoff_after_arrival_minutes : null,
       });
@@ -120,7 +124,8 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
       from_port_id: string;
       city_name: string;
       service_type: ServiceType;
-      price: number;
+      car_price: number;
+      bus_price: number;
       pickup_before_departure_minutes: number;
       dropoff_after_arrival_minutes: number;
       status: 'active' | 'inactive';
@@ -132,9 +137,16 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
       return { error: new Error('Unauthorized') };
     }
 
+    const updateData = {
+      ...data,
+      updated_at: new Date().toISOString(),
+      // Keep price field updated for backwards compatibility
+      ...(data.car_price !== undefined ? { price: data.car_price } : {}),
+    };
+
     const { error } = await supabase
       .from('private_pickup_dropoff_rules')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', id);
 
     if (error) {
