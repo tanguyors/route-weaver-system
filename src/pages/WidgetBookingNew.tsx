@@ -4,7 +4,7 @@ import { useWidgetBooking, SelectedAddon } from '@/hooks/useWidgetBooking';
 import { WidgetStepIndicator, WidgetStep } from '@/components/widget/WidgetStepIndicator';
 import { WidgetSearchForm } from '@/components/widget/WidgetSearchForm';
 import { WidgetTripResults } from '@/components/widget/WidgetTripResults';
-import { WidgetShoppingCart } from '@/components/widget/WidgetShoppingCart';
+import { WidgetShoppingCart, SelectedPickupInfo } from '@/components/widget/WidgetShoppingCart';
 import { WidgetBookingDetails } from '@/components/widget/WidgetBookingDetails';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import { Card } from '@/components/ui/card';
@@ -36,6 +36,7 @@ const WidgetBookingNew = () => {
   
   const [selectedOutbound, setSelectedOutbound] = useState<SelectedTrip | null>(null);
   const [selectedReturn, setSelectedReturn] = useState<SelectedTrip | null>(null);
+  const [selectedPickups, setSelectedPickups] = useState<SelectedPickupInfo[]>([]);
 
   const {
     data,
@@ -269,6 +270,7 @@ const WidgetBookingNew = () => {
             onProceed={() => setStep('details')}
             onBack={() => setStep('select-trip')}
             pickupDropoffRules={data?.pickup_dropoff_rules || []}
+            onPickupsChange={setSelectedPickups}
             primaryColor={primaryColor}
           />
         )}
@@ -280,6 +282,7 @@ const WidgetBookingNew = () => {
               originName: getPort(selectedOutbound.route?.origin_port_id)?.name || '',
               destName: getPort(selectedOutbound.route?.destination_port_id)?.name || '',
               date: selectedOutbound.departure.departure_date,
+              time: selectedOutbound.departure.departure_time?.slice(0, 5),
               paxAdult,
               paxChild,
               paxInfant,
@@ -289,11 +292,13 @@ const WidgetBookingNew = () => {
               originName: getPort(selectedReturn.route?.origin_port_id)?.name || '',
               destName: getPort(selectedReturn.route?.destination_port_id)?.name || '',
               date: selectedReturn.departure.departure_date,
+              time: selectedReturn.departure.departure_time?.slice(0, 5),
               paxAdult,
               paxChild,
               paxInfant,
               price: calculateTotal(cartItems[1]),
             } : undefined}
+            pickups={selectedPickups}
             paxAdult={paxAdult}
             paxChild={paxChild}
             paxInfant={paxInfant}

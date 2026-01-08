@@ -30,15 +30,25 @@ interface TripInfo {
   originName: string;
   destName: string;
   date: string;
+  time?: string;
   paxAdult: number;
   paxChild: number;
   paxInfant: number;
   price: number;
 }
 
+interface PickupInfo {
+  cityName: string;
+  vehicleType: 'car' | 'bus';
+  price: number;
+  details?: string;
+  beforeDepartureMinutes?: number;
+}
+
 interface WidgetBookingDetailsProps {
   outbound: TripInfo;
   returnTrip?: TripInfo;
+  pickups?: PickupInfo[];
   paxAdult: number;
   paxChild: number;
   paxInfant: number;
@@ -54,6 +64,7 @@ interface WidgetBookingDetailsProps {
 export const WidgetBookingDetails = ({
   outbound,
   returnTrip,
+  pickups = [],
   paxAdult,
   paxChild,
   paxInfant,
@@ -396,6 +407,7 @@ export const WidgetBookingDetails = ({
             ...returnTrip,
             routeName: `${returnTrip.originName} - ${returnTrip.destName}`,
           } : undefined}
+          pickups={pickups}
           primaryColor={primaryColor}
         />
       </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarDays, Trash2, Ship, Car, Bus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,14 @@ interface CartItem {
   direction: 'outbound' | 'return';
 }
 
+export interface SelectedPickupInfo {
+  cityName: string;
+  vehicleType: 'car' | 'bus';
+  price: number;
+  details?: string;
+  beforeDepartureMinutes?: number;
+}
+
 interface WidgetShoppingCartProps {
   items: CartItem[];
   boats: Boat[];
@@ -65,6 +73,7 @@ interface WidgetShoppingCartProps {
   onProceed: () => void;
   onBack: () => void;
   pickupDropoffRules?: PickupDropoffRule[];
+  onPickupsChange?: (pickups: SelectedPickupInfo[]) => void;
   primaryColor?: string;
 }
 
@@ -81,6 +90,7 @@ export const WidgetShoppingCart = ({
   onProceed,
   onBack,
   pickupDropoffRules = [],
+  onPickupsChange,
   primaryColor = '#22c55e',
 }: WidgetShoppingCartProps) => {
   const formatPrice = (price: number) => {
@@ -361,7 +371,7 @@ export const WidgetShoppingCart = ({
 
   // Collect selected pickups for order summary
   const selectedPickups = useMemo(() => {
-    const result: { cityName: string; vehicleType: 'car' | 'bus'; price: number; details?: string; beforeDepartureMinutes?: number }[] = [];
+    const result: SelectedPickupInfo[] = [];
     for (const item of items) {
       const enabled = pickupEnabledByItem[item.id];
       const ruleId = pickupRuleIdByItem[item.id];
@@ -383,6 +393,11 @@ export const WidgetShoppingCart = ({
     }
     return result;
   }, [items, pickupEnabledByItem, pickupRuleIdByItem, pickupVehicleTypeByItem, pickupDetailsByItem, pickupRulesByPort]);
+
+  // Notify parent when pickups change
+  useEffect(() => {
+    onPickupsChange?.(selectedPickups);
+  }, [selectedPickups, onPickupsChange]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
