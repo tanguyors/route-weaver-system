@@ -178,7 +178,7 @@ export const BookingStepPickupDropoff = ({
                 <SelectItem value={NONE}>No pickup needed</SelectItem>
                 {availablePickups.map(pickup => (
                   <SelectItem key={pickup.id} value={pickup.id}>
-                    {pickup.city_name}
+                    {pickup.city_name} ({pickup.before_departure_minutes} min before departure)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -200,7 +200,7 @@ export const BookingStepPickupDropoff = ({
                       }`}
                     >
                       <Car className="h-5 w-5" />
-                      <span>Less than 4</span>
+                      <span>Car (max 4 pax)</span>
                       <span className="text-xs opacity-75">
                         +IDR {Number(selectedPickup.car_price ?? 0).toLocaleString()}
                       </span>
@@ -215,7 +215,7 @@ export const BookingStepPickupDropoff = ({
                       }`}
                     >
                       <Bus className="h-5 w-5" />
-                      <span>4 or more</span>
+                      <span>Minibus (max 10 pax)</span>
                       <span className="text-xs opacity-75">
                         +IDR {Number(selectedPickup.bus_price ?? 0).toLocaleString()}
                       </span>
@@ -262,7 +262,7 @@ export const BookingStepPickupDropoff = ({
                 <SelectItem value={NONE}>No dropoff needed</SelectItem>
                 {availableDropoffs.map(dropoff => (
                   <SelectItem key={dropoff.id} value={dropoff.id}>
-                    {dropoff.city_name}
+                    {dropoff.city_name} ({dropoff.before_departure_minutes} min after arrival)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -284,7 +284,7 @@ export const BookingStepPickupDropoff = ({
                       }`}
                     >
                       <Car className="h-5 w-5" />
-                      <span>Less than 4</span>
+                      <span>Car (max 4 pax)</span>
                       <span className="text-xs opacity-75">
                         +IDR {Number(selectedDropoff.car_price ?? 0).toLocaleString()}
                       </span>
@@ -299,7 +299,7 @@ export const BookingStepPickupDropoff = ({
                       }`}
                     >
                       <Bus className="h-5 w-5" />
-                      <span>4 or more</span>
+                      <span>Minibus (max 10 pax)</span>
                       <span className="text-xs opacity-75">
                         +IDR {Number(selectedDropoff.bus_price ?? 0).toLocaleString()}
                       </span>
