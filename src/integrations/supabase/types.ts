@@ -2301,6 +2301,8 @@ export type Database = {
       }
       private_pickup_dropoff_rules: {
         Row: {
+          bus_price: number
+          car_price: number
           city_name: string
           created_at: string
           dropoff_after_arrival_minutes: number | null
@@ -2314,6 +2316,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bus_price?: number
+          car_price?: number
           city_name: string
           created_at?: string
           dropoff_after_arrival_minutes?: number | null
@@ -2327,6 +2331,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bus_price?: number
+          car_price?: number
           city_name?: string
           created_at?: string
           dropoff_after_arrival_minutes?: number | null

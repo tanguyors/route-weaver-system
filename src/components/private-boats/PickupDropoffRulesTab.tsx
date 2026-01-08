@@ -50,7 +50,8 @@ const formatCurrency = (amount: number) => {
 interface RuleRow {
   id?: string;
   city_name: string;
-  price: string;
+  car_price: string;
+  bus_price: string;
   constraint_minutes: string;
   status: 'active' | 'inactive';
   sort_order: number;
@@ -108,7 +109,8 @@ const PickupDropoffRulesTab = () => {
       setRows(existingRules.map(r => ({
         id: r.id,
         city_name: r.city_name,
-        price: r.price.toString(),
+        car_price: r.car_price.toString(),
+        bus_price: r.bus_price.toString(),
         constraint_minutes: (r.service_type === 'pickup' 
           ? r.pickup_before_departure_minutes 
           : r.dropoff_after_arrival_minutes)?.toString() || '',
@@ -119,7 +121,8 @@ const PickupDropoffRulesTab = () => {
       // Start with one empty row
       setRows([{
         city_name: '',
-        price: '',
+        car_price: '',
+        bus_price: '',
         constraint_minutes: '',
         status: 'active',
         sort_order: 0,
@@ -141,7 +144,8 @@ const PickupDropoffRulesTab = () => {
   const addRow = () => {
     setRows([...rows, {
       city_name: '',
-      price: '',
+      car_price: '',
+      bus_price: '',
       constraint_minutes: '',
       status: 'active',
       sort_order: rows.length,
@@ -186,9 +190,14 @@ const PickupDropoffRulesTab = () => {
         setFormError(`Row ${i + 1}: City name is required`);
         return;
       }
-      const price = parseFloat(row.price);
-      if (isNaN(price) || price < 0) {
-        setFormError(`Row ${i + 1}: Price must be a valid positive number`);
+      const carPrice = parseFloat(row.car_price);
+      if (isNaN(carPrice) || carPrice < 0) {
+        setFormError(`Row ${i + 1}: Car price must be a valid positive number`);
+        return;
+      }
+      const busPrice = parseFloat(row.bus_price);
+      if (isNaN(busPrice) || busPrice < 0) {
+        setFormError(`Row ${i + 1}: Bus price must be a valid positive number`);
         return;
       }
     }
@@ -209,7 +218,8 @@ const PickupDropoffRulesTab = () => {
           from_port_id: formPortId,
           city_name: row.city_name.trim(),
           service_type: formServiceType,
-          price: parseFloat(row.price) || 0,
+          car_price: parseFloat(row.car_price) || 0,
+          bus_price: parseFloat(row.bus_price) || 0,
           pickup_before_departure_minutes: formServiceType === 'pickup' && row.constraint_minutes 
             ? parseInt(row.constraint_minutes) 
             : undefined,
@@ -323,7 +333,8 @@ const PickupDropoffRulesTab = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>City</TableHead>
-                        <TableHead>Price</TableHead>
+                        <TableHead>Car Price</TableHead>
+                        <TableHead>Bus Price</TableHead>
                         <TableHead>
                           {activeTab === 'pickup' ? 'Before Departure' : 'After Arrival'}
                         </TableHead>
@@ -334,7 +345,8 @@ const PickupDropoffRulesTab = () => {
                       {portRules.map((rule) => (
                         <TableRow key={rule.id}>
                           <TableCell className="font-medium">{rule.city_name}</TableCell>
-                          <TableCell>{formatCurrency(rule.price)}</TableCell>
+                          <TableCell>{formatCurrency(rule.car_price)}</TableCell>
+                          <TableCell>{formatCurrency(rule.bus_price)}</TableCell>
                           <TableCell>
                             {activeTab === 'pickup'
                               ? rule.pickup_before_departure_minutes
@@ -406,19 +418,20 @@ const PickupDropoffRulesTab = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[200px]">City *</TableHead>
-                    <TableHead className="w-[150px]">Price (IDR) *</TableHead>
-                    <TableHead className="w-[150px]">
+                    <TableHead className="w-[180px]">City *</TableHead>
+                    <TableHead className="w-[130px]">Car Price (IDR) *</TableHead>
+                    <TableHead className="w-[130px]">Bus Price (IDR) *</TableHead>
+                    <TableHead className="w-[120px]">
                       {formServiceType === 'pickup' ? 'Before Dep. (min)' : 'After Arr. (min)'}
                     </TableHead>
-                    <TableHead className="w-[120px]">Status</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
+                    <TableHead className="w-[100px]">Status</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {visibleRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No cities added yet. Click "Add City" to start.
                       </TableCell>
                     </TableRow>
@@ -438,8 +451,18 @@ const PickupDropoffRulesTab = () => {
                           <TableCell className="p-2">
                             <Input
                               type="number"
-                              value={row.price}
-                              onChange={(e) => updateRow(actualIndex, 'price', e.target.value)}
+                              value={row.car_price}
+                              onChange={(e) => updateRow(actualIndex, 'car_price', e.target.value)}
+                              placeholder="0"
+                              min={0}
+                              className="h-9"
+                            />
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Input
+                              type="number"
+                              value={row.bus_price}
+                              onChange={(e) => updateRow(actualIndex, 'bus_price', e.target.value)}
                               placeholder="0"
                               min={0}
                               className="h-9"
@@ -456,7 +479,7 @@ const PickupDropoffRulesTab = () => {
                             />
                           </TableCell>
                           <TableCell className="p-2">
-                            <Select 
+                            <Select
                               value={row.status} 
                               onValueChange={(v: 'active' | 'inactive') => updateRow(actualIndex, 'status', v)}
                             >
