@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useWidgetBooking, SelectedAddon } from '@/hooks/useWidgetBooking';
+import { useWidgetBooking, SelectedAddon, PrivateBoat } from '@/hooks/useWidgetBooking';
 import { WidgetStepIndicator, WidgetStep } from '@/components/widget/WidgetStepIndicator';
-import { WidgetSearchForm } from '@/components/widget/WidgetSearchForm';
+import { WidgetSearchForm, PrivateBoatSelection } from '@/components/widget/WidgetSearchForm';
 import { WidgetTripResults } from '@/components/widget/WidgetTripResults';
 import { WidgetShoppingCart, SelectedPickupInfo } from '@/components/widget/WidgetShoppingCart';
 import { WidgetBookingDetails } from '@/components/widget/WidgetBookingDetails';
@@ -37,6 +37,9 @@ const WidgetBookingNew = () => {
   const [selectedOutbound, setSelectedOutbound] = useState<SelectedTrip | null>(null);
   const [selectedReturn, setSelectedReturn] = useState<SelectedTrip | null>(null);
   const [selectedPickups, setSelectedPickups] = useState<SelectedPickupInfo[]>([]);
+  
+  // Private boat state
+  const [privateBoatSelection, setPrivateBoatSelection] = useState<PrivateBoatSelection | null>(null);
 
   const {
     data,
@@ -200,6 +203,11 @@ const WidgetBookingNew = () => {
             onPaxChange={(a, c, i) => { setPaxAdult(a); setPaxChild(c); setPaxInfant(i); }}
             onSearch={handleSearch}
             primaryColor={primaryColor}
+            privateBoats={data?.private_boats || []}
+            onPrivateBoatSearch={(selection) => {
+              setPrivateBoatSelection(selection);
+              setStep('details');
+            }}
           />
         )}
 
@@ -225,6 +233,11 @@ const WidgetBookingNew = () => {
               onPaxChange={(a, c, i) => { setPaxAdult(a); setPaxChild(c); setPaxInfant(i); }}
               onSearch={handleSearch}
               primaryColor={primaryColor}
+              privateBoats={data?.private_boats || []}
+              onPrivateBoatSearch={(selection) => {
+                setPrivateBoatSelection(selection);
+                setStep('details');
+              }}
             />
             <div className="mt-6">
               <WidgetTripResults
@@ -275,8 +288,8 @@ const WidgetBookingNew = () => {
           />
         )}
 
-        {/* Booking Details */}
-        {step === 'details' && selectedOutbound && (
+        {/* Booking Details - Public Ferry */}
+        {step === 'details' && selectedOutbound && !privateBoatSelection && (
           <WidgetBookingDetails
             outbound={{
               originName: getPort(selectedOutbound.route?.origin_port_id)?.name || '',
@@ -306,6 +319,38 @@ const WidgetBookingNew = () => {
             onBack={() => setStep('cart')}
             isSubmitting={isSubmitting}
             primaryColor={primaryColor}
+          />
+        )}
+
+        {/* Booking Details - Private Boat */}
+        {step === 'details' && privateBoatSelection && (
+          <WidgetBookingDetails
+            outbound={{
+              originName: privateBoatSelection.route.from_port?.name || '',
+              destName: privateBoatSelection.route.to_port?.name || '',
+              date: privateBoatSelection.date,
+              time: privateBoatSelection.time,
+              paxAdult: privateBoatSelection.passengerCount,
+              paxChild: 0,
+              paxInfant: 0,
+              price: privateBoatSelection.route.price,
+            }}
+            pickups={[]}
+            paxAdult={privateBoatSelection.passengerCount}
+            paxChild={0}
+            paxInfant={0}
+            onSubmit={(formData) => {
+              // TODO: Handle private boat booking submission
+              toast.info('Private boat booking coming soon');
+            }}
+            onBack={() => {
+              setPrivateBoatSelection(null);
+              setStep('search');
+            }}
+            isSubmitting={isSubmitting}
+            primaryColor={primaryColor}
+            isPrivateBoat
+            privateBoatName={privateBoatSelection.boat.name}
           />
         )}
 

@@ -1,14 +1,64 @@
 import { useState } from 'react';
-import { MapPin, CalendarDays, Users, Baby, Search } from 'lucide-react';
+import { MapPin, CalendarDays, Users, Baby, Search, Ship, Anchor, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Port {
   id: string;
   name: string;
   area?: string;
+}
+
+interface PrivateBoatRoute {
+  id: string;
+  private_boat_id: string;
+  from_port_id: string;
+  to_port_id: string;
+  price: number;
+  duration_minutes: number | null;
+  from_port: { id: string; name: string; area: string } | null;
+  to_port: { id: string; name: string; area: string } | null;
+}
+
+interface PickupDropoffRule {
+  id: string;
+  from_port_id: string;
+  service_type: 'pickup' | 'dropoff';
+  city_name: string;
+  price: number;
+  car_price: number;
+  bus_price: number;
+  before_departure_minutes: number;
+}
+
+interface PrivateBoat {
+  id: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  min_capacity: number;
+  max_capacity: number | null;
+  image_url: string | null;
+  min_departure_time: string | null;
+  max_departure_time: string | null;
+  routes: PrivateBoatRoute[];
+  pickup_dropoff_rules: PickupDropoffRule[];
+}
+
+export type ServiceType = 'public-ferry' | 'private-boat';
+
+export interface PrivateBoatSelection {
+  boat: PrivateBoat;
+  route: PrivateBoatRoute;
+  date: string;
+  time: string;
+  passengerCount: number;
+  pickup?: { rule: PickupDropoffRule; details: string; vehicleType: 'car' | 'bus' };
+  dropoff?: { rule: PickupDropoffRule; details: string; vehicleType: 'car' | 'bus' };
 }
 
 interface WidgetSearchFormProps {
@@ -33,6 +83,9 @@ interface WidgetSearchFormProps {
   primaryColor?: string;
   logoUrl?: string;
   tagline?: string;
+  // Private boat props
+  privateBoats?: PrivateBoat[];
+  onPrivateBoatSearch?: (selection: PrivateBoatSelection) => void;
 }
 
 export const WidgetSearchForm = ({
@@ -57,15 +110,79 @@ export const WidgetSearchForm = ({
   primaryColor = '#22c55e',
   logoUrl,
   tagline,
+  privateBoats = [],
+  onPrivateBoatSearch,
 }: WidgetSearchFormProps) => {
   const [departureDateOpen, setDepartureDateOpen] = useState(false);
   const [returnDateOpen, setReturnDateOpen] = useState(false);
+  
+  // Service type toggle
+  const hasPrivateBoats = privateBoats.length > 0;
+  const hasPublicFerry = ports.length > 0;
+  const [serviceType, setServiceType] = useState<ServiceType>('public-ferry');
+  
+  // Private boat state
+  const [selectedBoatId, setSelectedBoatId] = useState<string>('');
+  const [selectedFromPortId, setSelectedFromPortId] = useState<string>('');
+  const [selectedRouteId, setSelectedRouteId] = useState<string>('');
+  const [privateDate, setPrivateDate] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [passengerCount, setPassengerCount] = useState<number>(1);
+  const [privateDateOpen, setPrivateDateOpen] = useState(false);
 
   const parsedDepartureDate = departureDate ? new Date(departureDate) : null;
   const parsedReturnDate = returnDate ? new Date(returnDate) : null;
+  const parsedPrivateDate = privateDate ? new Date(privateDate) : null;
+
+  const selectedBoat = privateBoats.find(b => b.id === selectedBoatId);
+  const selectedRoute = selectedBoat?.routes.find(r => r.id === selectedRouteId);
+
+  // Get available from ports from selected boat's routes
+  const getAvailableFromPorts = () => {
+    if (!selectedBoat) return [];
+    const uniquePorts = new Map<string, { id: string; name: string; area: string }>();
+    selectedBoat.routes.forEach(route => {
+      if (route.from_port) {
+        uniquePorts.set(route.from_port.id, route.from_port);
+      }
+    });
+    return Array.from(uniquePorts.values());
+  };
+
+  const availableRoutes = selectedBoat?.routes.filter(r => r.from_port_id === selectedFromPortId) || [];
+
+  // Generate time slots
+  const getTimeSlots = () => {
+    if (!selectedBoat) return [];
+    const minTime = selectedBoat.min_departure_time || '06:00';
+    const maxTime = selectedBoat.max_departure_time || '18:00';
+    const slots: string[] = [];
+    const [minHour] = minTime.split(':').map(Number);
+    const [maxHour] = maxTime.split(':').map(Number);
+    for (let hour = minHour; hour <= maxHour; hour++) {
+      slots.push(`${hour.toString().padStart(2, '0')}:00`);
+      if (hour < maxHour) slots.push(`${hour.toString().padStart(2, '0')}:30`);
+    }
+    return slots;
+  };
 
   const canSearch = selectedOrigin && selectedDestination && departureDate && 
     (tripType === 'one-way' || returnDate);
+  
+  const canSearchPrivate = selectedBoat && selectedRoute && privateDate && selectedTime && passengerCount > 0;
+
+  const handlePrivateSearch = () => {
+    if (!selectedBoat || !selectedRoute || !onPrivateBoatSearch) return;
+    
+    const selection: PrivateBoatSelection = {
+      boat: selectedBoat,
+      route: selectedRoute,
+      date: privateDate,
+      time: selectedTime,
+      passengerCount,
+    };
+    onPrivateBoatSearch(selection);
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -118,181 +235,372 @@ export const WidgetSearchForm = ({
       </div>
 
       <div className="p-6">
-        {/* Trip Type Toggle */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => onTripTypeChange('one-way')}
-            className={cn(
-              "px-6 py-2 rounded-full text-sm font-medium transition-all border",
-              tripType === 'one-way' 
-                ? "text-gray-700 bg-gray-100 border-gray-300" 
-                : "text-gray-500 bg-white border-gray-200 hover:bg-gray-50"
-            )}
-          >
-            One-Way
-          </button>
-          <button
-            onClick={() => onTripTypeChange('round-trip')}
-            className={cn(
-              "px-6 py-2 rounded-full text-sm font-medium transition-all",
-              tripType === 'round-trip' 
-                ? "text-white shadow-md" 
-                : "text-gray-500 bg-white border border-gray-200 hover:bg-gray-50"
-            )}
-            style={tripType === 'round-trip' ? { backgroundColor: primaryColor } : {}}
-          >
-            Round-Trip
-          </button>
-          <span className="text-sm text-gray-500 flex items-center gap-1">
-            <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-xs">i</span>
-            Select voyage
-          </span>
-        </div>
-
-        {/* Row 1: From, To, Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          {/* From */}
-          <FieldWrapper label="From" icon={MapPin}>
-            <select
-              value={selectedOrigin}
-              onChange={(e) => onOriginChange(e.target.value)}
-              className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
-            >
-              <option value="">Select departure</option>
-              {ports.map((port) => (
-                <option key={port.id} value={port.id}>
-                  {port.name} {port.area ? `(${port.area})` : ''}
-                </option>
-              ))}
-            </select>
-          </FieldWrapper>
-
-          {/* To */}
-          <FieldWrapper label="To" icon={MapPin}>
-            <select
-              value={selectedDestination}
-              onChange={(e) => onDestinationChange(e.target.value)}
-              disabled={!selectedOrigin}
-              className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none disabled:text-gray-400"
-            >
-              <option value="">Select destination</option>
-              {availableDestinations.map((port) => (
-                <option key={port.id} value={port.id}>
-                  {port.name} {port.area ? `(${port.area})` : ''}
-                </option>
-              ))}
-            </select>
-          </FieldWrapper>
-
-          {/* Depart Date */}
-          <FieldWrapper label="Depart Date" icon={CalendarDays}>
-            <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen}>
-              <PopoverTrigger asChild>
-                <button className="w-full text-left text-gray-900 font-medium focus:outline-none">
-                  {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : 'Select date'}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={parsedDepartureDate || undefined}
-                  onSelect={(date) => {
-                    if (date) onDepartureDateChange(date.toISOString().split('T')[0]);
-                    setDepartureDateOpen(false);
-                  }}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </FieldWrapper>
-
-          {/* Return Date */}
-          <FieldWrapper label="Return Date" icon={CalendarDays}>
-            <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
-              <PopoverTrigger asChild>
-                <button 
-                  className={cn(
-                    "w-full text-left font-medium focus:outline-none",
-                    tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900"
-                  )}
-                  disabled={tripType === 'one-way'}
-                >
-                  {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : 'Select date'}
-                </button>
-              </PopoverTrigger>
-              {tripType === 'round-trip' && (
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={parsedReturnDate || undefined}
-                    onSelect={(date) => {
-                      if (date) onReturnDateChange(date.toISOString().split('T')[0]);
-                      setReturnDateOpen(false);
-                    }}
-                    disabled={(date) => {
-                      const minDate = parsedDepartureDate || new Date(new Date().setHours(0, 0, 0, 0));
-                      return date < minDate;
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
+        {/* Service Type Toggle - Show only if both options available */}
+        {hasPrivateBoats && (
+          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg mb-6">
+            <button
+              onClick={() => hasPublicFerry && setServiceType('public-ferry')}
+              disabled={!hasPublicFerry}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md text-sm font-medium transition-all",
+                serviceType === 'public-ferry'
+                  ? "bg-white shadow-sm"
+                  : !hasPublicFerry
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-gray-500 hover:text-gray-700"
               )}
-            </Popover>
-          </FieldWrapper>
-        </div>
-
-        {/* Row 2: Passengers */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {/* Adult */}
-          <FieldWrapper label="Adult(12+ years)" icon={Users}>
-            <select
-              value={paxAdult}
-              onChange={(e) => onPaxChange(Number(e.target.value), paxChild, paxInfant)}
-              className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+              style={serviceType === 'public-ferry' ? { color: primaryColor } : {}}
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </FieldWrapper>
-
-          {/* Child */}
-          <FieldWrapper label="Child" icon={Users}>
-            <select
-              value={paxChild}
-              onChange={(e) => onPaxChange(paxAdult, Number(e.target.value), paxInfant)}
-              className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+              <Ship className="h-4 w-4" />
+              Public Fast Ferry
+            </button>
+            <button
+              onClick={() => setServiceType('private-boat')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md text-sm font-medium transition-all",
+                serviceType === 'private-boat'
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
             >
-              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </FieldWrapper>
+              <Anchor className="h-4 w-4" />
+              Private Boat
+            </button>
+          </div>
+        )}
 
-          {/* Infants */}
-          <FieldWrapper label="Infants(0-2 years)" icon={Baby}>
-            <select
-              value={paxInfant}
-              onChange={(e) => onPaxChange(paxAdult, paxChild, Number(e.target.value))}
-              className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
-            >
-              {[0, 1, 2, 3, 4, 5].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </FieldWrapper>
+        {/* PUBLIC FERRY FIELDS */}
+        {serviceType === 'public-ferry' && (
+          <>
+            {/* Trip Type Toggle */}
+            <div className="flex items-center gap-4 mb-6">
+              <button
+                onClick={() => onTripTypeChange('one-way')}
+                className={cn(
+                  "px-6 py-2 rounded-full text-sm font-medium transition-all border",
+                  tripType === 'one-way' 
+                    ? "text-gray-700 bg-gray-100 border-gray-300" 
+                    : "text-gray-500 bg-white border-gray-200 hover:bg-gray-50"
+                )}
+              >
+                One-Way
+              </button>
+              <button
+                onClick={() => onTripTypeChange('round-trip')}
+                className={cn(
+                  "px-6 py-2 rounded-full text-sm font-medium transition-all",
+                  tripType === 'round-trip' 
+                    ? "text-white shadow-md" 
+                    : "text-gray-500 bg-white border border-gray-200 hover:bg-gray-50"
+                )}
+                style={tripType === 'round-trip' ? { backgroundColor: primaryColor } : {}}
+              >
+                Round-Trip
+              </button>
+              <span className="text-sm text-gray-500 flex items-center gap-1">
+                <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-xs">i</span>
+                Select voyage
+              </span>
+            </div>
 
-          {/* Search Button */}
-          <button
-            onClick={onSearch}
-            disabled={!canSearch || isLoading}
-            className="h-full min-h-[60px] rounded-lg text-white font-semibold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-            style={{ backgroundColor: '#374151' }}
-          >
-            {isLoading ? 'Searching...' : 'Search'}
-          </button>
-        </div>
+            {/* Row 1: From, To, Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              {/* From */}
+              <FieldWrapper label="From" icon={MapPin}>
+                <select
+                  value={selectedOrigin}
+                  onChange={(e) => onOriginChange(e.target.value)}
+                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                >
+                  <option value="">Select departure</option>
+                  {ports.map((port) => (
+                    <option key={port.id} value={port.id}>
+                      {port.name} {port.area ? `(${port.area})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </FieldWrapper>
+
+              {/* To */}
+              <FieldWrapper label="To" icon={MapPin}>
+                <select
+                  value={selectedDestination}
+                  onChange={(e) => onDestinationChange(e.target.value)}
+                  disabled={!selectedOrigin}
+                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none disabled:text-gray-400"
+                >
+                  <option value="">Select destination</option>
+                  {availableDestinations.map((port) => (
+                    <option key={port.id} value={port.id}>
+                      {port.name} {port.area ? `(${port.area})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </FieldWrapper>
+
+              {/* Depart Date */}
+              <FieldWrapper label="Depart Date" icon={CalendarDays}>
+                <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen}>
+                  <PopoverTrigger asChild>
+                    <button className="w-full text-left text-gray-900 font-medium focus:outline-none">
+                      {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : 'Select date'}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={parsedDepartureDate || undefined}
+                      onSelect={(date) => {
+                        if (date) onDepartureDateChange(date.toISOString().split('T')[0]);
+                        setDepartureDateOpen(false);
+                      }}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </FieldWrapper>
+
+              {/* Return Date */}
+              <FieldWrapper label="Return Date" icon={CalendarDays}>
+                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
+                  <PopoverTrigger asChild>
+                    <button 
+                      className={cn(
+                        "w-full text-left font-medium focus:outline-none",
+                        tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900"
+                      )}
+                      disabled={tripType === 'one-way'}
+                    >
+                      {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : 'Select date'}
+                    </button>
+                  </PopoverTrigger>
+                  {tripType === 'round-trip' && (
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={parsedReturnDate || undefined}
+                        onSelect={(date) => {
+                          if (date) onReturnDateChange(date.toISOString().split('T')[0]);
+                          setReturnDateOpen(false);
+                        }}
+                        disabled={(date) => {
+                          const minDate = parsedDepartureDate || new Date(new Date().setHours(0, 0, 0, 0));
+                          return date < minDate;
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  )}
+                </Popover>
+              </FieldWrapper>
+            </div>
+
+            {/* Row 2: Passengers */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {/* Adult */}
+              <FieldWrapper label="Adult(12+ years)" icon={Users}>
+                <select
+                  value={paxAdult}
+                  onChange={(e) => onPaxChange(Number(e.target.value), paxChild, paxInfant)}
+                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </FieldWrapper>
+
+              {/* Child */}
+              <FieldWrapper label="Child" icon={Users}>
+                <select
+                  value={paxChild}
+                  onChange={(e) => onPaxChange(paxAdult, Number(e.target.value), paxInfant)}
+                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                >
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </FieldWrapper>
+
+              {/* Infants */}
+              <FieldWrapper label="Infants(0-2 years)" icon={Baby}>
+                <select
+                  value={paxInfant}
+                  onChange={(e) => onPaxChange(paxAdult, paxChild, Number(e.target.value))}
+                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                >
+                  {[0, 1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </FieldWrapper>
+
+              {/* Search Button */}
+              <button
+                onClick={onSearch}
+                disabled={!canSearch || isLoading}
+                className="h-full min-h-[60px] rounded-lg text-white font-semibold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                style={{ backgroundColor: '#374151' }}
+              >
+                {isLoading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* PRIVATE BOAT FIELDS */}
+        {serviceType === 'private-boat' && (
+          <div className="space-y-4">
+            {/* Boat Selection */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Select Your Boat</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {privateBoats.map(boat => (
+                  <button
+                    key={boat.id}
+                    onClick={() => {
+                      setSelectedBoatId(boat.id);
+                      setSelectedFromPortId('');
+                      setSelectedRouteId('');
+                    }}
+                    className={cn(
+                      "p-3 rounded-lg border-2 text-left transition-all",
+                      selectedBoatId === boat.id
+                        ? "border-amber-600 bg-amber-50"
+                        : "border-gray-200 hover:border-amber-300"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {boat.image_url ? (
+                        <img src={boat.image_url} alt={boat.name} className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <Anchor className="h-5 w-5 text-gray-400" />
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-semibold text-sm">{boat.name}</h4>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <Users className="h-3 w-3" /> {boat.min_capacity || 1}-{boat.max_capacity || boat.capacity} pax
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedBoat && (
+              <>
+                {/* From Port & Route */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FieldWrapper label="From Port" icon={MapPin}>
+                    <select
+                      value={selectedFromPortId}
+                      onChange={(e) => {
+                        setSelectedFromPortId(e.target.value);
+                        setSelectedRouteId('');
+                      }}
+                      className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                    >
+                      <option value="">Select departure port</option>
+                      {getAvailableFromPorts().map(port => (
+                        <option key={port.id} value={port.id}>
+                          {port.name} {port.area && `(${port.area})`}
+                        </option>
+                      ))}
+                    </select>
+                  </FieldWrapper>
+
+                  <FieldWrapper label="Destination" icon={MapPin}>
+                    <select
+                      value={selectedRouteId}
+                      onChange={(e) => setSelectedRouteId(e.target.value)}
+                      disabled={!selectedFromPortId}
+                      className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none disabled:text-gray-400"
+                    >
+                      <option value="">Select destination</option>
+                      {availableRoutes.map(route => (
+                        <option key={route.id} value={route.id}>
+                          {route.to_port?.name} - {formatPrice(route.price)}
+                        </option>
+                      ))}
+                    </select>
+                  </FieldWrapper>
+                </div>
+
+                {/* Date, Time, Passengers */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FieldWrapper label="Date" icon={CalendarDays}>
+                    <Popover open={privateDateOpen} onOpenChange={setPrivateDateOpen}>
+                      <PopoverTrigger asChild>
+                        <button className="w-full text-left text-gray-900 font-medium focus:outline-none">
+                          {parsedPrivateDate ? format(parsedPrivateDate, 'd MMM yyyy') : 'Select date'}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={parsedPrivateDate || undefined}
+                          onSelect={(date) => {
+                            if (date) setPrivateDate(date.toISOString().split('T')[0]);
+                            setPrivateDateOpen(false);
+                          }}
+                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </FieldWrapper>
+
+                  <FieldWrapper label="Time" icon={Clock}>
+                    <select
+                      value={selectedTime}
+                      onChange={(e) => setSelectedTime(e.target.value)}
+                      className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                    >
+                      <option value="">Select time</option>
+                      {getTimeSlots().map(slot => (
+                        <option key={slot} value={slot}>{slot}</option>
+                      ))}
+                    </select>
+                  </FieldWrapper>
+
+                  <FieldWrapper label="Passengers" icon={Users}>
+                    <select
+                      value={passengerCount}
+                      onChange={(e) => setPassengerCount(Number(e.target.value))}
+                      className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                    >
+                      {Array.from({ length: (selectedBoat.max_capacity || selectedBoat.capacity) - (selectedBoat.min_capacity || 1) + 1 }, (_, i) => i + (selectedBoat.min_capacity || 1)).map(n => (
+                        <option key={n} value={n}>{n} pax</option>
+                      ))}
+                    </select>
+                  </FieldWrapper>
+                </div>
+
+                {/* Price Summary & Search */}
+                {selectedRoute && (
+                  <div className="flex items-center justify-between p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <div>
+                      <p className="text-sm text-gray-600">Charter Price</p>
+                      <p className="text-2xl font-bold text-amber-700">{formatPrice(selectedRoute.price)}</p>
+                    </div>
+                    <button
+                      onClick={handlePrivateSearch}
+                      disabled={!canSearchPrivate || isLoading}
+                      className="px-8 py-3 rounded-lg text-white font-semibold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-amber-600"
+                    >
+                      {isLoading ? 'Loading...' : 'Book Now'}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
