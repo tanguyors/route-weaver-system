@@ -18,6 +18,7 @@ interface PickupInfo {
   vehicleType: 'car' | 'bus';
   price: number;
   details?: string;
+  beforeDepartureMinutes?: number;
 }
 
 interface WidgetOrderSummaryProps {
@@ -69,10 +70,10 @@ export const WidgetOrderSummary = ({
         {trip.originName} - {trip.destName}
       </div>
 
-      {/* Date */}
+      {/* Date & Time */}
       <div className="flex items-center gap-2 text-sm mb-2">
         <CalendarDays className="w-3 h-3 text-yellow-400" />
-        <span>{format(new Date(trip.date), 'dd MMM yyyy')}</span>
+        <span>{format(new Date(trip.date), 'dd MMM yyyy')}{trip.time ? ` - ${trip.time}` : ''}</span>
       </div>
 
       {/* Passengers */}
@@ -135,7 +136,14 @@ export const WidgetOrderSummary = ({
                     <Bus className="w-4 h-4 text-yellow-400" />
                   )}
                   <div>
-                    <div className="font-medium">Pickup: {pickup.cityName}</div>
+                    <div className="font-medium">
+                      Pickup: {pickup.cityName}
+                      {pickup.beforeDepartureMinutes && (
+                        <span className="text-white/70 text-xs ml-1">
+                          ({pickup.beforeDepartureMinutes} min before)
+                        </span>
+                      )}
+                    </div>
                     {pickup.details && (
                       <div className="text-xs text-white/70">{pickup.details}</div>
                     )}

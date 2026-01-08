@@ -340,6 +340,7 @@ export const WidgetShoppingCart = ({
     originName: outboundItem.originName,
     destName: outboundItem.destName,
     date: outboundItem.departure.departure_date,
+    time: outboundItem.departure.departure_time?.slice(0, 5),
     paxAdult,
     paxChild,
     paxInfant,
@@ -351,6 +352,7 @@ export const WidgetShoppingCart = ({
     originName: returnItem.originName,
     destName: returnItem.destName,
     date: returnItem.departure.departure_date,
+    time: returnItem.departure.departure_time?.slice(0, 5),
     paxAdult,
     paxChild,
     paxInfant,
@@ -359,7 +361,7 @@ export const WidgetShoppingCart = ({
 
   // Collect selected pickups for order summary
   const selectedPickups = useMemo(() => {
-    const result: { cityName: string; vehicleType: 'car' | 'bus'; price: number; details?: string }[] = [];
+    const result: { cityName: string; vehicleType: 'car' | 'bus'; price: number; details?: string; beforeDepartureMinutes?: number }[] = [];
     for (const item of items) {
       const enabled = pickupEnabledByItem[item.id];
       const ruleId = pickupRuleIdByItem[item.id];
@@ -374,6 +376,7 @@ export const WidgetShoppingCart = ({
             vehicleType,
             price,
             details: pickupDetailsByItem[item.id] || undefined,
+            beforeDepartureMinutes: rule.before_departure_minutes,
           });
         }
       }
