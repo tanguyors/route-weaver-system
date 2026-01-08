@@ -208,6 +208,12 @@ export const useWidgetBooking = (widgetKey: string | null) => {
       }
 
       const widgetData = await response.json();
+      
+      // Fallback: if pickup_dropoff_rules not at root level, extract from private_boats
+      if (!widgetData.pickup_dropoff_rules && widgetData.private_boats?.length > 0) {
+        widgetData.pickup_dropoff_rules = widgetData.private_boats[0]?.pickup_dropoff_rules || [];
+      }
+      
       setData(widgetData);
       setError(null);
     } catch (err: any) {

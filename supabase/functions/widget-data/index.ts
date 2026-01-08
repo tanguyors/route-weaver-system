@@ -1,3 +1,4 @@
+// Widget Data Edge Function - v2 (pickup_dropoff_rules at root level)
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
