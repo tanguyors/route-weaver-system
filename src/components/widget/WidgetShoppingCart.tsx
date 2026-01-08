@@ -26,6 +26,7 @@ interface PickupDropoffRule {
   city_name: string;
   car_price: number;
   bus_price: number;
+  before_departure_minutes?: number;
 }
 
 type VehicleType = 'car' | 'bus';
@@ -265,7 +266,9 @@ export const WidgetShoppingCart = ({
                     <SelectContent>
                       <SelectItem value={NONE}>Select pickup</SelectItem>
                       {availablePickups.map(r => (
-                        <SelectItem key={r.id} value={r.id}>{r.city_name}</SelectItem>
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min before)` : ''}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -297,7 +300,7 @@ export const WidgetShoppingCart = ({
                       )}
                     >
                       <Car className="h-5 w-5" />
-                      <span>Less than 4</span>
+                      <span>Car (max 4 pax)</span>
                       <span className="text-xs opacity-75">
                         +IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()}
                       </span>
@@ -313,7 +316,7 @@ export const WidgetShoppingCart = ({
                       )}
                     >
                       <Bus className="h-5 w-5" />
-                      <span>4 or more</span>
+                      <span>Minibus (max 10 pax)</span>
                       <span className="text-xs opacity-75">
                         +IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()}
                       </span>
