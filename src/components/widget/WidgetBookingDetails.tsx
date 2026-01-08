@@ -59,6 +59,8 @@ interface WidgetBookingDetailsProps {
   onBack: () => void;
   isSubmitting?: boolean;
   primaryColor?: string;
+  isPrivateBoat?: boolean;
+  privateBoatName?: string;
 }
 
 export const WidgetBookingDetails = ({
@@ -72,6 +74,8 @@ export const WidgetBookingDetails = ({
   onBack,
   isSubmitting = false,
   primaryColor = '#22c55e',
+  isPrivateBoat = false,
+  privateBoatName,
 }: WidgetBookingDetailsProps) => {
   const totalPassengers = paxAdult + paxChild + paxInfant;
 
