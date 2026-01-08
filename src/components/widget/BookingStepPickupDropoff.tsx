@@ -106,10 +106,33 @@ export const BookingStepPickupDropoff = ({
 
   const hasNoOptions = availablePickups.length === 0 && availableDropoffs.length === 0;
 
-  // Auto-skip if no options
+  // Show message if no options available
   if (hasNoOptions) {
-    onConfirm({ total: 0 });
-    return null;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Pickup & Dropoff
+          </CardTitle>
+          <CardDescription>
+            No transport services available for this route
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={onBack} className="flex-1">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <Button onClick={() => onConfirm({ total: 0 })} className="flex-1">
+              Continue
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

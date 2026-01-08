@@ -212,6 +212,8 @@ serve(async (req) => {
         addons: addonsWithZones,
         // Private boats data
         private_boats: privateBoatsWithData,
+        // Pickup/Dropoff rules (global - for both public ferry and private boats)
+        pickup_dropoff_rules: pickupDropoffRules,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

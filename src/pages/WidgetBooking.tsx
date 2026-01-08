@@ -599,8 +599,8 @@ const WidgetBooking = () => {
 
             {step === 'pickup-dropoff' && (
               <BookingStepPickupDropoff
-                pickupRules={data?.private_boats?.[0]?.pickup_dropoff_rules || []}
-                dropoffRules={data?.private_boats?.[0]?.pickup_dropoff_rules || []}
+                pickupRules={data?.pickup_dropoff_rules || []}
+                dropoffRules={data?.pickup_dropoff_rules || []}
                 originPortId={selectedOrigin}
                 destinationPortId={selectedDestination}
                 onConfirm={handlePickupDropoffConfirm}
@@ -825,8 +825,8 @@ const WidgetBooking = () => {
 
         {step === 'pickup-dropoff' && (
           <BookingStepPickupDropoff
-            pickupRules={data?.private_boats?.[0]?.pickup_dropoff_rules || []}
-            dropoffRules={data?.private_boats?.[0]?.pickup_dropoff_rules || []}
+            pickupRules={data?.pickup_dropoff_rules || []}
+            dropoffRules={data?.pickup_dropoff_rules || []}
             originPortId={selectedOrigin}
             destinationPortId={selectedDestination}
             onConfirm={handlePickupDropoffConfirm}
