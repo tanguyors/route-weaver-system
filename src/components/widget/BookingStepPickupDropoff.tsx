@@ -1,0 +1,313 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, ArrowRight, MapPin, Car, Bus } from 'lucide-react';
+
+interface PickupDropoffRule {
+  id: string;
+  from_port_id: string;
+  service_type: 'pickup' | 'dropoff';
+  city_name: string;
+  price: number;
+  car_price: number;
+  bus_price: number;
+  before_departure_minutes: number;
+}
+
+type VehicleType = 'car' | 'bus';
+
+export interface PickupDropoffSelection {
+  pickup?: {
+    rule: PickupDropoffRule;
+    details: string;
+    vehicleType: VehicleType;
+  };
+  dropoff?: {
+    rule: PickupDropoffRule;
+    details: string;
+    vehicleType: VehicleType;
+  };
+  total: number;
+}
+
+interface BookingStepPickupDropoffProps {
+  pickupRules: PickupDropoffRule[];
+  dropoffRules: PickupDropoffRule[];
+  originPortId: string;
+  destinationPortId: string;
+  onConfirm: (selection: PickupDropoffSelection) => void;
+  onBack: () => void;
+}
+
+export const BookingStepPickupDropoff = ({
+  pickupRules,
+  dropoffRules,
+  originPortId,
+  destinationPortId,
+  onConfirm,
+  onBack,
+}: BookingStepPickupDropoffProps) => {
+  // Filter rules by port
+  const availablePickups = pickupRules.filter(
+    r => r.from_port_id === originPortId && r.service_type === 'pickup'
+  );
+  const availableDropoffs = dropoffRules.filter(
+    r => r.from_port_id === destinationPortId && r.service_type === 'dropoff'
+  );
+
+  const [selectedPickupId, setSelectedPickupId] = useState<string>('');
+  const [pickupDetails, setPickupDetails] = useState<string>('');
+  const [pickupVehicleType, setPickupVehicleType] = useState<VehicleType>('car');
+  
+  const [selectedDropoffId, setSelectedDropoffId] = useState<string>('');
+  const [dropoffDetails, setDropoffDetails] = useState<string>('');
+  const [dropoffVehicleType, setDropoffVehicleType] = useState<VehicleType>('car');
+
+  const selectedPickup = availablePickups.find(p => p.id === selectedPickupId);
+  const selectedDropoff = availableDropoffs.find(d => d.id === selectedDropoffId);
+
+  const calculateTotal = (): number => {
+    let total = 0;
+    if (selectedPickup) {
+      total += pickupVehicleType === 'car' ? selectedPickup.car_price : selectedPickup.bus_price;
+    }
+    if (selectedDropoff) {
+      total += dropoffVehicleType === 'car' ? selectedDropoff.car_price : selectedDropoff.bus_price;
+    }
+    return total;
+  };
+
+  const handleConfirm = () => {
+    const selection: PickupDropoffSelection = {
+      total: calculateTotal(),
+    };
+
+    if (selectedPickup) {
+      selection.pickup = {
+        rule: selectedPickup,
+        details: pickupDetails,
+        vehicleType: pickupVehicleType,
+      };
+    }
+
+    if (selectedDropoff) {
+      selection.dropoff = {
+        rule: selectedDropoff,
+        details: dropoffDetails,
+        vehicleType: dropoffVehicleType,
+      };
+    }
+
+    onConfirm(selection);
+  };
+
+  const hasNoOptions = availablePickups.length === 0 && availableDropoffs.length === 0;
+
+  // Auto-skip if no options
+  if (hasNoOptions) {
+    onConfirm({ total: 0 });
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MapPin className="h-5 w-5" />
+          Pickup & Dropoff
+        </CardTitle>
+        <CardDescription>
+          Add optional transport services to your trip
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Pickup Section */}
+        {availablePickups.length > 0 && (
+          <div className="border rounded-lg p-4 bg-muted/30">
+            <Label className="font-medium text-base">Pickup Service (Optional)</Label>
+            <p className="text-sm text-muted-foreground mb-3">
+              We'll pick you up from your hotel before departure
+            </p>
+            
+            <Select 
+              value={selectedPickupId} 
+              onValueChange={(v) => {
+                setSelectedPickupId(v);
+                if (!v) setPickupVehicleType('car');
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="No pickup needed" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No pickup needed</SelectItem>
+                {availablePickups.map(pickup => (
+                  <SelectItem key={pickup.id} value={pickup.id}>
+                    {pickup.city_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {selectedPickupId && selectedPickup && (
+              <div className="mt-4 space-y-4">
+                {/* Vehicle Type Selection */}
+                <div>
+                  <Label className="text-sm text-muted-foreground">Number of passengers</Label>
+                  <div className="flex gap-3 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPickupVehicleType('car')}
+                      className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium border-2 transition-all flex flex-col items-center gap-1 ${
+                        pickupVehicleType === 'car'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted hover:border-primary/30'
+                      }`}
+                    >
+                      <Car className="h-5 w-5" />
+                      <span>Less than 4</span>
+                      <span className="text-xs opacity-75">
+                        +IDR {selectedPickup.car_price.toLocaleString()}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPickupVehicleType('bus')}
+                      className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium border-2 transition-all flex flex-col items-center gap-1 ${
+                        pickupVehicleType === 'bus'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted hover:border-primary/30'
+                      }`}
+                    >
+                      <Bus className="h-5 w-5" />
+                      <span>4 or more</span>
+                      <span className="text-xs opacity-75">
+                        +IDR {selectedPickup.bus_price.toLocaleString()}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Pickup Address / Hotel Name</Label>
+                  <Input
+                    className="mt-1"
+                    placeholder="Enter your hotel name or pickup address"
+                    value={pickupDetails}
+                    onChange={(e) => setPickupDetails(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Dropoff Section */}
+        {availableDropoffs.length > 0 && (
+          <div className="border rounded-lg p-4 bg-muted/30">
+            <Label className="font-medium text-base">Dropoff Service (Optional)</Label>
+            <p className="text-sm text-muted-foreground mb-3">
+              We'll drop you off at your destination after arrival
+            </p>
+            
+            <Select 
+              value={selectedDropoffId} 
+              onValueChange={(v) => {
+                setSelectedDropoffId(v);
+                if (!v) setDropoffVehicleType('car');
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="No dropoff needed" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No dropoff needed</SelectItem>
+                {availableDropoffs.map(dropoff => (
+                  <SelectItem key={dropoff.id} value={dropoff.id}>
+                    {dropoff.city_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {selectedDropoffId && selectedDropoff && (
+              <div className="mt-4 space-y-4">
+                {/* Vehicle Type Selection */}
+                <div>
+                  <Label className="text-sm text-muted-foreground">Number of passengers</Label>
+                  <div className="flex gap-3 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setDropoffVehicleType('car')}
+                      className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium border-2 transition-all flex flex-col items-center gap-1 ${
+                        dropoffVehicleType === 'car'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted hover:border-primary/30'
+                      }`}
+                    >
+                      <Car className="h-5 w-5" />
+                      <span>Less than 4</span>
+                      <span className="text-xs opacity-75">
+                        +IDR {selectedDropoff.car_price.toLocaleString()}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDropoffVehicleType('bus')}
+                      className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium border-2 transition-all flex flex-col items-center gap-1 ${
+                        dropoffVehicleType === 'bus'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted hover:border-primary/30'
+                      }`}
+                    >
+                      <Bus className="h-5 w-5" />
+                      <span>4 or more</span>
+                      <span className="text-xs opacity-75">
+                        +IDR {selectedDropoff.bus_price.toLocaleString()}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Dropoff Address / Hotel Name</Label>
+                  <Input
+                    className="mt-1"
+                    placeholder="Enter your destination hotel or address"
+                    value={dropoffDetails}
+                    onChange={(e) => setDropoffDetails(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Total */}
+        {calculateTotal() > 0 && (
+          <div className="pt-4 border-t">
+            <div className="flex justify-between items-center text-lg font-semibold">
+              <span>Transport Total</span>
+              <span className="text-primary">IDR {calculateTotal().toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="flex gap-3 pt-4">
+          <Button variant="outline" onClick={onBack} className="flex-1">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <Button onClick={handleConfirm} className="flex-1">
+            Continue
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
