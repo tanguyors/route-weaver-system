@@ -67,7 +67,6 @@ const boatsGroup: NavGroup = {
     { label: 'Fleet', href: '/dashboard/boats', icon: Sailboat, ownerOnly: true },
     { label: 'Routes & Trips', href: '/dashboard/trips', icon: Route },
     { label: 'Schedules', href: '/dashboard/schedules', icon: Calendar },
-    { label: 'Add-ons', href: '/dashboard/addons', icon: Ship, ownerOnly: true },
   ],
 };
 
