@@ -23,8 +23,12 @@ interface PickupDropoffRule {
   service_type: 'pickup' | 'dropoff';
   city_name: string;
   price: number;
+  car_price: number;
+  bus_price: number;
   before_departure_minutes: number;
 }
+
+type VehicleType = 'car' | 'bus';
 
 interface PrivateBoat {
   id: string;
@@ -55,10 +59,12 @@ export interface PrivateBoatSelection {
   pickup?: {
     rule: PickupDropoffRule;
     details: string;
+    vehicleType: VehicleType;
   };
   dropoff?: {
     rule: PickupDropoffRule;
     details: string;
+    vehicleType: VehicleType;
   };
 }
 
@@ -74,8 +80,10 @@ export const BookingStepPrivateBoat = ({
   const [passengerCount, setPassengerCount] = useState<number>(1);
   const [selectedPickupId, setSelectedPickupId] = useState<string>('');
   const [pickupDetails, setPickupDetails] = useState<string>('');
+  const [pickupVehicleType, setPickupVehicleType] = useState<VehicleType>('car');
   const [selectedDropoffId, setSelectedDropoffId] = useState<string>('');
   const [dropoffDetails, setDropoffDetails] = useState<string>('');
+  const [dropoffVehicleType, setDropoffVehicleType] = useState<VehicleType>('car');
 
   const selectedBoat = privateBoats.find(b => b.id === selectedBoatId);
   const selectedRoute = selectedBoat?.routes.find(r => r.id === selectedRouteId);
@@ -135,12 +143,16 @@ export const BookingStepPrivateBoat = ({
     
     if (selectedPickupId) {
       const pickupRule = availablePickups.find(p => p.id === selectedPickupId);
-      if (pickupRule) total += pickupRule.price;
+      if (pickupRule) {
+        total += pickupVehicleType === 'car' ? pickupRule.car_price : pickupRule.bus_price;
+      }
     }
     
     if (selectedDropoffId) {
       const dropoffRule = availableDropoffs.find(d => d.id === selectedDropoffId);
-      if (dropoffRule) total += dropoffRule.price;
+      if (dropoffRule) {
+        total += dropoffVehicleType === 'car' ? dropoffRule.car_price : dropoffRule.bus_price;
+      }
     }
     
     return total;
@@ -162,14 +174,14 @@ export const BookingStepPrivateBoat = ({
     if (selectedPickupId) {
       const pickupRule = availablePickups.find(p => p.id === selectedPickupId);
       if (pickupRule) {
-        selection.pickup = { rule: pickupRule, details: pickupDetails };
+        selection.pickup = { rule: pickupRule, details: pickupDetails, vehicleType: pickupVehicleType };
       }
     }
 
     if (selectedDropoffId) {
       const dropoffRule = availableDropoffs.find(d => d.id === selectedDropoffId);
       if (dropoffRule) {
-        selection.dropoff = { rule: dropoffRule, details: dropoffDetails };
+        selection.dropoff = { rule: dropoffRule, details: dropoffDetails, vehicleType: dropoffVehicleType };
       }
     }
 
@@ -355,7 +367,10 @@ export const BookingStepPrivateBoat = ({
         {selectedRoute && availablePickups.length > 0 && (
           <div className="border rounded-lg p-4 bg-muted/30">
             <Label className="font-medium">Pickup Service (Optional)</Label>
-            <Select value={selectedPickupId} onValueChange={setSelectedPickupId}>
+            <Select value={selectedPickupId} onValueChange={(v) => {
+              setSelectedPickupId(v);
+              if (!v) setPickupVehicleType('car');
+            }}>
               <SelectTrigger className="mt-2">
                 <SelectValue placeholder="No pickup needed" />
               </SelectTrigger>
@@ -363,18 +378,58 @@ export const BookingStepPrivateBoat = ({
                 <SelectItem value="">No pickup needed</SelectItem>
                 {availablePickups.map(pickup => (
                   <SelectItem key={pickup.id} value={pickup.id}>
-                    {pickup.city_name} - +IDR {pickup.price.toLocaleString()}
+                    {pickup.city_name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {selectedPickupId && (
-              <Input
-                className="mt-2"
-                placeholder="Hotel name / pickup address"
-                value={pickupDetails}
-                onChange={(e) => setPickupDetails(e.target.value)}
-              />
+              <>
+                {/* Vehicle Type Selection */}
+                <div className="mt-3">
+                  <Label className="text-sm text-muted-foreground">Number of passengers</Label>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPickupVehicleType('car')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${
+                        pickupVehicleType === 'car'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted hover:border-muted-foreground/30'
+                      }`}
+                    >
+                      Less than 4
+                      {availablePickups.find(p => p.id === selectedPickupId) && (
+                        <span className="block text-xs opacity-75">
+                          +IDR {availablePickups.find(p => p.id === selectedPickupId)?.car_price.toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPickupVehicleType('bus')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${
+                        pickupVehicleType === 'bus'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted hover:border-muted-foreground/30'
+                      }`}
+                    >
+                      4 or more
+                      {availablePickups.find(p => p.id === selectedPickupId) && (
+                        <span className="block text-xs opacity-75">
+                          +IDR {availablePickups.find(p => p.id === selectedPickupId)?.bus_price.toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <Input
+                  className="mt-2"
+                  placeholder="Hotel name / pickup address"
+                  value={pickupDetails}
+                  onChange={(e) => setPickupDetails(e.target.value)}
+                />
+              </>
             )}
           </div>
         )}
@@ -383,7 +438,10 @@ export const BookingStepPrivateBoat = ({
         {selectedRoute && availableDropoffs.length > 0 && (
           <div className="border rounded-lg p-4 bg-muted/30">
             <Label className="font-medium">Dropoff Service (Optional)</Label>
-            <Select value={selectedDropoffId} onValueChange={setSelectedDropoffId}>
+            <Select value={selectedDropoffId} onValueChange={(v) => {
+              setSelectedDropoffId(v);
+              if (!v) setDropoffVehicleType('car');
+            }}>
               <SelectTrigger className="mt-2">
                 <SelectValue placeholder="No dropoff needed" />
               </SelectTrigger>
@@ -391,18 +449,58 @@ export const BookingStepPrivateBoat = ({
                 <SelectItem value="">No dropoff needed</SelectItem>
                 {availableDropoffs.map(dropoff => (
                   <SelectItem key={dropoff.id} value={dropoff.id}>
-                    {dropoff.city_name} - +IDR {dropoff.price.toLocaleString()}
+                    {dropoff.city_name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {selectedDropoffId && (
-              <Input
-                className="mt-2"
-                placeholder="Hotel name / dropoff address"
-                value={dropoffDetails}
-                onChange={(e) => setDropoffDetails(e.target.value)}
-              />
+              <>
+                {/* Vehicle Type Selection */}
+                <div className="mt-3">
+                  <Label className="text-sm text-muted-foreground">Number of passengers</Label>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setDropoffVehicleType('car')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${
+                        dropoffVehicleType === 'car'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted hover:border-muted-foreground/30'
+                      }`}
+                    >
+                      Less than 4
+                      {availableDropoffs.find(d => d.id === selectedDropoffId) && (
+                        <span className="block text-xs opacity-75">
+                          +IDR {availableDropoffs.find(d => d.id === selectedDropoffId)?.car_price.toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDropoffVehicleType('bus')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${
+                        dropoffVehicleType === 'bus'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted hover:border-muted-foreground/30'
+                      }`}
+                    >
+                      4 or more
+                      {availableDropoffs.find(d => d.id === selectedDropoffId) && (
+                        <span className="block text-xs opacity-75">
+                          +IDR {availableDropoffs.find(d => d.id === selectedDropoffId)?.bus_price.toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <Input
+                  className="mt-2"
+                  placeholder="Hotel name / dropoff address"
+                  value={dropoffDetails}
+                  onChange={(e) => setDropoffDetails(e.target.value)}
+                />
+              </>
             )}
           </div>
         )}

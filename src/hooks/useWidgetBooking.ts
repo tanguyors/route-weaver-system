@@ -112,6 +112,8 @@ export interface PickupDropoffRule {
   service_type: 'pickup' | 'dropoff';
   city_name: string;
   price: number;
+  car_price: number;
+  bus_price: number;
   before_departure_minutes: number;
 }
 

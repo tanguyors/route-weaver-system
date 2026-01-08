@@ -29,8 +29,12 @@ interface PickupDropoffRule {
   service_type: 'pickup' | 'dropoff';
   city_name: string;
   price: number;
+  car_price: number;
+  bus_price: number;
   before_departure_minutes: number;
 }
+
+type VehicleType = 'car' | 'bus';
 
 interface PrivateBoat {
   id: string;
@@ -52,8 +56,8 @@ export interface PrivateBoatBarSelection {
   date: string;
   time: string;
   passengerCount: number;
-  pickup?: { rule: PickupDropoffRule; details: string };
-  dropoff?: { rule: PickupDropoffRule; details: string };
+  pickup?: { rule: PickupDropoffRule; details: string; vehicleType: VehicleType };
+  dropoff?: { rule: PickupDropoffRule; details: string; vehicleType: VehicleType };
 }
 
 interface BarSelectionState {

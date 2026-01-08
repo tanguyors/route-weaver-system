@@ -30,8 +30,12 @@ interface PickupDropoffRule {
   service_type: 'pickup' | 'dropoff';
   city_name: string;
   price: number;
+  car_price: number;
+  bus_price: number;
   before_departure_minutes: number;
 }
+
+type VehicleType = 'car' | 'bus';
 
 interface PrivateBoat {
   id: string;
@@ -55,8 +59,8 @@ export interface PrivateBoatSelection {
   date: string;
   time: string;
   passengerCount: number;
-  pickup?: { rule: PickupDropoffRule; details: string };
-  dropoff?: { rule: PickupDropoffRule; details: string };
+  pickup?: { rule: PickupDropoffRule; details: string; vehicleType: VehicleType };
+  dropoff?: { rule: PickupDropoffRule; details: string; vehicleType: VehicleType };
 }
 
 interface BookingStepRouteProps {
@@ -112,8 +116,10 @@ export const BookingStepRoute = ({
   const [passengerCount, setPassengerCount] = useState<number>(1);
   const [selectedPickupId, setSelectedPickupId] = useState<string>('');
   const [pickupDetails, setPickupDetails] = useState<string>('');
+  const [pickupVehicleType, setPickupVehicleType] = useState<VehicleType>('car');
   const [selectedDropoffId, setSelectedDropoffId] = useState<string>('');
   const [dropoffDetails, setDropoffDetails] = useState<string>('');
+  const [dropoffVehicleType, setDropoffVehicleType] = useState<VehicleType>('car');
 
   const selectedBoat = privateBoats.find(b => b.id === selectedBoatId);
   const selectedRoute = selectedBoat?.routes.find(r => r.id === selectedRouteId);
@@ -160,11 +166,11 @@ export const BookingStepRoute = ({
     let total = selectedRoute.price;
     if (selectedPickupId) {
       const pickup = availablePickups.find(p => p.id === selectedPickupId);
-      if (pickup) total += pickup.price;
+      if (pickup) total += pickupVehicleType === 'car' ? pickup.car_price : pickup.bus_price;
     }
     if (selectedDropoffId) {
       const dropoff = availableDropoffs.find(d => d.id === selectedDropoffId);
-      if (dropoff) total += dropoff.price;
+      if (dropoff) total += dropoffVehicleType === 'car' ? dropoff.car_price : dropoff.bus_price;
     }
     return total;
   };
@@ -189,11 +195,11 @@ export const BookingStepRoute = ({
 
     if (selectedPickupId) {
       const pickupRule = availablePickups.find(p => p.id === selectedPickupId);
-      if (pickupRule) selection.pickup = { rule: pickupRule, details: pickupDetails };
+      if (pickupRule) selection.pickup = { rule: pickupRule, details: pickupDetails, vehicleType: pickupVehicleType };
     }
     if (selectedDropoffId) {
       const dropoffRule = availableDropoffs.find(d => d.id === selectedDropoffId);
-      if (dropoffRule) selection.dropoff = { rule: dropoffRule, details: dropoffDetails };
+      if (dropoffRule) selection.dropoff = { rule: dropoffRule, details: dropoffDetails, vehicleType: dropoffVehicleType };
     }
 
     onPrivateBoatContinue(selection);
@@ -512,7 +518,10 @@ export const BookingStepRoute = ({
                 {availablePickups.length > 0 && (
                   <div className="border rounded-lg p-3 bg-muted/30">
                     <Label className="text-sm font-medium">Pickup (Optional)</Label>
-                    <Select value={selectedPickupId} onValueChange={setSelectedPickupId}>
+                    <Select value={selectedPickupId} onValueChange={(v) => {
+                      setSelectedPickupId(v);
+                      if (!v) setPickupVehicleType('car');
+                    }}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="No pickup needed" />
                       </SelectTrigger>
@@ -520,18 +529,53 @@ export const BookingStepRoute = ({
                         <SelectItem value="">No pickup</SelectItem>
                         {availablePickups.map(p => (
                           <SelectItem key={p.id} value={p.id}>
-                            {p.city_name} +IDR {p.price.toLocaleString()}
+                            {p.city_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     {selectedPickupId && (
-                      <Input
-                        className="mt-2"
-                        placeholder="Hotel / pickup address"
-                        value={pickupDetails}
-                        onChange={(e) => setPickupDetails(e.target.value)}
-                      />
+                      <>
+                        <div className="mt-2">
+                          <Label className="text-xs text-muted-foreground">Number of passengers</Label>
+                          <div className="flex gap-2 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => setPickupVehicleType('car')}
+                              className={`flex-1 py-1.5 px-2 rounded text-xs font-medium border-2 transition-all ${
+                                pickupVehicleType === 'car'
+                                  ? 'border-amber-600 bg-amber-50 text-amber-700'
+                                  : 'border-muted hover:border-amber-300'
+                              }`}
+                            >
+                              Less than 4
+                              <span className="block opacity-75">
+                                +IDR {availablePickups.find(p => p.id === selectedPickupId)?.car_price.toLocaleString()}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPickupVehicleType('bus')}
+                              className={`flex-1 py-1.5 px-2 rounded text-xs font-medium border-2 transition-all ${
+                                pickupVehicleType === 'bus'
+                                  ? 'border-amber-600 bg-amber-50 text-amber-700'
+                                  : 'border-muted hover:border-amber-300'
+                              }`}
+                            >
+                              4 or more
+                              <span className="block opacity-75">
+                                +IDR {availablePickups.find(p => p.id === selectedPickupId)?.bus_price.toLocaleString()}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                        <Input
+                          className="mt-2"
+                          placeholder="Hotel / pickup address"
+                          value={pickupDetails}
+                          onChange={(e) => setPickupDetails(e.target.value)}
+                        />
+                      </>
                     )}
                   </div>
                 )}
@@ -540,7 +584,10 @@ export const BookingStepRoute = ({
                 {availableDropoffs.length > 0 && (
                   <div className="border rounded-lg p-3 bg-muted/30">
                     <Label className="text-sm font-medium">Dropoff (Optional)</Label>
-                    <Select value={selectedDropoffId} onValueChange={setSelectedDropoffId}>
+                    <Select value={selectedDropoffId} onValueChange={(v) => {
+                      setSelectedDropoffId(v);
+                      if (!v) setDropoffVehicleType('car');
+                    }}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="No dropoff needed" />
                       </SelectTrigger>
@@ -548,18 +595,53 @@ export const BookingStepRoute = ({
                         <SelectItem value="">No dropoff</SelectItem>
                         {availableDropoffs.map(d => (
                           <SelectItem key={d.id} value={d.id}>
-                            {d.city_name} +IDR {d.price.toLocaleString()}
+                            {d.city_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     {selectedDropoffId && (
-                      <Input
-                        className="mt-2"
-                        placeholder="Hotel / dropoff address"
-                        value={dropoffDetails}
-                        onChange={(e) => setDropoffDetails(e.target.value)}
-                      />
+                      <>
+                        <div className="mt-2">
+                          <Label className="text-xs text-muted-foreground">Number of passengers</Label>
+                          <div className="flex gap-2 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => setDropoffVehicleType('car')}
+                              className={`flex-1 py-1.5 px-2 rounded text-xs font-medium border-2 transition-all ${
+                                dropoffVehicleType === 'car'
+                                  ? 'border-amber-600 bg-amber-50 text-amber-700'
+                                  : 'border-muted hover:border-amber-300'
+                              }`}
+                            >
+                              Less than 4
+                              <span className="block opacity-75">
+                                +IDR {availableDropoffs.find(d => d.id === selectedDropoffId)?.car_price.toLocaleString()}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDropoffVehicleType('bus')}
+                              className={`flex-1 py-1.5 px-2 rounded text-xs font-medium border-2 transition-all ${
+                                dropoffVehicleType === 'bus'
+                                  ? 'border-amber-600 bg-amber-50 text-amber-700'
+                                  : 'border-muted hover:border-amber-300'
+                              }`}
+                            >
+                              4 or more
+                              <span className="block opacity-75">
+                                +IDR {availableDropoffs.find(d => d.id === selectedDropoffId)?.bus_price.toLocaleString()}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                        <Input
+                          className="mt-2"
+                          placeholder="Hotel / dropoff address"
+                          value={dropoffDetails}
+                          onChange={(e) => setDropoffDetails(e.target.value)}
+                        />
+                      </>
                     )}
                   </div>
                 )}
