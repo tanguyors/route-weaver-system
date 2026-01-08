@@ -154,6 +154,7 @@ export interface WidgetData {
   departures: Departure[];
   addons: WidgetAddon[];
   private_boats: PrivateBoat[];
+  pickup_dropoff_rules: PickupDropoffRule[];
 }
 
 export interface BookingDetails {
