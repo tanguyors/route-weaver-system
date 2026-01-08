@@ -1,4 +1,4 @@
-import { MapPin, CalendarDays } from 'lucide-react';
+import { MapPin, CalendarDays, Car, Bus } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TripInfo {
@@ -13,9 +13,17 @@ interface TripInfo {
   price: number;
 }
 
+interface PickupInfo {
+  cityName: string;
+  vehicleType: 'car' | 'bus';
+  price: number;
+  details?: string;
+}
+
 interface WidgetOrderSummaryProps {
   outbound?: TripInfo;
   returnTrip?: TripInfo;
+  pickups?: PickupInfo[];
   addonsTotal?: number;
   discountAmount?: number;
   promoCode?: string;
@@ -25,6 +33,7 @@ interface WidgetOrderSummaryProps {
 export const WidgetOrderSummary = ({
   outbound,
   returnTrip,
+  pickups = [],
   addonsTotal = 0,
   discountAmount = 0,
   promoCode,
@@ -38,7 +47,8 @@ export const WidgetOrderSummary = ({
     }).format(price);
   };
 
-  const subtotal = (outbound?.price || 0) + (returnTrip?.price || 0) + addonsTotal;
+  const pickupsTotal = pickups.reduce((sum, p) => sum + p.price, 0);
+  const subtotal = (outbound?.price || 0) + (returnTrip?.price || 0) + addonsTotal + pickupsTotal;
   const grandTotal = subtotal - discountAmount;
 
   const TripCard = ({ trip, isReturn }: { trip: TripInfo; isReturn?: boolean }) => (
@@ -109,6 +119,33 @@ export const WidgetOrderSummary = ({
       <div className="p-4" style={{ backgroundColor: primaryColor, opacity: 0.9 }}>
         {outbound && <TripCard trip={outbound} />}
         {returnTrip && <TripCard trip={returnTrip} isReturn />}
+
+        {/* Pickup/Dropoff services */}
+        {pickups.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {pickups.map((pickup, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-center justify-between p-3 rounded-lg bg-white/10 text-white text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  {pickup.vehicleType === 'car' ? (
+                    <Car className="w-4 h-4 text-yellow-400" />
+                  ) : (
+                    <Bus className="w-4 h-4 text-yellow-400" />
+                  )}
+                  <div>
+                    <div className="font-medium">Pickup: {pickup.cityName}</div>
+                    {pickup.details && (
+                      <div className="text-xs text-white/70">{pickup.details}</div>
+                    )}
+                  </div>
+                </div>
+                <span className="font-bold">{formatPrice(pickup.price)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Grand Total */}
