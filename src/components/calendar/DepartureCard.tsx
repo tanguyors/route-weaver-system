@@ -12,8 +12,24 @@ export const DepartureCard = ({ departure, compact = false, onClick }: Departure
   const available = departure.capacity_total - departure.capacity_reserved;
   const utilizationPercent = (departure.capacity_reserved / departure.capacity_total) * 100;
   
+  // Check if departure time has passed for today
+  const isPastDeparture = () => {
+    const today = new Date().toISOString().split('T')[0];
+    if (departure.departure_date !== today) return false;
+    
+    const now = new Date();
+    const [hours, minutes] = departure.departure_time.split(':').map(Number);
+    const departureTime = new Date();
+    departureTime.setHours(hours, minutes, 0, 0);
+    
+    return now > departureTime;
+  };
+  
+  const isPast = isPastDeparture();
+  const effectiveStatus = isPast && departure.status === 'open' ? 'closed' : departure.status;
+  
   const getStatusColor = () => {
-    switch (departure.status) {
+    switch (effectiveStatus) {
       case 'open':
         if (utilizationPercent >= 80) return 'bg-orange-500/10 border-orange-500/50 text-orange-700 dark:text-orange-400';
         return 'bg-emerald-500/10 border-emerald-500/50 text-emerald-700 dark:text-emerald-400';
@@ -29,7 +45,8 @@ export const DepartureCard = ({ departure, compact = false, onClick }: Departure
   };
 
   const getStatusBadge = () => {
-    switch (departure.status) {
+    if (isPast && departure.status === 'open') return 'Passed';
+    switch (effectiveStatus) {
       case 'open':
         return utilizationPercent >= 80 ? 'Limited' : 'Open';
       case 'sold_out':

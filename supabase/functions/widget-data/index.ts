@@ -225,11 +225,25 @@ serve(async (req) => {
     }
 
     // Apply schedule fallback boat_id (do not override if departure already has boat_id)
-    filteredDepartures = filteredDepartures.map((d: any) => {
-      if (d.boat_id) return d;
-      const boatId = templateBoatMap.get(`${d.trip_id}__${normalizeTime(d.departure_time)}`);
-      return boatId ? { ...d, boat_id: boatId } : d;
-    });
+    // Also filter out past departures for today
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const currentTimeStr = now.toTimeString().slice(0, 5); // HH:MM format
+    
+    filteredDepartures = filteredDepartures
+      .filter((d: any) => {
+        // If departure is today, check if time has passed
+        if (d.departure_date === todayStr) {
+          const depTime = (d.departure_time || '').slice(0, 5);
+          return depTime > currentTimeStr;
+        }
+        return true;
+      })
+      .map((d: any) => {
+        if (d.boat_id) return d;
+        const boatId = templateBoatMap.get(`${d.trip_id}__${normalizeTime(d.departure_time)}`);
+        return boatId ? { ...d, boat_id: boatId } : d;
+      });
     // Build unique ports list
     const ports = new Map();
     for (const route of routes || []) {
