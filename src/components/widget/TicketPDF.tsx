@@ -18,6 +18,7 @@ interface TripInfo {
   time: string;
   arrivalTime?: string;
   boatName?: string;
+  boatImage?: string;
   price: number;
 }
 
@@ -135,7 +136,23 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
 
       {/* Trip Details - Outbound */}
       <div className="border-x border-b p-6">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4">
+          {/* Boat Image */}
+          {outbound.boatImage && (
+            <div className="flex-shrink-0">
+              <img 
+                src={outbound.boatImage} 
+                alt={outbound.boatName || 'Boat'} 
+                className="w-24 h-20 object-cover rounded-lg border"
+              />
+              {outbound.boatName && (
+                <p className="text-xs text-center text-gray-500 mt-1 max-w-24 truncate">
+                  {outbound.boatName}
+                </p>
+              )}
+            </div>
+          )}
+          
           <div 
             className="w-1 self-stretch rounded-full"
             style={{ backgroundColor: primaryColor }}
@@ -153,7 +170,7 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
               <span className="font-bold text-lg">{outbound.originName} → {outbound.destName}</span>
             </div>
 
-            {outbound.boatName && (
+            {outbound.boatName && !outbound.boatImage && (
               <div className="flex items-center gap-2 mb-2 text-sm text-gray-600">
                 <Anchor className="h-4 w-4" />
                 <span>Boat: <span className="font-medium">{outbound.boatName}</span></span>
@@ -185,7 +202,23 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
       {/* Trip Details - Return */}
       {returnTrip && (
         <div className="border-x border-b p-6">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-4">
+            {/* Boat Image */}
+            {returnTrip.boatImage && (
+              <div className="flex-shrink-0">
+                <img 
+                  src={returnTrip.boatImage} 
+                  alt={returnTrip.boatName || 'Boat'} 
+                  className="w-24 h-20 object-cover rounded-lg border"
+                />
+                {returnTrip.boatName && (
+                  <p className="text-xs text-center text-gray-500 mt-1 max-w-24 truncate">
+                    {returnTrip.boatName}
+                  </p>
+                )}
+              </div>
+            )}
+            
             <div className="w-1 self-stretch rounded-full bg-emerald-500" />
             <div className="flex-1">
               <p className="text-xs font-medium text-emerald-600 uppercase tracking-wide mb-3">
@@ -197,7 +230,7 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
                 <span className="font-bold text-lg">{returnTrip.originName} → {returnTrip.destName}</span>
               </div>
 
-              {returnTrip.boatName && (
+              {returnTrip.boatName && !returnTrip.boatImage && (
                 <div className="flex items-center gap-2 mb-2 text-sm text-gray-600">
                   <Anchor className="h-4 w-4" />
                   <span>Boat: <span className="font-medium">{returnTrip.boatName}</span></span>
