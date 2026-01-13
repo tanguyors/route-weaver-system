@@ -132,17 +132,17 @@ export const CartItemCard = ({
     : undefined;
 
   return (
-    <div className="bg-white rounded-lg border-2 border-gray-200 p-4 mb-4">
+    <div className="bg-white rounded-lg border-2 border-gray-200 p-3 sm:p-4 mb-4 overflow-hidden">
       {/* Date Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div 
-            className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
+            className="w-0 h-0 border-l-[10px] sm:border-l-[12px] border-t-[10px] sm:border-t-[12px] border-b-[10px] sm:border-b-[12px] border-l-transparent border-b-transparent shrink-0"
             style={{ borderTopColor: primaryColor }}
           />
-          <div className="flex items-center gap-2" style={{ color: primaryColor }}>
-            <CalendarDays className="w-4 h-4" />
-            <span className="font-medium">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0" style={{ color: primaryColor }}>
+            <CalendarDays className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+            <span className="font-medium text-xs sm:text-sm truncate">
               {format(new Date(item.departure.departure_date), 'EEE, dd MMM yyyy')}
             </span>
           </div>
@@ -152,17 +152,17 @@ export const CartItemCard = ({
           variant="ghost"
           size="sm"
           onClick={() => onRemoveItem(item.id)}
-          className="text-gray-700 hover:text-red-600"
+          className="text-gray-700 hover:text-red-600 shrink-0 px-2 sm:px-3"
         >
-          <Trash2 className="w-4 h-4 mr-1" />
-          {t('delete')}
+          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+          <span className="hidden sm:inline">{t('delete')}</span>
         </Button>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         {/* Boat Image & Info */}
-        <div className="w-44 flex-shrink-0">
-          <div className="h-28 rounded-lg overflow-hidden bg-gray-100">
+        <div className="w-full sm:w-32 md:w-44 shrink-0">
+          <div className="h-24 sm:h-28 rounded-lg overflow-hidden bg-gray-100">
             {boat?.image_url ? (
               <img 
                 src={boat.image_url} 
@@ -171,12 +171,12 @@ export const CartItemCard = ({
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Ship className="w-12 h-12 text-gray-300" />
+                <Ship className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300" />
               </div>
             )}
           </div>
           {/* Boat Name */}
-          <p className="text-center text-sm font-medium text-gray-700 mt-2 truncate">
+          <p className="text-center text-xs sm:text-sm font-medium text-gray-700 mt-2 truncate">
             {boat?.name || 'Boat'}
           </p>
           {/* Boat Info Button */}
@@ -196,36 +196,36 @@ export const CartItemCard = ({
         </div>
 
         {/* Trip Info */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h3 
-            className="font-bold text-lg mb-2"
+            className="font-bold text-sm sm:text-lg mb-2 truncate"
             style={{ color: primaryColor }}
           >
             {item.trip?.trip_name || 'Trip'}
           </h3>
 
           {/* Times */}
-          <div className="flex items-center gap-6 mb-2">
-            <div>
-              <div className="text-xl font-bold">{item.departure.departure_time.slice(0, 5)}</div>
-              <div style={{ color: primaryColor }} className="text-sm">{item.originName}</div>
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 mb-2">
+            <div className="shrink-0">
+              <div className="text-base sm:text-xl font-bold">{item.departure.departure_time.slice(0, 5)}</div>
+              <div style={{ color: primaryColor }} className="text-xs sm:text-sm truncate max-w-[70px] sm:max-w-none">{item.originName}</div>
             </div>
-            <div className="flex-1 border-t-2 border-dashed border-gray-300 relative">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gray-400" />
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gray-400" />
+            <div className="flex-1 border-t-2 border-dashed border-gray-300 relative min-w-[30px]">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-400" />
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-400" />
             </div>
-            <div className="text-right">
-              <div className="text-xl font-bold">{arrivalTime}</div>
-              <div style={{ color: primaryColor }} className="text-sm">{item.destName}</div>
+            <div className="text-right shrink-0">
+              <div className="text-base sm:text-xl font-bold">{arrivalTime}</div>
+              <div style={{ color: primaryColor }} className="text-xs sm:text-sm truncate max-w-[70px] sm:max-w-none">{item.destName}</div>
             </div>
           </div>
 
           {/* Price */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <span className="text-xs sm:text-sm text-gray-500 truncate">
               Adult X {paxAdult}, Child X {paxChild}, Infants X {paxInfant}
             </span>
-            <span className="font-bold" style={{ color: primaryColor }}>
+            <span className="font-bold text-sm sm:text-base" style={{ color: primaryColor }}>
               {formatPrice(total)}
             </span>
           </div>
@@ -233,16 +233,16 @@ export const CartItemCard = ({
       </div>
 
       {/* Shuttle option */}
-      <div className="mt-4 pt-4 border-t">
-        <div className="flex items-center justify-end gap-4">
-          <span className="text-sm text-gray-500 flex items-center gap-1">
-            <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-xs">i</span>
-            {t('shuttleRates')}
+      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
+          <span className="text-xs sm:text-sm text-gray-500 flex items-center gap-1">
+            <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-300 flex items-center justify-center text-[10px] sm:text-xs shrink-0">i</span>
+            <span className="truncate">{t('shuttleRates')}</span>
           </span>
           <Button
             type="button"
             variant="outline"
-            className="gap-2"
+            className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
             style={{ borderColor: primaryColor, color: primaryColor }}
             onClick={onTogglePickup}
             disabled={availablePickups.length === 0}
@@ -250,13 +250,13 @@ export const CartItemCard = ({
             <span
               aria-hidden="true"
               className={cn(
-                "w-4 h-4 rounded border flex items-center justify-center",
+                "w-3 h-3 sm:w-4 sm:h-4 rounded border flex items-center justify-center shrink-0",
                 pickupEnabled ? "border-transparent" : "border-gray-300"
               )}
               style={pickupEnabled ? { backgroundColor: primaryColor } : undefined}
             >
               {pickupEnabled && (
-                <span className="text-white text-[10px] leading-none">✓</span>
+                <span className="text-white text-[8px] sm:text-[10px] leading-none">✓</span>
               )}
             </span>
             {t('pickup')}
