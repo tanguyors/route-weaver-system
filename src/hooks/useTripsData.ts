@@ -333,9 +333,90 @@ export const useTripsData = () => {
   };
 
   const updateSchedule = async (id: string, data: Partial<DepartureTemplate>) => {
+    // Get the old schedule to delete its departures
+    const oldSchedule = schedules.find(s => s.id === id);
+    
     const { error } = await supabase.from('departure_templates').update(data).eq('id', id);
-    if (!error) await fetchSchedules();
+    if (!error) {
+      // Delete old departures for this specific schedule
+      if (oldSchedule) {
+        await supabase.from('departures')
+          .delete()
+          .eq('trip_id', oldSchedule.trip_id)
+          .eq('departure_time', oldSchedule.departure_time);
+      }
+      await fetchSchedules();
+    }
     return { error };
+  };
+
+  const regenerateScheduleDepartures = async (scheduleId: string, startDate: string, endDate: string) => {
+    // Get the updated schedule from DB
+    const { data: scheduleData, error: fetchError } = await supabase
+      .from('departure_templates')
+      .select('*')
+      .eq('id', scheduleId)
+      .single();
+    
+    if (fetchError || !scheduleData) {
+      return { error: fetchError || new Error('Schedule not found') };
+    }
+
+    const schedule = scheduleData as DepartureTemplate;
+    
+    // Get the trip
+    const trip = trips.find(t => t.id === schedule.trip_id);
+    if (!trip) return { error: new Error('Trip not found') };
+
+    // Delete existing departures for this schedule's time
+    await supabase.from('departures')
+      .delete()
+      .eq('trip_id', schedule.trip_id)
+      .eq('departure_time', schedule.departure_time);
+
+    // Only generate if status is active
+    if (schedule.status !== 'active') {
+      return { error: null, count: 0 };
+    }
+
+    const departuresToCreate: Omit<Departure, 'id'>[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      const dateStr = d.toISOString().split('T')[0];
+
+      // Check if this day is active in the schedule
+      if (!schedule.days_of_week.includes(dayOfWeek)) continue;
+
+      // Check seasonal dates
+      if (schedule.seasonal_start_date && dateStr < schedule.seasonal_start_date) continue;
+      if (schedule.seasonal_end_date && dateStr > schedule.seasonal_end_date) continue;
+
+      departuresToCreate.push({
+        partner_id: trip.partner_id,
+        trip_id: schedule.trip_id,
+        route_id: trip.route_id,
+        departure_date: dateStr,
+        departure_time: schedule.departure_time,
+        capacity_total: trip.capacity_default,
+        capacity_reserved: 0,
+        status: 'open',
+        boat_id: schedule.boat_id || null,
+      });
+    }
+
+    if (departuresToCreate.length === 0) {
+      return { error: null, count: 0 };
+    }
+
+    const { error } = await supabase.from('departures').upsert(
+      departuresToCreate,
+      { onConflict: 'trip_id,departure_date,departure_time', ignoreDuplicates: false }
+    );
+
+    return { error, count: departuresToCreate.length };
   };
 
   const deleteSchedule = async (id: string) => {
@@ -449,6 +530,7 @@ export const useTripsData = () => {
     updateSchedule,
     deleteSchedule,
     generateDepartures,
+    regenerateScheduleDepartures,
     refetch: async () => {
       await fetchPorts();
     },
