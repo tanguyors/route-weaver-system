@@ -162,6 +162,7 @@ export const WidgetShoppingCart = ({
   const [pickupRuleIdByItem, setPickupRuleIdByItem] = useState<Record<string, string>>({});
   const [pickupVehicleTypeByItem, setPickupVehicleTypeByItem] = useState<Record<string, VehicleType>>({});
   const [pickupDetailsByItem, setPickupDetailsByItem] = useState<Record<string, string>>({});
+  const [pickupSelectOpenByItem, setPickupSelectOpenByItem] = useState<Record<string, boolean>>({});
 
   // Boat info modal state
   const [boatInfoModal, setBoatInfoModal] = useState<{
@@ -184,6 +185,7 @@ export const WidgetShoppingCart = ({
     const pickupRuleId = pickupRuleIdByItem[item.id] ?? NONE;
     const pickupVehicleType = pickupVehicleTypeByItem[item.id] ?? 'car';
     const pickupDetails = pickupDetailsByItem[item.id] ?? '';
+    const pickupSelectOpen = pickupSelectOpenByItem[item.id] ?? false;
 
     const originPortId = item.route?.origin_port_id || item.originPortId;
     const availablePickups = pickupRulesByPort.get(originPortId) || [];
@@ -231,6 +233,7 @@ export const WidgetShoppingCart = ({
         setPickupRuleIdByItem(prev => ({ ...prev, [item.id]: NONE }));
         setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }));
         setPickupDetailsByItem(prev => ({ ...prev, [item.id]: '' }));
+        setPickupSelectOpenByItem(prev => ({ ...prev, [item.id]: false }));
       }
     };
 
@@ -389,7 +392,11 @@ export const WidgetShoppingCart = ({
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger
+                          className="w-full"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <SelectValue placeholder="Select pickup" />
                         </SelectTrigger>
                         <SelectContent>
