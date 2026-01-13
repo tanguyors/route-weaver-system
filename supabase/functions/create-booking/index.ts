@@ -24,6 +24,7 @@ interface SelectedAddon {
 interface BookingRequest {
   widget_key: string;
   departure_id: string;
+  return_departure_id?: string;
   customer: {
     full_name: string;
     phone?: string;
@@ -107,6 +108,47 @@ serve(async (req) => {
       );
     }
 
+    // 2b. Validate return departure if provided
+    let returnDeparture: any = null;
+    if (body.return_departure_id) {
+      const { data: retDep, error: retDepError } = await supabase
+        .from('departures')
+        .select(`
+          id, partner_id, trip_id, route_id, departure_date, departure_time,
+          capacity_total, capacity_reserved, status,
+          trip:trips(id, trip_name, capacity_default)
+        `)
+        .eq('id', body.return_departure_id)
+        .eq('partner_id', partnerId)
+        .maybeSingle();
+
+      if (retDepError || !retDep) {
+        console.error('Return departure not found:', retDepError);
+        return new Response(
+          JSON.stringify({ error: 'Return departure not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (retDep.status !== 'open') {
+        return new Response(
+          JSON.stringify({ error: 'Return departure is not available for booking' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const returnAvailableSeats = retDep.capacity_total - retDep.capacity_reserved;
+      if (totalPax > returnAvailableSeats) {
+        return new Response(
+          JSON.stringify({ error: 'Not enough seats available for return trip', available: returnAvailableSeats }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      returnDeparture = retDep;
+      console.log('Return departure validated:', returnDeparture.id);
+    }
+
     // 3. Get pricing
     const { data: priceRules } = await supabase
       .from('price_rules')
@@ -134,7 +176,41 @@ serve(async (req) => {
       }
     }
 
-    let ticketSubtotal = (body.pax_adult * adultPrice) + (body.pax_child * childPrice);
+    let outboundSubtotal = (body.pax_adult * adultPrice) + (body.pax_child * childPrice);
+    
+    // Calculate return trip pricing if applicable
+    let returnSubtotal = 0;
+    if (returnDeparture) {
+      // Get pricing for return trip
+      const { data: returnPriceRules } = await supabase
+        .from('price_rules')
+        .select('*')
+        .eq('trip_id', returnDeparture.trip_id)
+        .eq('status', 'active')
+        .order('rule_type');
+
+      let returnAdultPrice = 0;
+      let returnChildPrice = 0;
+      const returnDepDate = returnDeparture.departure_date;
+
+      for (const rule of returnPriceRules || []) {
+        if (rule.rule_type === 'seasonal' && rule.start_date && rule.end_date) {
+          if (returnDepDate >= rule.start_date && returnDepDate <= rule.end_date) {
+            returnAdultPrice = rule.adult_price;
+            returnChildPrice = rule.child_price || 0;
+            break;
+          }
+        } else if (rule.rule_type === 'base') {
+          returnAdultPrice = rule.adult_price;
+          returnChildPrice = rule.child_price || 0;
+        }
+      }
+
+      returnSubtotal = (body.pax_adult * returnAdultPrice) + (body.pax_child * returnChildPrice);
+      console.log('Return trip subtotal:', returnSubtotal);
+    }
+
+    let ticketSubtotal = outboundSubtotal + returnSubtotal;
     
     // 4. Calculate add-ons total
     const addons = body.addons || [];
@@ -251,7 +327,7 @@ serve(async (req) => {
     }
 
     // 8. ATOMIC: Lock capacity and create booking
-    // First, lock the departure row
+    // First, lock the outbound departure row
     const newReserved = departure.capacity_reserved + totalPax;
     const newStatus = newReserved >= departure.capacity_total ? 'sold_out' : 'open';
 
@@ -272,12 +348,45 @@ serve(async (req) => {
       );
     }
 
+    // Lock return departure capacity if applicable
+    if (returnDeparture) {
+      const returnNewReserved = returnDeparture.capacity_reserved + totalPax;
+      const returnNewStatus = returnNewReserved >= returnDeparture.capacity_total ? 'sold_out' : 'open';
+
+      const { error: returnLockError } = await supabase
+        .from('departures')
+        .update({ 
+          capacity_reserved: returnNewReserved,
+          status: returnNewStatus
+        })
+        .eq('id', body.return_departure_id)
+        .eq('capacity_reserved', returnDeparture.capacity_reserved);
+
+      if (returnLockError) {
+        // Rollback outbound capacity
+        await supabase
+          .from('departures')
+          .update({ 
+            capacity_reserved: departure.capacity_reserved,
+            status: departure.status
+          })
+          .eq('id', body.departure_id);
+
+        console.error('Failed to lock return capacity:', returnLockError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to reserve seats for return trip. Please try again.' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // 9. Create booking
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
         partner_id: partnerId,
         departure_id: body.departure_id,
+        return_departure_id: body.return_departure_id || null,
         customer_id: customerId,
         channel: 'online_widget',
         pax_adult: body.pax_adult,
@@ -292,7 +401,7 @@ serve(async (req) => {
       .single();
 
     if (bookingError) {
-      // Rollback capacity
+      // Rollback outbound capacity
       await supabase
         .from('departures')
         .update({ 
@@ -300,6 +409,17 @@ serve(async (req) => {
           status: departure.status
         })
         .eq('id', body.departure_id);
+      
+      // Rollback return capacity if applicable
+      if (returnDeparture) {
+        await supabase
+          .from('departures')
+          .update({ 
+            capacity_reserved: returnDeparture.capacity_reserved,
+            status: returnDeparture.status
+          })
+          .eq('id', body.return_departure_id);
+      }
       
       throw bookingError;
     }
@@ -372,6 +492,8 @@ serve(async (req) => {
         booking_id: booking.id,
         ticket_id: ticket?.id,
         qr_token: ticket?.qr_token,
+        outbound_subtotal: outboundSubtotal,
+        return_subtotal: returnSubtotal,
         subtotal_amount: ticketSubtotal,
         addons_amount: addonsTotal,
         discount_amount: discountAmount,
@@ -382,6 +504,10 @@ serve(async (req) => {
           date: departure.departure_date,
           time: departure.departure_time,
         },
+        return_departure: returnDeparture ? {
+          date: returnDeparture.departure_date,
+          time: returnDeparture.departure_time,
+        } : null,
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
