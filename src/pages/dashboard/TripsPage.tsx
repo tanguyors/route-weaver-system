@@ -462,7 +462,12 @@ const TripsPage = () => {
         }}
         onSubmit={async (data) => {
           if (editingSchedule) {
-            return updateSchedule(editingSchedule.id, data);
+            // For update, convert departure_times array to single departure_time
+            const { departure_times, ...rest } = data;
+            return updateSchedule(editingSchedule.id, {
+              ...rest,
+              departure_time: departure_times[0], // Use first time for update
+            });
           }
           return createSchedule(data);
         }}
