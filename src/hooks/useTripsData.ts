@@ -249,9 +249,46 @@ export const useTripsData = () => {
     return { error: null };
   };
 
-  const updateTrip = async (id: string, data: Partial<Trip>) => {
-    const { error } = await supabase.from('trips').update(data).eq('id', id);
-    if (!error) await fetchTrips();
+  const updateTrip = async (id: string, data: Partial<Trip> & { adult_price?: number; child_price?: number }) => {
+    // Separate price fields from trip fields
+    const { adult_price, child_price, route, ...tripData } = data;
+    
+    // Update trip table (only trip fields)
+    const { error } = await supabase.from('trips').update(tripData).eq('id', id);
+    
+    if (!error) {
+      // Update price_rules if prices were provided
+      if (adult_price !== undefined) {
+        // Check if a base price rule exists
+        const { data: existingRule } = await supabase
+          .from('price_rules')
+          .select('id')
+          .eq('trip_id', id)
+          .eq('rule_type', 'base')
+          .single();
+
+        if (existingRule) {
+          // Update existing rule
+          await supabase
+            .from('price_rules')
+            .update({ adult_price, child_price: child_price || null })
+            .eq('id', existingRule.id);
+        } else {
+          // Create new base price rule
+          const trip = trips.find(t => t.id === id);
+          await supabase.from('price_rules').insert({
+            partner_id: trip?.partner_id || partnerId,
+            trip_id: id,
+            adult_price,
+            child_price: child_price || null,
+            rule_type: 'base',
+            status: 'active',
+          });
+        }
+      }
+      
+      await fetchTrips();
+    }
     return { error };
   };
 
