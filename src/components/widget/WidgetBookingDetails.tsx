@@ -15,7 +15,8 @@ const customerSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   email_confirm: z.string().email('Invalid email address'),
-  phone: z.string().min(8, 'Phone must be at least 8 digits'),
+  phoneCode: z.string().min(1, 'Phone code is required'),
+  phoneNumber: z.string().min(6, 'Phone must be at least 6 digits'),
   country: z.string().min(2, 'Country is required'),
 }).refine((data) => data.email === data.email_confirm, {
   message: "Emails don't match",
@@ -363,8 +364,8 @@ export const WidgetBookingDetails = ({
                   className="flex-1"
                 />
               </div>
-              {errors.phone && (
-                <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
+              {(errors.phoneCode || errors.phoneNumber) && (
+                <p className="text-sm text-red-500 mt-1">{errors.phoneCode || errors.phoneNumber}</p>
               )}
             </div>
             <div>

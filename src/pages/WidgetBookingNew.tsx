@@ -354,6 +354,10 @@ const WidgetBookingNew = () => {
               destName: getPort(selectedOutbound.route?.destination_port_id)?.name || '',
               date: selectedOutbound.departure.departure_date,
               time: selectedOutbound.departure.departure_time?.slice(0, 5),
+              arrivalTime: calculateArrivalTime(
+                selectedOutbound.departure.departure_time,
+                selectedOutbound.route?.duration_minutes
+              ),
               paxAdult,
               paxChild,
               paxInfant,
@@ -364,6 +368,10 @@ const WidgetBookingNew = () => {
               destName: getPort(selectedReturn.route?.destination_port_id)?.name || '',
               date: selectedReturn.departure.departure_date,
               time: selectedReturn.departure.departure_time?.slice(0, 5),
+              arrivalTime: calculateArrivalTime(
+                selectedReturn.departure.departure_time,
+                selectedReturn.route?.duration_minutes
+              ),
               paxAdult,
               paxChild,
               paxInfant,
