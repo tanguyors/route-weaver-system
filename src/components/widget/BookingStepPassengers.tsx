@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Users, ChevronLeft, Minus, Plus, Tag, Baby } from 'lucide-react';
+import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
 interface BookingStepPassengersProps {
   adultPrice: number;
@@ -30,17 +31,10 @@ export const BookingStepPassengers = ({
   const [paxChild, setPaxChild] = useState(initialChild);
   const [paxInfant, setPaxInfant] = useState(initialInfant);
   const [promoCode, setPromoCode] = useState('');
+  const { formatPrice } = useWidgetCurrency();
 
   const totalPax = paxAdult + paxChild; // Infants don't count toward seat capacity
   const subtotal = (paxAdult * adultPrice) + (paxChild * childPrice); // Infants are free
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
 
   const handleAdultChange = (delta: number) => {
     const newValue = paxAdult + delta;

@@ -8,6 +8,7 @@ import { User, ChevronLeft, Calendar, Clock, Users, Loader2, Baby, ArrowLeftRigh
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { countries, phoneCodes } from '@/lib/countries';
+import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
 const customerSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -64,14 +65,7 @@ export const BookingStepConfirm = ({
     country: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const { formatPrice } = useWidgetCurrency();
 
   const handleSubmit = () => {
     const fullPhone = `${customer.phoneCode}${customer.phoneNumber}`;
