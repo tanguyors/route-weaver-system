@@ -317,15 +317,50 @@ const WidgetBooking = () => {
   const handleCustomerSubmit = async (customer: typeof booking.customer) => {
     setIsSubmitting(true);
     try {
+      const transportAddons: SelectedAddon[] = [];
+
+      if (booking.pickupDropoff?.pickup) {
+        const p = booking.pickupDropoff.pickup;
+        const price = p.vehicleType === 'bus' ? p.rule.bus_price : p.rule.car_price;
+        transportAddons.push({
+          addon_id: null,
+          name: `Pickup - ${p.rule.city_name} (${p.vehicleType})`,
+          price,
+          qty: 1,
+          total: price,
+          pickup_info: {
+            address: p.details || undefined,
+            pickup_note: `${p.rule.before_departure_minutes} min before departure.`,
+          },
+        });
+      }
+
+      if (booking.pickupDropoff?.dropoff) {
+        const d = booking.pickupDropoff.dropoff;
+        const price = d.vehicleType === 'bus' ? d.rule.bus_price : d.rule.car_price;
+        transportAddons.push({
+          addon_id: null,
+          name: `Dropoff - ${d.rule.city_name} (${d.vehicleType})`,
+          price,
+          qty: 1,
+          total: price,
+          pickup_info: {
+            address: d.details || undefined,
+            pickup_note: `${d.rule.before_departure_minutes} min after arrival.`,
+          },
+        });
+      }
+
       const result = await createBooking(
         booking.outbound.departureId,
         customer,
         booking.paxAdult,
         booking.paxChild,
         booking.promoCode,
-        booking.selectedAddons
+        [...(booking.selectedAddons || []), ...transportAddons],
+        booking.returnTrip?.departureId || null
       );
-      
+
       setBookingResult(result);
       setBooking(prev => ({ ...prev, customer, total: result.total_amount }));
       setStep('success');

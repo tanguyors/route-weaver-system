@@ -81,7 +81,8 @@ export interface WidgetAddon {
 }
 
 export interface SelectedAddon {
-  addon_id: string;
+  // Can be null when the add-on is not coming from the "addons" table (e.g. pickup/dropoff service)
+  addon_id?: string | null;
   name: string;
   price: number;
   qty: number;
@@ -343,7 +344,8 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     paxAdult: number,
     paxChild: number,
     promoCode?: string,
-    selectedAddons?: SelectedAddon[]
+    selectedAddons?: SelectedAddon[],
+    returnDepartureId?: string | null
   ) => {
     if (!widgetKey) throw new Error('No widget key');
 
@@ -355,6 +357,7 @@ export const useWidgetBooking = (widgetKey: string | null) => {
         body: JSON.stringify({
           widget_key: widgetKey,
           departure_id: departureId,
+          return_departure_id: returnDepartureId || undefined,
           customer,
           pax_adult: paxAdult,
           pax_child: paxChild,
@@ -365,7 +368,7 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     );
 
     const result = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(result.error || 'Booking failed');
     }
