@@ -37,6 +37,7 @@ interface Route {
   id: string;
   origin_port_id: string;
   destination_port_id: string;
+  duration_minutes: number | null;
 }
 
 interface SelectedTrip {
@@ -125,6 +126,21 @@ export const WidgetTripResults = ({
     }, {} as Record<string, Departure[]>);
   };
 
+  // Calculate arrival time based on departure time and duration
+  const calculateArrivalTime = (departureTime: string, durationMinutes: number | null): string => {
+    if (!durationMinutes) return '--:--';
+    
+    const [hours, minutes] = departureTime.slice(0, 5).split(':').map(Number);
+    const departureDate = new Date();
+    departureDate.setHours(hours, minutes, 0, 0);
+    
+    const arrivalDate = new Date(departureDate.getTime() + durationMinutes * 60000);
+    const arrivalHours = arrivalDate.getHours().toString().padStart(2, '0');
+    const arrivalMinutes = arrivalDate.getMinutes().toString().padStart(2, '0');
+    
+    return `${arrivalHours}:${arrivalMinutes}`;
+  };
+
   const TripCard = ({ 
     departure, 
     isSelected,
@@ -145,6 +161,9 @@ export const WidgetTripResults = ({
     const origin = route ? getPort(route.origin_port_id) : null;
     const dest = route ? getPort(route.destination_port_id) : null;
 
+    // Calculate arrival time from departure time + route duration
+    const arrivalTime = calculateArrivalTime(departure.departure_time, route?.duration_minutes ?? null);
+
     // Calculate total price
     const totalPrice = (paxAdult * pricing.adult) + (paxChild * pricing.child);
 
@@ -156,19 +175,25 @@ export const WidgetTripResults = ({
         )}
       >
         <div className="flex gap-4">
-          {/* Boat Image */}
-          <div className="w-40 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-            {boat?.image_url ? (
-              <img 
-                src={boat.image_url} 
-                alt={boat.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Ship className="w-12 h-12 text-gray-300" />
-              </div>
-            )}
+          {/* Boat Image & Name */}
+          <div className="w-40 flex-shrink-0">
+            <div className="h-28 rounded-lg overflow-hidden bg-gray-100">
+              {boat?.image_url ? (
+                <img 
+                  src={boat.image_url} 
+                  alt={boat.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Ship className="w-12 h-12 text-gray-300" />
+                </div>
+              )}
+            </div>
+            {/* Boat Name */}
+            <p className="text-center text-sm font-medium text-gray-700 mt-2 truncate">
+              {boat?.name || 'Boat'}
+            </p>
           </div>
 
           {/* Trip Info */}
@@ -197,7 +222,7 @@ export const WidgetTripResults = ({
               </div>
               <div className="text-right">
                 <div className="text-xl font-bold">
-                  --:--
+                  {arrivalTime}
                 </div>
                 <div style={{ color: primaryColor }} className="text-sm font-medium">
                   {dest?.name}
