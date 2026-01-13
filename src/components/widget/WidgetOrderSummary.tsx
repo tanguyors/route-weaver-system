@@ -1,4 +1,4 @@
-import { MapPin, CalendarDays, Car, Bus, Gift } from 'lucide-react';
+import { MapPin, CalendarDays, Car, Bus, Gift, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TripInfo {
@@ -207,7 +207,7 @@ export const WidgetOrderSummary = ({
       {/* Grand Total */}
       <div 
         className="p-4 flex items-center justify-between text-white"
-        style={{ backgroundColor: '#0ea5e9' }}
+        style={{ backgroundColor: primaryColor }}
       >
         <span className="font-bold text-lg">Grand Total</span>
         <span className="font-bold text-xl">{formatPrice(grandTotal)}</span>
