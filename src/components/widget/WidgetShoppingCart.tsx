@@ -484,6 +484,7 @@ export const WidgetShoppingCart = ({
   }, [selectedPickups, onPickupsChange]);
 
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Content */}
       <div className="lg:col-span-2">
@@ -514,7 +515,7 @@ export const WidgetShoppingCart = ({
               <Button
                 onClick={onApplyPromo}
                 className="text-white"
-                style={{ backgroundColor: '#0ea5e9' }}
+                style={{ backgroundColor: primaryColor }}
               >
                 Apply
               </Button>
@@ -551,27 +552,28 @@ export const WidgetShoppingCart = ({
           primaryColor={primaryColor}
         />
       </div>
-
-      {/* Boat Info Modal */}
-      {boatInfoModal && (
-        <BoatInfoModal
-          open={boatInfoModal.open}
-          onClose={() => setBoatInfoModal(null)}
-          onSelectTrip={() => setBoatInfoModal(null)}
-          boat={boatInfoModal.boat}
-          trip={boatInfoModal.trip}
-          route={boatInfoModal.route}
-          originPort={boatInfoModal.route ? getPort(boatInfoModal.route.origin_port_id) : null}
-          destPort={boatInfoModal.route ? getPort(boatInfoModal.route.destination_port_id) : null}
-          departureTime={boatInfoModal.departure?.departure_time}
-          departureDate={boatInfoModal.departure?.departure_date}
-          pricing={boatInfoModal.pricing}
-          paxAdult={paxAdult}
-          paxChild={paxChild}
-          primaryColor={primaryColor}
-          hideSelectButton
-        />
-      )}
     </div>
+
+    {/* Boat Info Modal */}
+    {boatInfoModal && (
+      <BoatInfoModal
+        open={boatInfoModal.open}
+        onClose={() => setBoatInfoModal(null)}
+        onSelectTrip={() => setBoatInfoModal(null)}
+        boat={boatInfoModal.boat}
+        trip={boatInfoModal.trip}
+        route={boatInfoModal.route}
+        originPort={boatInfoModal.route ? getPort(boatInfoModal.route.origin_port_id) : null}
+        destPort={boatInfoModal.route ? getPort(boatInfoModal.route.destination_port_id) : null}
+        departureTime={boatInfoModal.departure?.departure_time}
+        departureDate={boatInfoModal.departure?.departure_date}
+        pricing={boatInfoModal.pricing}
+        paxAdult={paxAdult}
+        paxChild={paxChild}
+        primaryColor={primaryColor}
+        hideSelectButton
+      />
+    )}
+    </>
   );
 };
