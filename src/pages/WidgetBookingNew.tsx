@@ -137,6 +137,17 @@ const WidgetBookingNew = () => {
   };
 
   const getPort = (id: string) => data?.ports.find(p => p.id === id);
+  const getBoat = (id: string) => data?.boats.find(b => b.id === id);
+  
+  // Calculate arrival time from departure time and duration
+  const calculateArrivalTime = (departureTime: string, durationMinutes: number | null) => {
+    if (!departureTime || !durationMinutes) return undefined;
+    const [hours, minutes] = departureTime.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + durationMinutes;
+    const arrivalHours = Math.floor(totalMinutes / 60) % 24;
+    const arrivalMins = totalMinutes % 60;
+    return `${arrivalHours.toString().padStart(2, '0')}:${arrivalMins.toString().padStart(2, '0')}`;
+  };
 
   // Build cart items
   const cartItems = [];
@@ -443,7 +454,12 @@ const WidgetBookingNew = () => {
               originName: getPort(selectedOutbound?.route?.origin_port_id)?.name || '',
               destName: getPort(selectedOutbound?.route?.destination_port_id)?.name || '',
               date: selectedOutbound?.departure.departure_date || '',
-              time: selectedOutbound?.departure.departure_time || '',
+              time: selectedOutbound?.departure.departure_time?.slice(0, 5) || '',
+              arrivalTime: calculateArrivalTime(
+                selectedOutbound?.departure.departure_time,
+                selectedOutbound?.route?.duration_minutes
+              ),
+              boatName: getBoat(selectedOutbound?.departure.boat_id)?.name,
               price: cartItems[0] ? calculateTotal(cartItems[0]) : 0,
             }}
             returnTrip={selectedReturn ? {
@@ -451,7 +467,12 @@ const WidgetBookingNew = () => {
               originName: getPort(selectedReturn?.route?.origin_port_id)?.name || '',
               destName: getPort(selectedReturn?.route?.destination_port_id)?.name || '',
               date: selectedReturn?.departure.departure_date || '',
-              time: selectedReturn?.departure.departure_time || '',
+              time: selectedReturn?.departure.departure_time?.slice(0, 5) || '',
+              arrivalTime: calculateArrivalTime(
+                selectedReturn?.departure.departure_time,
+                selectedReturn?.route?.duration_minutes
+              ),
+              boatName: getBoat(selectedReturn?.departure.boat_id)?.name,
               price: cartItems[1] ? calculateTotal(cartItems[1]) : 0,
             } : undefined}
             paxAdult={paxAdult}

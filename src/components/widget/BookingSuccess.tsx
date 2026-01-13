@@ -17,6 +17,8 @@ interface TripInfo {
   destName?: string;
   date: string;
   time: string;
+  arrivalTime?: string;
+  boatName?: string;
   price?: number;
 }
 
@@ -94,6 +96,8 @@ export const BookingSuccess = ({
     destName: departure.destName || departure.route.split(' → ')[1] || '',
     date: departure.date,
     time: departure.time?.slice(0, 5) || '',
+    arrivalTime: departure.arrivalTime,
+    boatName: departure.boatName,
     price: departure.price || (subtotalAmount ? (isRoundTrip ? subtotalAmount / 2 : subtotalAmount) : 0),
   };
 
@@ -103,6 +107,8 @@ export const BookingSuccess = ({
     destName: returnTrip.destName || returnTrip.route.split(' → ')[1] || '',
     date: returnTrip.date,
     time: returnTrip.time?.slice(0, 5) || '',
+    arrivalTime: returnTrip.arrivalTime,
+    boatName: returnTrip.boatName,
     price: returnTrip.price || (subtotalAmount ? subtotalAmount / 2 : 0),
   } : undefined;
 
