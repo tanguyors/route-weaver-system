@@ -73,10 +73,13 @@ export async function downloadElementAsPdf({
 
     const imgWidthPt = canvas.width * scale;
     const imgHeightPt = sliceCanvas.height * scale;
+    
+    // Center horizontally
+    const xOffset = (pageWidth - imgWidthPt) / 2;
 
     const page = pdf.addPage([pageWidth, pageHeight]);
     page.drawImage(pngImage, {
-      x: margin,
+      x: xOffset,
       y: pageHeight - margin - imgHeightPt,
       width: imgWidthPt,
       height: imgHeightPt,
