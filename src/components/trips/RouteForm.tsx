@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,12 +38,28 @@ interface RouteFormProps {
 }
 
 const RouteForm = ({ open, onClose, onSubmit, ports, initialData, isEdit }: RouteFormProps) => {
-  const [originPortId, setOriginPortId] = useState(initialData?.origin_port_id || '');
-  const [destinationPortId, setDestinationPortId] = useState(initialData?.destination_port_id || '');
-  const [durationMinutes, setDurationMinutes] = useState(initialData?.duration_minutes?.toString() || '');
-  const [status, setStatus] = useState<'active' | 'inactive'>(initialData?.status || 'active');
+  const [originPortId, setOriginPortId] = useState('');
+  const [destinationPortId, setDestinationPortId] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState('');
+  const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setOriginPortId(initialData.origin_port_id || '');
+      setDestinationPortId(initialData.destination_port_id || '');
+      setDurationMinutes(initialData.duration_minutes?.toString() || '');
+      setStatus(initialData.status || 'active');
+    } else {
+      setOriginPortId('');
+      setDestinationPortId('');
+      setDurationMinutes('');
+      setStatus('active');
+    }
+    setError('');
+  }, [initialData, open]);
 
   const originPort = ports.find(p => p.id === originPortId);
   const destinationPort = ports.find(p => p.id === destinationPortId);
