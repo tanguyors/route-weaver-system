@@ -19,6 +19,7 @@ interface PickupInfo {
   vehicleType: 'car' | 'bus';
   price: number;
   details?: string;
+  hotelAddress?: string;
   beforeDepartureMinutes?: number;
 }
 
@@ -179,7 +180,7 @@ export const WidgetOrderSummary = ({
                   ) : (
                     <Bus className="w-4 h-4 text-yellow-400" />
                   )}
-                  <div>
+                <div>
                     <div className="font-medium">
                       Pickup: {pickup.cityName}
                       {pickup.beforeDepartureMinutes && (
@@ -188,8 +189,10 @@ export const WidgetOrderSummary = ({
                         </span>
                       )}
                     </div>
-                    {pickup.details && (
-                      <div className="text-xs text-white/70">{pickup.details}</div>
+                    {pickup.hotelAddress && (
+                      <div className="text-xs text-white/70 mt-0.5">
+                        📍 {pickup.hotelAddress}
+                      </div>
                     )}
                   </div>
                 </div>
