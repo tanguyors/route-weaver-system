@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 import { format } from 'date-fns';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { Ship, Calendar, Clock, Users, MapPin, CreditCard, Phone, Mail, Anchor } from 'lucide-react';
 import { PaymentMethod } from './BookingStepPayment';
 
@@ -148,7 +148,7 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
           </p>
         </div>
         <div className="text-right">
-          <QRCodeSVG 
+          <QRCodeCanvas 
             value={qrToken}
             size={90}
             level="H"
