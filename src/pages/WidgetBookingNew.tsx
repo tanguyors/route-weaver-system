@@ -460,6 +460,7 @@ const WidgetBookingNew = () => {
                 selectedOutbound?.route?.duration_minutes
               ),
               boatName: getBoat(selectedOutbound?.departure.boat_id)?.name,
+              boatImage: getBoat(selectedOutbound?.departure.boat_id)?.image_url,
               price: cartItems[0] ? calculateTotal(cartItems[0]) : 0,
             }}
             returnTrip={selectedReturn ? {
@@ -473,6 +474,7 @@ const WidgetBookingNew = () => {
                 selectedReturn?.route?.duration_minutes
               ),
               boatName: getBoat(selectedReturn?.departure.boat_id)?.name,
+              boatImage: getBoat(selectedReturn?.departure.boat_id)?.image_url,
               price: cartItems[1] ? calculateTotal(cartItems[1]) : 0,
             } : undefined}
             paxAdult={paxAdult}
