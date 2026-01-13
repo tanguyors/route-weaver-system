@@ -469,15 +469,40 @@ const TripsPage = () => {
           setEditingSchedule(null);
         }}
         onSubmit={async (data) => {
+          let result;
+          
           if (editingSchedule) {
             // For update, convert departure_times array to single departure_time
             const { departure_times, ...rest } = data;
-            return updateSchedule(editingSchedule.id, {
+            result = await updateSchedule(editingSchedule.id, {
               ...rest,
               departure_time: departure_times[0], // Use first time for update
             });
+            
+            // If status is active and we have dates, regenerate departures
+            if (!result.error && data.status === 'active' && data.seasonal_start_date && data.seasonal_end_date) {
+              // Delete existing departures for this schedule then regenerate
+              const tripId = data.trip_id || editingSchedule.trip_id;
+              await generateDepartures(tripId, data.seasonal_start_date, data.seasonal_end_date);
+              toast({
+                title: 'Schedule Updated',
+                description: 'Departures have been regenerated for the schedule period',
+              });
+            }
+          } else {
+            result = await createSchedule(data);
+            
+            // If status is active and we have dates, generate departures automatically
+            if (!result.error && data.status === 'active' && data.seasonal_start_date && data.seasonal_end_date) {
+              await generateDepartures(data.trip_id, data.seasonal_start_date, data.seasonal_end_date);
+              toast({
+                title: 'Schedule Created',
+                description: 'Departures have been generated for the schedule period',
+              });
+            }
           }
-          return createSchedule(data);
+          
+          return result;
         }}
         trips={trips}
         initialData={editingSchedule || undefined}
