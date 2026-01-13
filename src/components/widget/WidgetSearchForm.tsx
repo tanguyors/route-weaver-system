@@ -121,7 +121,7 @@ export const WidgetSearchForm = ({
   onPaxChange,
   onSearch,
   isLoading = false,
-  primaryColor = '#22c55e',
+  primaryColor = '#1B5E3B',
   logoUrl,
   tagline,
   privateBoats = [],

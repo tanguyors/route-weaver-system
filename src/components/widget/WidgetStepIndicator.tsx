@@ -21,7 +21,7 @@ const stepOrder: WidgetStep[] = ['search', 'select-trip', 'cart', 'details', 'pa
 
 export const WidgetStepIndicator = ({ 
   currentStep, 
-  primaryColor = '#22c55e' 
+  primaryColor = '#1B5E3B' 
 }: WidgetStepIndicatorProps) => {
   const currentIndex = stepOrder.indexOf(currentStep);
 

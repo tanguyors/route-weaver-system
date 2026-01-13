@@ -91,7 +91,7 @@ export const WidgetShoppingCart = ({
   onBack,
   pickupDropoffRules = [],
   onPickupsChange,
-  primaryColor = '#22c55e',
+  primaryColor = '#1B5E3B',
 }: WidgetShoppingCartProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {

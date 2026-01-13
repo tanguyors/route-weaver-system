@@ -68,7 +68,7 @@ export const BoatInfoModal = ({
   pricing,
   paxAdult = 0,
   paxChild = 0,
-  primaryColor = '#22c55e',
+  primaryColor = '#1B5E3B',
 }: BoatInfoModalProps) => {
   if (!boat) return null;
 
