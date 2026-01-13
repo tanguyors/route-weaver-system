@@ -98,7 +98,7 @@ export const WidgetTripResults = ({
   onSelectOutbound,
   onSelectReturn,
   onBack,
-  primaryColor = '#22c55e',
+  primaryColor = '#1B5E3B',
 }: WidgetTripResultsProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {

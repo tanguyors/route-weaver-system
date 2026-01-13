@@ -48,7 +48,7 @@ export const WidgetOrderSummary = ({
   addonsTotal = 0,
   discountAmount = 0,
   promoCode,
-  primaryColor = '#22c55e',
+  primaryColor = '#1B5E3B',
   isPrivateBoat = false,
 }: WidgetOrderSummaryProps) => {
   const formatPrice = (price: number) => {

@@ -140,7 +140,7 @@ const ActivityWidgetListPage = () => {
 
   // Apply theme
   const themeStyles = widgetData?.theme_config ? {
-    '--widget-primary': widgetData.theme_config.primary_color || '#10b981',
+    '--widget-primary': widgetData.theme_config.primary_color || '#1B5E3B',
     '--widget-bg': widgetData.theme_config.background_color || '#ffffff',
     '--widget-text': widgetData.theme_config.text_color || '#1e293b',
     '--widget-button-text': widgetData.theme_config.button_text_color || '#ffffff',

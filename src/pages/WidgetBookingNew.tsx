@@ -57,7 +57,7 @@ const WidgetBookingNew = () => {
     createBooking,
   } = useWidgetBooking(widgetKey);
 
-  const primaryColor = data?.theme_config?.primary_color || '#22c55e';
+  const primaryColor = data?.theme_config?.primary_color || '#1B5E3B';
 
   if (!widgetKey) {
     return (

@@ -107,7 +107,7 @@ export const WidgetBookingDetails = ({
   onSubmit,
   onBack,
   isSubmitting = false,
-  primaryColor = '#22c55e',
+  primaryColor = '#1B5E3B',
   isPrivateBoat = false,
   privateBoatName,
   pickupDropoffRules = [],
