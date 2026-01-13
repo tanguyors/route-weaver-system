@@ -353,6 +353,7 @@ const WidgetBookingNew = () => {
             privateBoatName={privateBoatSelection.boat.name}
             pickupDropoffRules={data?.pickup_dropoff_rules || []}
             originPortId={privateBoatSelection.route.from_port_id}
+            routeActivityAddons={privateBoatSelection.route.activity_addons || []}
           />
         )}
 
