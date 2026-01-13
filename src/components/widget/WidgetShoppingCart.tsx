@@ -288,20 +288,20 @@ export const WidgetShoppingCart = ({
           )}
 
           {/* Promo Code */}
-          <div className="bg-white rounded-lg border p-4 mt-4">
-            <div className="flex items-center gap-4">
-              <span className="font-semibold">Promotional Code</span>
+          <div className="bg-white rounded-lg border p-3 sm:p-4 mt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <span className="font-semibold text-sm sm:text-base whitespace-nowrap">Promotional Code</span>
               <div className="flex-1 flex gap-2">
                 <Input
                   placeholder="Enter promo code"
                   value={promoCode}
                   onChange={(e) => onPromoCodeChange(e.target.value.toUpperCase())}
-                  className="flex-1"
+                  className="flex-1 min-w-0 text-sm"
                 />
                 <Button
                   type="button"
                   onClick={onApplyPromo}
-                  className="text-white"
+                  className="text-white shrink-0 text-sm px-3 sm:px-4"
                   style={{ backgroundColor: primaryColor }}
                 >
                   Apply
@@ -311,12 +311,12 @@ export const WidgetShoppingCart = ({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-4 mt-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6">
             <Button
               type="button"
               variant="outline"
               onClick={onBack}
-              className="flex-1 py-6 text-lg"
+              className="flex-1 py-4 sm:py-6 text-sm sm:text-lg"
             >
               Book other trip
             </Button>
@@ -324,7 +324,7 @@ export const WidgetShoppingCart = ({
               type="button"
               onClick={onProceed}
               disabled={items.length === 0}
-              className="flex-1 py-6 text-lg text-white"
+              className="flex-1 py-4 sm:py-6 text-sm sm:text-lg text-white"
               style={{ backgroundColor: primaryColor }}
             >
               Proceed to Checkout
