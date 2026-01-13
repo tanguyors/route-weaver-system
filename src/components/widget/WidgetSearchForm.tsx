@@ -13,6 +13,19 @@ interface Port {
   area?: string;
 }
 
+interface RouteActivityAddon {
+  id: string;
+  route_id: string;
+  activity_addon_id: string;
+  pricing_type: 'included' | 'normal';
+  activity_addon: {
+    id: string;
+    name: string;
+    description: string | null;
+    price: number;
+  };
+}
+
 interface PrivateBoatRoute {
   id: string;
   private_boat_id: string;
@@ -22,6 +35,7 @@ interface PrivateBoatRoute {
   duration_minutes: number | null;
   from_port: { id: string; name: string; area: string } | null;
   to_port: { id: string; name: string; area: string } | null;
+  activity_addons?: RouteActivityAddon[];
 }
 
 interface PickupDropoffRule {
