@@ -204,15 +204,35 @@ const WidgetBookingNew = () => {
     if (!selectedOutbound || !customerData) return;
     setSelectedPaymentMethod(paymentMethod);
     setIsSubmitting(true);
+
     try {
+      // Persist pickup selections into the booking as booking_addons (addon_id = null)
+      const pickupAddons: SelectedAddon[] = selectedPickups
+        .filter(p => (p.price || 0) > 0)
+        .map((p) => ({
+          addon_id: null,
+          name: `Pickup - ${p.cityName}${p.vehicleType ? ` (${p.vehicleType})` : ''}`,
+          price: p.price || 0,
+          qty: 1,
+          total: p.price || 0,
+          pickup_info: {
+            address: p.hotelAddress || p.details || undefined,
+            pickup_note: p.beforeDepartureMinutes
+              ? `Vehicle: ${p.vehicleType}. ${p.beforeDepartureMinutes} min before departure.`
+              : `Vehicle: ${p.vehicleType}.`,
+          },
+        }));
+
       const result = await createBooking(
         selectedOutbound.departure.id,
         customerData,
         paxAdult,
         paxChild,
         promoCode,
-        []
+        pickupAddons,
+        selectedReturn?.departure?.id || null
       );
+
       setBookingResult({
         ...result,
         payment_method: paymentMethod,

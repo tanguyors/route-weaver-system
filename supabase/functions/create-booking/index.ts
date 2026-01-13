@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface SelectedAddon {
-  addon_id: string;
+  addon_id?: string | null;
   name: string;
   price: number;
   qty: number;
@@ -428,7 +428,7 @@ serve(async (req) => {
     if (addons.length > 0) {
       const bookingAddonsData = addons.map(addon => ({
         booking_id: booking.id,
-        addon_id: addon.addon_id,
+        addon_id: addon.addon_id ?? null,
         name: addon.name,
         price: addon.price,
         qty: addon.qty,
