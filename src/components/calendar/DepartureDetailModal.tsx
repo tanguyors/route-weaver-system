@@ -59,6 +59,21 @@ export const DepartureDetailModal = ({
 
   const available = departure.capacity_total - departure.capacity_reserved;
   const routeName = departure.trip?.route?.route_name || 'Unknown Route';
+  const tripName = departure.trip?.trip_name || 'Unknown Trip';
+  const boatName = departure.boat?.name;
+  const durationMinutes = departure.trip?.route?.duration_minutes;
+  
+  // Calculate arrival time
+  const getArrivalTime = () => {
+    if (!durationMinutes) return null;
+    const [hours, minutes] = departure.departure_time.split(':').map(Number);
+    const departureDate = new Date();
+    departureDate.setHours(hours, minutes, 0, 0);
+    departureDate.setMinutes(departureDate.getMinutes() + durationMinutes);
+    return format(departureDate, 'HH:mm');
+  };
+  
+  const arrivalTime = getArrivalTime();
 
   const handleStatusChange = async (status: 'open' | 'closed' | 'sold_out' | 'cancelled') => {
     setIsUpdating(true);
@@ -117,33 +132,60 @@ export const DepartureDetailModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Ship className="h-5 w-5" />
-            <span>{routeName}</span>
+            <span>{tripName}</span>
             {getStatusBadge()}
           </DialogTitle>
+          <div className="text-sm text-muted-foreground">{routeName}</div>
         </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-4 py-4 border-y">
+        {/* Trip Details Section */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y">
           <div className="text-center">
-            <div className="text-2xl font-bold">{format(new Date(departure.departure_date), 'MMM d')}</div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xl font-bold">{format(new Date(departure.departure_date), 'MMM d')}</div>
+            <div className="text-xs text-muted-foreground">
               {format(new Date(departure.departure_date), 'EEEE')}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold flex items-center justify-center gap-2">
-              <Clock className="h-5 w-5" />
+            <div className="text-xl font-bold flex items-center justify-center gap-1">
+              <Clock className="h-4 w-4" />
               {departure.departure_time.slice(0, 5)}
             </div>
-            <div className="text-sm text-muted-foreground">Departure Time</div>
+            <div className="text-xs text-muted-foreground">Departure</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold flex items-center justify-center gap-2">
-              <Users className="h-5 w-5" />
+            <div className="text-xl font-bold">
+              {arrivalTime || '-'}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {durationMinutes ? `Arrival (${durationMinutes} min)` : 'Arrival'}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xl font-bold flex items-center justify-center gap-1">
+              <Users className="h-4 w-4" />
               {departure.capacity_reserved}/{departure.capacity_total}
             </div>
-            <div className="text-sm text-muted-foreground">{available} seats left</div>
+            <div className="text-xs text-muted-foreground">{available} seats left</div>
           </div>
         </div>
+
+        {/* Boat Info */}
+        {boatName && (
+          <div className="flex items-center gap-3 py-2 px-3 bg-muted/50 rounded-lg">
+            {departure.boat?.image_url && (
+              <img 
+                src={departure.boat.image_url} 
+                alt={boatName} 
+                className="w-12 h-8 object-cover rounded"
+              />
+            )}
+            <div>
+              <div className="text-sm font-medium">{boatName}</div>
+              <div className="text-xs text-muted-foreground">Assigned Boat</div>
+            </div>
+          </div>
+        )}
 
         <Tabs defaultValue="bookings" className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-2">
