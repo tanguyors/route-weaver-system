@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarDays, Ship } from 'lucide-react';
+import { CalendarDays, Ship, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { BoatInfoModal } from './BoatInfoModal';
 
 interface Boat {
   id: string;
   name: string;
+  description?: string | null;
+  capacity?: number;
   image_url: string | null;
+  images?: string[] | null;
 }
 
 interface Departure {
@@ -141,6 +146,16 @@ export const WidgetTripResults = ({
     return `${arrivalHours}:${arrivalMinutes}`;
   };
 
+  const [boatInfoModal, setBoatInfoModal] = useState<{
+    open: boolean;
+    boat: Boat | null;
+    trip: Trip | undefined;
+    route: Route | undefined;
+    departure: Departure | null;
+    pricing: { adult: number; child: number };
+    onSelect: () => void;
+  } | null>(null);
+
   const TripCard = ({ 
     departure, 
     isSelected,
@@ -166,6 +181,21 @@ export const WidgetTripResults = ({
 
     // Calculate total price
     const totalPrice = (paxAdult * pricing.adult) + (paxChild * pricing.child);
+
+    const handleOpenBoatInfo = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (boat) {
+        setBoatInfoModal({
+          open: true,
+          boat,
+          trip,
+          route,
+          departure,
+          pricing,
+          onSelect,
+        });
+      }
+    };
 
     return (
       <div 
@@ -194,6 +224,19 @@ export const WidgetTripResults = ({
             <p className="text-center text-sm font-medium text-gray-700 mt-2 truncate">
               {boat?.name || 'Boat'}
             </p>
+            {/* Boat Info Button */}
+            {boat && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenBoatInfo}
+                className="w-full mt-2 text-xs"
+                style={{ borderColor: primaryColor, color: primaryColor }}
+              >
+                <Info className="h-3 w-3 mr-1" />
+                Boat Info
+              </Button>
+            )}
           </div>
 
           {/* Trip Info */}
@@ -304,6 +347,7 @@ export const WidgetTripResults = ({
   const returnByDate = tripType === 'round-trip' ? groupByDate(returnDepartures) : {};
 
   return (
+    <>
     <div className="space-y-6">
       {/* Results Grid for Round Trip */}
       {tripType === 'round-trip' ? (
@@ -389,5 +433,26 @@ export const WidgetTripResults = ({
         </div>
       </div>
     </div>
+
+    {/* Boat Info Modal */}
+    {boatInfoModal && (
+      <BoatInfoModal
+        open={boatInfoModal.open}
+        onClose={() => setBoatInfoModal(null)}
+        onSelectTrip={boatInfoModal.onSelect}
+        boat={boatInfoModal.boat}
+        trip={boatInfoModal.trip}
+        route={boatInfoModal.route}
+        originPort={boatInfoModal.route ? getPort(boatInfoModal.route.origin_port_id) : null}
+        destPort={boatInfoModal.route ? getPort(boatInfoModal.route.destination_port_id) : null}
+        departureTime={boatInfoModal.departure?.departure_time}
+        departureDate={boatInfoModal.departure?.departure_date}
+        pricing={boatInfoModal.pricing}
+        paxAdult={paxAdult}
+        paxChild={paxChild}
+        primaryColor={primaryColor}
+      />
+    )}
+    </>
   );
 };
