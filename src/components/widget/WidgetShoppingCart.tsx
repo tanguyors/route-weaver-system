@@ -149,14 +149,12 @@ export const WidgetShoppingCart = ({
 
   const pickupRulesByPort = useMemo(() => {
     const map = new Map<string, PickupDropoffRule[]>();
-    console.log('pickupDropoffRules received:', pickupDropoffRules);
     for (const rule of pickupDropoffRules) {
       if (rule.service_type !== 'pickup') continue;
       const list = map.get(rule.from_port_id) || [];
       list.push(rule);
       map.set(rule.from_port_id, list);
     }
-    console.log('pickupRulesByPort map:', Object.fromEntries(map));
     return map;
   }, [pickupDropoffRules]);
 
@@ -185,8 +183,8 @@ export const WidgetShoppingCart = ({
     const pickupVehicleType = pickupVehicleTypeByItem[item.id] ?? 'car';
     const pickupDetails = pickupDetailsByItem[item.id] ?? '';
 
-    const availablePickups = pickupRulesByPort.get(item.originPortId) || [];
-    console.log('Cart item originPortId:', item.originPortId, 'availablePickups:', availablePickups);
+    const originPortId = item.route?.origin_port_id || item.originPortId;
+    const availablePickups = pickupRulesByPort.get(originPortId) || [];
     const selectedPickupRule = pickupRuleId !== NONE
       ? availablePickups.find(r => r.id === pickupRuleId)
       : undefined;
@@ -212,7 +210,7 @@ export const WidgetShoppingCart = ({
           <div className="flex items-center gap-3">
             <div 
               className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
-              style={{ borderTopColor: item.direction === 'outbound' ? primaryColor : '#3b82f6' }}
+              style={{ borderTopColor: primaryColor }}
             />
             <div className="flex items-center gap-2" style={{ color: primaryColor }}>
               <CalendarDays className="w-4 h-4" />
@@ -222,6 +220,7 @@ export const WidgetShoppingCart = ({
             </div>
           </div>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => onRemoveItem(item.id)}
@@ -255,6 +254,7 @@ export const WidgetShoppingCart = ({
             {/* Boat Info Button */}
             {boat && (
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleOpenBoatInfo}
@@ -459,12 +459,13 @@ export const WidgetShoppingCart = ({
   // Collect selected pickups for order summary
   const selectedPickups = useMemo(() => {
     const result: SelectedPickupInfo[] = [];
-    for (const item of items) {
-      const enabled = pickupEnabledByItem[item.id];
-      const ruleId = pickupRuleIdByItem[item.id];
-      if (enabled && ruleId && ruleId !== NONE) {
-        const availablePickups = pickupRulesByPort.get(item.originPortId) || [];
-        const rule = availablePickups.find(r => r.id === ruleId);
+      for (const item of items) {
+        const enabled = pickupEnabledByItem[item.id];
+        const ruleId = pickupRuleIdByItem[item.id];
+        if (enabled && ruleId && ruleId !== NONE) {
+          const originPortId = item.route?.origin_port_id || item.originPortId;
+          const availablePickups = pickupRulesByPort.get(originPortId) || [];
+          const rule = availablePickups.find(r => r.id === ruleId);
         if (rule) {
           const vehicleType = pickupVehicleTypeByItem[item.id] || 'car';
           const price = vehicleType === 'car' ? rule.car_price : rule.bus_price;
@@ -516,6 +517,7 @@ export const WidgetShoppingCart = ({
                 className="flex-1"
               />
               <Button
+                type="button"
                 onClick={onApplyPromo}
                 className="text-white"
                 style={{ backgroundColor: primaryColor }}
@@ -529,6 +531,7 @@ export const WidgetShoppingCart = ({
         {/* Actions */}
         <div className="flex gap-4 mt-6">
           <Button
+            type="button"
             variant="outline"
             onClick={onBack}
             className="flex-1 py-6 text-lg"
@@ -536,6 +539,7 @@ export const WidgetShoppingCart = ({
             Book other trip
           </Button>
           <Button
+            type="button"
             onClick={onProceed}
             disabled={items.length === 0}
             className="flex-1 py-6 text-lg text-white"

@@ -252,15 +252,17 @@ export const BoatInfoModal = ({
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-4">
-          <Button 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={onClose}
             className={hideSelectButton ? "w-full" : "flex-1"}
           >
             Close
           </Button>
           {!hideSelectButton && (
-            <Button 
+            <Button
+              type="button"
               onClick={() => {
                 onSelectTrip();
                 onClose();

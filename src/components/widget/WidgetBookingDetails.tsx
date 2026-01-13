@@ -371,7 +371,7 @@ export const WidgetBookingDetails = ({
             <div className="flex items-center gap-2 mb-4">
               <div 
                 className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
-                style={{ borderTopColor: trip.isReturn ? '#3b82f6' : primaryColor }}
+                style={{ borderTopColor: primaryColor }}
               />
               <span style={{ color: primaryColor }} className="font-medium">
                 {trip.originName}
@@ -411,7 +411,7 @@ export const WidgetBookingDetails = ({
                     <div className="flex items-center gap-3">
                       <span 
                         className="w-6 h-6 rounded flex items-center justify-center text-white text-sm"
-                        style={{ backgroundColor: '#0ea5e9' }}
+                        style={{ backgroundColor: primaryColor }}
                       >
                         {expandedPassenger === index ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                       </span>
