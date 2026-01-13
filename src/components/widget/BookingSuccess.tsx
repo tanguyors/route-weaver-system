@@ -1,11 +1,9 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Download, Printer, Loader2 } from 'lucide-react';
+import { CheckCircle, Download, Printer } from 'lucide-react';
 import { TicketPDF } from './TicketPDF';
 import { PaymentMethod } from './BookingStepPayment';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 
 interface PassengerInfo {
   name: string;
@@ -55,7 +53,6 @@ interface BookingSuccessProps {
   partnerName?: string;
   partnerLogo?: string;
   primaryColor?: string;
-  // Legacy props for backward compatibility
   addons?: any[];
 }
 
@@ -80,65 +77,19 @@ export const BookingSuccess = ({
   primaryColor = '#1B5E3B',
 }: BookingSuccessProps) => {
   const ticketRef = useRef<HTMLDivElement>(null);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleDownload = async () => {
-    if (!ticketRef.current) return;
-    
-    setIsGeneratingPDF(true);
-    
-    try {
-      const element = ticketRef.current;
-      
-      // Generate canvas from the ticket element
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
-      
-      // Calculate dimensions for A4 PDF
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Add the image, handling multiple pages if needed
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      
-      // Download the PDF
-      const bookingRef = bookingId.slice(0, 8).toUpperCase();
-      pdf.save(`Ticket-${bookingRef}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    } finally {
-      setIsGeneratingPDF(false);
-    }
+  const handleDownload = () => {
+    // Use print dialog with "Save as PDF" option
+    // Most browsers support this natively
+    window.print();
   };
 
   const isRoundTrip = !!returnTrip;
 
-  // Build TripInfo for TicketPDF
   const outboundForTicket = {
     route: departure.route,
     originName: departure.originName || departure.route.split(' → ')[0] || '',
@@ -163,7 +114,6 @@ export const BookingSuccess = ({
     price: returnTrip.price || (subtotalAmount ? subtotalAmount / 2 : 0),
   } : undefined;
 
-  // Ensure customer has required fields
   const customerForTicket = {
     full_name: customer.full_name,
     email: customer.email,
@@ -173,8 +123,7 @@ export const BookingSuccess = ({
 
   return (
     <div className="space-y-6">
-      {/* Success Header Card */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden print:hidden">
         <div 
           className="text-white p-6 text-center"
           style={{ backgroundColor: '#10b981' }}
@@ -197,16 +146,11 @@ export const BookingSuccess = ({
             </Button>
             <Button 
               onClick={handleDownload} 
-              disabled={isGeneratingPDF}
               className="flex-1 max-w-xs text-white"
               style={{ backgroundColor: primaryColor }}
             >
-              {isGeneratingPDF ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
             </Button>
           </div>
 
@@ -218,7 +162,6 @@ export const BookingSuccess = ({
         </CardContent>
       </Card>
 
-      {/* Printable Ticket */}
       <div className="print:block">
         <TicketPDF
           ref={ticketRef}
@@ -243,7 +186,6 @@ export const BookingSuccess = ({
         />
       </div>
 
-      {/* Instructions */}
       <Card className="print:hidden">
         <CardContent className="p-6">
           <h3 className="font-bold mb-3">What's Next?</h3>
