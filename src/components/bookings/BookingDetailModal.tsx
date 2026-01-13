@@ -125,12 +125,26 @@ export const BookingDetailModal = ({
           </TabsList>
 
           <TabsContent value="details" className="flex-1 overflow-auto space-y-4 mt-4">
-            {/* Trip Info */}
+            {/* Outbound Trip Info */}
             <div className="p-4 bg-muted rounded-lg space-y-3">
               <div className="flex items-center gap-2">
                 <Ship className="h-5 w-5 text-primary" />
-                <span className="font-semibold">Outbound Trip</span>
+                <span className="font-semibold">
+                  {booking.return_departure ? 'Outbound Trip' : 'Trip Details'}
+                </span>
               </div>
+              
+              {/* Boat Image */}
+              {booking.departure?.boat?.image_url && (
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={booking.departure.boat.image_url} 
+                    alt={booking.departure.boat.name}
+                    className="w-20 h-14 object-cover rounded-lg border"
+                  />
+                  <span className="text-sm text-muted-foreground">{booking.departure.boat.name}</span>
+                </div>
+              )}
               
               {/* Route */}
               <div className="flex items-center gap-2 text-sm">
@@ -148,7 +162,7 @@ export const BookingDetailModal = ({
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span>
                     {booking.departure?.departure_date 
-                      ? format(new Date(booking.departure.departure_date), 'MMM d, yyyy')
+                      ? format(new Date(booking.departure.departure_date), 'EEEE, dd MMM yyyy')
                       : 'N/A'}
                   </span>
                 </div>
@@ -158,20 +172,105 @@ export const BookingDetailModal = ({
                 </div>
               </div>
               
-              {booking.departure?.boat && (
+              {booking.departure?.boat && !booking.departure?.boat?.image_url && (
                 <div className="flex items-center gap-2 text-sm">
                   <Ship className="h-4 w-4 text-muted-foreground" />
                   <span>Boat: {booking.departure.boat.name}</span>
                 </div>
               )}
-              
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {booking.pax_adult} Adult{booking.pax_adult > 1 ? 's' : ''}
-                  {booking.pax_child > 0 && `, ${booking.pax_child} Child${booking.pax_child > 1 ? 'ren' : ''}`}
-                </span>
+            </div>
+
+            {/* Return Trip Info */}
+            {booking.return_departure && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-3">
+                <div className="flex items-center gap-2">
+                  <Ship className="h-5 w-5 text-emerald-600" />
+                  <span className="font-semibold text-emerald-700">Return Trip</span>
+                </div>
+                
+                {/* Boat Image */}
+                {booking.return_departure?.boat?.image_url && (
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={booking.return_departure.boat.image_url} 
+                      alt={booking.return_departure.boat.name}
+                      className="w-20 h-14 object-cover rounded-lg border"
+                    />
+                    <span className="text-sm text-muted-foreground">{booking.return_departure.boat.name}</span>
+                  </div>
+                )}
+                
+                {/* Route */}
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">
+                    {booking.return_departure?.trip?.route?.origin?.name || 'Origin'}
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">
+                    {booking.return_departure?.trip?.route?.destination?.name || 'Destination'}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                      {booking.return_departure?.departure_date 
+                        ? format(new Date(booking.return_departure.departure_date), 'EEEE, dd MMM yyyy')
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{booking.return_departure?.departure_time?.slice(0, 5) || 'N/A'}</span>
+                  </div>
+                </div>
+                
+                {booking.return_departure?.boat && !booking.return_departure?.boat?.image_url && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Ship className="h-4 w-4 text-muted-foreground" />
+                    <span>Boat: {booking.return_departure.boat.name}</span>
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Passengers Section */}
+            <div className="space-y-2">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Passengers
+              </h4>
+              <div className="bg-muted/50 rounded-lg px-4 py-2 inline-flex gap-4 text-sm">
+                <span>
+                  <span className="text-muted-foreground">Adults: </span>
+                  <span className="font-medium">{booking.pax_adult}</span>
+                </span>
+                {booking.pax_child > 0 && (
+                  <span>
+                    <span className="text-muted-foreground">Children: </span>
+                    <span className="font-medium">{booking.pax_child}</span>
+                  </span>
+                )}
+              </div>
+              
+              {/* Passenger List */}
+              {booking.passengers && booking.passengers.length > 0 && (
+                <div className="space-y-2 mt-3">
+                  {booking.passengers.map((passenger, index) => (
+                    <div key={passenger.id} className="flex justify-between items-center p-2 bg-muted/30 rounded text-sm">
+                      <div>
+                        <span className="text-muted-foreground mr-2">{index + 1}.</span>
+                        <span className="font-medium">{passenger.full_name}</span>
+                        <span className="text-muted-foreground ml-2 capitalize">({passenger.age_group})</span>
+                      </div>
+                      {passenger.id_number && (
+                        <span className="text-muted-foreground text-xs">ID: {passenger.id_number}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Add-ons Section */}
