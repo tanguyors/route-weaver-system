@@ -44,7 +44,7 @@ const TripsPage = () => {
     createRoute, updateRoute, deleteRoute,
     createTrip, updateTrip, deleteTrip,
     createSchedule, updateSchedule, deleteSchedule,
-    generateDepartures
+    generateDepartures, regenerateScheduleDepartures
   } = useTripsData();
   const { toast } = useToast();
 
@@ -479,15 +479,30 @@ const TripsPage = () => {
               departure_time: departure_times[0], // Use first time for update
             });
             
-            // If status is active and we have dates, regenerate departures
-            if (!result.error && data.status === 'active' && data.seasonal_start_date && data.seasonal_end_date) {
-              // Delete existing departures for this schedule then regenerate
-              const tripId = data.trip_id || editingSchedule.trip_id;
-              await generateDepartures(tripId, data.seasonal_start_date, data.seasonal_end_date);
-              toast({
-                title: 'Schedule Updated',
-                description: 'Departures have been regenerated for the schedule period',
-              });
+            // Regenerate departures for this specific schedule
+            if (!result.error && data.seasonal_start_date && data.seasonal_end_date) {
+              const regenResult = await regenerateScheduleDepartures(
+                editingSchedule.id, 
+                data.seasonal_start_date, 
+                data.seasonal_end_date
+              );
+              
+              if (data.status === 'active' && regenResult.count && regenResult.count > 0) {
+                toast({
+                  title: 'Schedule Updated',
+                  description: `${regenResult.count} departures regenerated for the schedule period`,
+                });
+              } else if (data.status === 'inactive') {
+                toast({
+                  title: 'Schedule Updated',
+                  description: 'Departures removed (schedule inactive)',
+                });
+              } else {
+                toast({
+                  title: 'Schedule Updated',
+                  description: 'No departures generated for the selected period/days',
+                });
+              }
             }
           } else {
             result = await createSchedule(data);
