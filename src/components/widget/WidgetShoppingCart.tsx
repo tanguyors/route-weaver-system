@@ -367,88 +367,93 @@ export const WidgetShoppingCart = ({
           </div>
 
           {/* Pickup options (shown when enabled) */}
-          {pickupEnabled && availablePickups.length > 0 && (
+          {pickupEnabled && (
             <div className="mt-4 rounded-lg border border-gray-200 p-4">
               <div className="text-sm font-semibold mb-2" style={{ color: primaryColor }}>
                 Pickup options
               </div>
+              {availablePickups.length === 0 ? (
+                <p className="text-sm text-gray-500">No pickup services available for this departure port.</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-sm text-gray-600 mb-1">Pickup area</div>
+                      <Select
+                        value={pickupRuleId}
+                        onValueChange={(v) => {
+                          setPickupRuleIdByItem(prev => ({ ...prev, [item.id]: v }));
+                          if (v === NONE) {
+                            setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }));
+                            setPickupDetailsByItem(prev => ({ ...prev, [item.id]: '' }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select pickup" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE}>Select pickup</SelectItem>
+                          {availablePickups.map(r => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min before)` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">Pickup area</div>
-                  <Select
-                    value={pickupRuleId}
-                    onValueChange={(v) => {
-                      setPickupRuleIdByItem(prev => ({ ...prev, [item.id]: v }));
-                      if (v === NONE) {
-                        setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }));
-                        setPickupDetailsByItem(prev => ({ ...prev, [item.id]: '' }));
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select pickup" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Select pickup</SelectItem>
-                      {availablePickups.map(r => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min before)` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">Hotel / Address</div>
-                  <Input
-                    placeholder="Enter your hotel or address"
-                    value={pickupDetails}
-                    onChange={(e) => setPickupDetailsByItem(prev => ({ ...prev, [item.id]: e.target.value }))}
-                    disabled={pickupRuleId === NONE}
-                  />
-                </div>
-              </div>
-
-              {selectedPickupRule && (
-                <div className="mt-3">
-                  <div className="text-sm text-gray-600 mb-2">Number of passengers</div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }))}
-                      className={cn(
-                        'rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all flex flex-col items-center gap-1',
-                        pickupVehicleType === 'car'
-                          ? 'border-gray-900 bg-gray-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      )}
-                    >
-                      <Car className="h-5 w-5" />
-                      <span>Car (max 4 pax)</span>
-                      <span className="text-xs opacity-75">
-                        +IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'bus' }))}
-                      className={cn(
-                        'rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all flex flex-col items-center gap-1',
-                        pickupVehicleType === 'bus'
-                          ? 'border-gray-900 bg-gray-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      )}
-                    >
-                      <Bus className="h-5 w-5" />
-                      <span>Minibus (max 10 pax)</span>
-                      <span className="text-xs opacity-75">
-                        +IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()}
-                      </span>
-                    </button>
+                    <div>
+                      <div className="text-sm text-gray-600 mb-1">Hotel / Address</div>
+                      <Input
+                        placeholder="Enter your hotel or address"
+                        value={pickupDetails}
+                        onChange={(e) => setPickupDetailsByItem(prev => ({ ...prev, [item.id]: e.target.value }))}
+                        disabled={pickupRuleId === NONE}
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  {selectedPickupRule && (
+                    <div className="mt-3">
+                      <div className="text-sm text-gray-600 mb-2">Number of passengers</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }))}
+                          className={cn(
+                            'rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all flex flex-col items-center gap-1',
+                            pickupVehicleType === 'car'
+                              ? 'border-gray-900 bg-gray-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          )}
+                        >
+                          <Car className="h-5 w-5" />
+                          <span>Car (max 4 pax)</span>
+                          <span className="text-xs opacity-75">
+                            +IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'bus' }))}
+                          className={cn(
+                            'rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all flex flex-col items-center gap-1',
+                            pickupVehicleType === 'bus'
+                              ? 'border-gray-900 bg-gray-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          )}
+                        >
+                          <Bus className="h-5 w-5" />
+                          <span>Minibus (max 10 pax)</span>
+                          <span className="text-xs opacity-75">
+                            +IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
