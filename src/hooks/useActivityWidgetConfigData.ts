@@ -101,7 +101,7 @@ export const useActivityWidgetConfigData = () => {
           widget_type: 'activity',
           status: 'active',
           theme_config: {
-            primary_color: '#10b981',
+            primary_color: '#1B5E3B',
           },
         })
         .select()

@@ -102,7 +102,7 @@ export const useWidgetConfigData = () => {
           widget_type: 'fastboat',
           status: 'active',
           theme_config: {
-            primary_color: '#0ea5e9',
+            primary_color: '#1B5E3B',
             show_child_pax: true,
           },
         })
