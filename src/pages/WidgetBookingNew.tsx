@@ -128,6 +128,8 @@ const WidgetBookingNew = () => {
     const trip = data?.trips.find(t => t.id === departure.trip_id);
     const pricing = getPricing(departure.trip_id, departure.departure_date);
     setSelectedReturn({ departure, trip, route, pricing, direction: 'return' });
+    // Proceed to cart after selecting return
+    setStep('cart');
   };
 
   const handleProceedToCart = () => {
@@ -313,7 +315,14 @@ const WidgetBookingNew = () => {
                 getPricing={getPricing}
                 selectedOutbound={selectedOutbound}
                 selectedReturn={selectedReturn}
-                onSelectOutbound={(d) => { handleSelectOutbound(d); handleProceedToCart(); }}
+                onSelectOutbound={(d) => { 
+                  handleSelectOutbound(d); 
+                  // For one-way trips, go directly to cart
+                  if (tripType === 'one-way') {
+                    setStep('cart');
+                  }
+                  // For round-trip, wait for return selection
+                }}
                 onSelectReturn={handleSelectReturn}
                 onBack={() => setStep('search')}
                 primaryColor={primaryColor}
