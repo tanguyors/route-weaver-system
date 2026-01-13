@@ -84,7 +84,11 @@ export async function downloadElementAsPdf({
   }
 
   const pdfBytes = await pdf.save();
-  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  
+  // Create a new ArrayBuffer copy to satisfy BlobPart type
+  const arrayBuffer = new Uint8Array(pdfBytes).buffer as ArrayBuffer;
+  
+  const blob = new Blob([arrayBuffer], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
