@@ -1004,6 +1004,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          images: string[] | null
           name: string
           partner_id: string
           status: string
@@ -1015,6 +1016,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
           name: string
           partner_id: string
           status?: string
@@ -1026,6 +1028,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
           name?: string
           partner_id?: string
           status?: string
