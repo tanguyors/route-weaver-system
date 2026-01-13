@@ -183,13 +183,12 @@ const WidgetBookingNew = () => {
   return (
     <WidgetLanguageProvider>
       <div className="min-h-screen bg-gray-100">
-        {/* Language Selector */}
-        <div className="absolute top-3 right-4 z-50">
-          <WidgetLanguageSelector primaryColor={primaryColor} />
-        </div>
-
-        {/* Step Indicator */}
-        <WidgetStepIndicator currentStep={step} primaryColor={primaryColor} />
+        {/* Step Indicator with Language Selector */}
+        <WidgetStepIndicator 
+          currentStep={step} 
+          primaryColor={primaryColor}
+          languageSelector={<WidgetLanguageSelector primaryColor={primaryColor} />}
+        />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Search Form */}
