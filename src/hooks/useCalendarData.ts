@@ -22,6 +22,7 @@ export interface CalendarDeparture {
     route?: {
       id: string;
       route_name: string;
+      duration_minutes?: number | null;
       origin_port?: { name: string };
       destination_port?: { name: string };
     };
@@ -76,6 +77,7 @@ export const useCalendarData = () => {
           route:routes(
             id,
             route_name,
+            duration_minutes,
             origin_port:ports!routes_origin_port_id_fkey(name),
             destination_port:ports!routes_destination_port_id_fkey(name)
           )
