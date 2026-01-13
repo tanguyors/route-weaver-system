@@ -55,6 +55,7 @@ const WidgetBookingNew = () => {
     setSelectedDate,
     getAvailableDestinations,
     getAvailableDepartures,
+    getReturnDepartures,
     getPricing,
     createBooking,
   } = useWidgetBooking(widgetKey);
@@ -251,6 +252,8 @@ const WidgetBookingNew = () => {
             <div className="mt-6">
               <WidgetTripResults
                 outboundDepartures={getAvailableDepartures()}
+                returnDepartures={tripType === 'round-trip' ? getReturnDepartures(returnDate) : []}
+                returnDate={returnDate}
                 trips={data?.trips || []}
                 boats={data?.boats || []}
                 routes={data?.routes || []}

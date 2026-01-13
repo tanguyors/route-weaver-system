@@ -265,6 +265,23 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     });
   };
 
+  const getReturnDepartures = (returnDate: string) => {
+    if (!data || !selectedOrigin || !selectedDestination || !returnDate) return [];
+    
+    // Return route is the reverse: destination -> origin
+    const matchingRoutes = data.routes.filter(
+      r => r.origin_port_id === selectedDestination && r.destination_port_id === selectedOrigin
+    );
+    const routeIds = matchingRoutes.map(r => r.id);
+    
+    // Filter by route and return date
+    return data.departures.filter(d => {
+      const matchesRoute = routeIds.includes(d.route_id);
+      const matchesDate = d.departure_date >= returnDate;
+      return matchesRoute && matchesDate;
+    });
+  };
+
   const getApplicableAddons = (routeId: string, tripId: string): WidgetAddon[] => {
     if (!data) return [];
     
@@ -368,6 +385,7 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     setSelectedDate,
     getAvailableDestinations,
     getAvailableDepartures,
+    getReturnDepartures,
     getApplicableAddons,
     getPricing,
     createBooking,
