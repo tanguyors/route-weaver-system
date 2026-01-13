@@ -189,6 +189,16 @@ export const WidgetShoppingCart = ({
 
     const originPortId = item.route?.origin_port_id || item.originPortId;
     const availablePickups = pickupRulesByPort.get(originPortId) || [];
+    
+    // Debug: log pour vérifier l'ID du port et les pickups disponibles
+    console.log('🔍 Pickup Debug:', {
+      itemId: item.id,
+      originPortId,
+      originName: item.originName,
+      allPickupRules: pickupDropoffRules,
+      pickupRulesByPortMap: Array.from(pickupRulesByPort.entries()),
+      availablePickupsForThisPort: availablePickups
+    });
     const selectedPickupRule = pickupRuleId !== NONE
       ? availablePickups.find(r => r.id === pickupRuleId)
       : undefined;
