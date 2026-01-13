@@ -157,7 +157,7 @@ export const WidgetOrderSummary = ({
                     <span className="line-through text-white/50 text-xs mr-2">
                       {formatPrice(pickup.price)}
                     </span>
-                    <span className="font-bold text-yellow-400">Inclus</span>
+                    <span className="font-bold text-yellow-400">Included</span>
                   </div>
                 ) : (
                   <span className="font-bold">{formatPrice(pickup.price)}</span>
