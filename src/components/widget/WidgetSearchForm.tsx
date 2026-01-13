@@ -360,16 +360,23 @@ export const WidgetSearchForm = ({
                       {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : 'Select date'}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={parsedDepartureDate || undefined}
                       onSelect={(date) => {
-                        if (date) onDepartureDateChange(date.toISOString().split('T')[0]);
+                        if (date) {
+                          // Use local date format to avoid timezone issues
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
+                          onDepartureDateChange(`${year}-${month}-${day}`);
+                        }
                         setDepartureDateOpen(false);
                       }}
                       disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                       initialFocus
+                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -395,7 +402,13 @@ export const WidgetSearchForm = ({
                         mode="single"
                         selected={parsedReturnDate || undefined}
                         onSelect={(date) => {
-                          if (date) onReturnDateChange(date.toISOString().split('T')[0]);
+                          if (date) {
+                            // Use local date format to avoid timezone issues
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            onReturnDateChange(`${year}-${month}-${day}`);
+                          }
                           setReturnDateOpen(false);
                         }}
                         disabled={(date) => {
@@ -403,6 +416,7 @@ export const WidgetSearchForm = ({
                           return date < minDate;
                         }}
                         initialFocus
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   )}

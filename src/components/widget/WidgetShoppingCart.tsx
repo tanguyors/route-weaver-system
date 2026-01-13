@@ -1,22 +1,39 @@
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarDays, Trash2, Ship, Car, Bus } from 'lucide-react';
+import { CalendarDays, Trash2, Ship, Car, Bus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WidgetOrderSummary } from './WidgetOrderSummary';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BoatInfoModal } from './BoatInfoModal';
 
 interface Boat {
   id: string;
   name: string;
+  description?: string | null;
+  capacity?: number;
   image_url: string | null;
+  images?: string[] | null;
 }
 
 interface Trip {
   id: string;
   route_id: string;
   trip_name: string;
+  description?: string | null;
+}
+
+interface Route {
+  id: string;
+  origin_port_id: string;
+  destination_port_id: string;
+  duration_minutes: number | null;
+}
+
+interface Port {
+  id: string;
+  name: string;
 }
 
 interface PickupDropoffRule {
@@ -44,6 +61,7 @@ interface CartItem {
     boat_id: string | null;
   };
   trip: Trip | undefined;
+  route?: Route;
   originName: string;
   destName: string;
   originPortId: string;
@@ -63,6 +81,7 @@ export interface SelectedPickupInfo {
 interface WidgetShoppingCartProps {
   items: CartItem[];
   boats: Boat[];
+  ports?: Port[];
   paxAdult: number;
   paxChild: number;
   paxInfant: number;
@@ -80,6 +99,7 @@ interface WidgetShoppingCartProps {
 export const WidgetShoppingCart = ({
   items,
   boats,
+  ports = [],
   paxAdult,
   paxChild,
   paxInfant,
@@ -110,6 +130,23 @@ export const WidgetShoppingCart = ({
     return (paxAdult * item.pricing.adult) + (paxChild * item.pricing.child);
   };
 
+  const getPort = (portId: string) => ports.find(p => p.id === portId);
+
+  // Calculate arrival time based on departure time and duration
+  const calculateArrivalTime = (departureTime: string, durationMinutes: number | null): string => {
+    if (!durationMinutes) return '--:--';
+    
+    const [hours, minutes] = departureTime.slice(0, 5).split(':').map(Number);
+    const departureDate = new Date();
+    departureDate.setHours(hours, minutes, 0, 0);
+    
+    const arrivalDate = new Date(departureDate.getTime() + durationMinutes * 60000);
+    const arrivalHours = arrivalDate.getHours().toString().padStart(2, '0');
+    const arrivalMinutes = arrivalDate.getMinutes().toString().padStart(2, '0');
+    
+    return `${arrivalHours}:${arrivalMinutes}`;
+  };
+
   const pickupRulesByPort = useMemo(() => {
     const map = new Map<string, PickupDropoffRule[]>();
     for (const rule of pickupDropoffRules) {
@@ -126,9 +163,20 @@ export const WidgetShoppingCart = ({
   const [pickupVehicleTypeByItem, setPickupVehicleTypeByItem] = useState<Record<string, VehicleType>>({});
   const [pickupDetailsByItem, setPickupDetailsByItem] = useState<Record<string, string>>({});
 
+  // Boat info modal state
+  const [boatInfoModal, setBoatInfoModal] = useState<{
+    open: boolean;
+    boat: Boat | null;
+    trip: Trip | undefined;
+    route: Route | undefined;
+    departure: CartItem['departure'] | null;
+    pricing: { adult: number; child: number };
+  } | null>(null);
+
   const CartItemCard = ({ item }: { item: CartItem }) => {
     const boat = getBoat(item.departure.boat_id);
     const total = calculateItemTotal(item);
+    const arrivalTime = calculateArrivalTime(item.departure.departure_time, item.route?.duration_minutes ?? null);
 
     const pickupEnabled = pickupEnabledByItem[item.id] ?? false;
     const pickupRuleId = pickupRuleIdByItem[item.id] ?? NONE;
@@ -139,6 +187,20 @@ export const WidgetShoppingCart = ({
     const selectedPickupRule = pickupRuleId !== NONE
       ? availablePickups.find(r => r.id === pickupRuleId)
       : undefined;
+
+    const handleOpenBoatInfo = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (boat) {
+        setBoatInfoModal({
+          open: true,
+          boat,
+          trip: item.trip,
+          route: item.route,
+          departure: item.departure,
+          pricing: item.pricing,
+        });
+      }
+    };
 
     return (
       <div className="bg-white rounded-lg border-2 border-gray-200 p-4 mb-4">
@@ -168,18 +230,37 @@ export const WidgetShoppingCart = ({
         </div>
 
         <div className="flex gap-4">
-          {/* Boat Image */}
-          <div className="w-44 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-            {boat?.image_url ? (
-              <img 
-                src={boat.image_url} 
-                alt={boat.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Ship className="w-12 h-12 text-gray-300" />
-              </div>
+          {/* Boat Image & Info */}
+          <div className="w-44 flex-shrink-0">
+            <div className="h-28 rounded-lg overflow-hidden bg-gray-100">
+              {boat?.image_url ? (
+                <img 
+                  src={boat.image_url} 
+                  alt={boat.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Ship className="w-12 h-12 text-gray-300" />
+                </div>
+              )}
+            </div>
+            {/* Boat Name */}
+            <p className="text-center text-sm font-medium text-gray-700 mt-2 truncate">
+              {boat?.name || 'Boat'}
+            </p>
+            {/* Boat Info Button */}
+            {boat && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenBoatInfo}
+                className="w-full mt-2 text-xs"
+                style={{ borderColor: primaryColor, color: primaryColor }}
+              >
+                <Info className="h-3 w-3 mr-1" />
+                Boat Info
+              </Button>
             )}
           </div>
 
@@ -198,9 +279,12 @@ export const WidgetShoppingCart = ({
                 <div className="text-xl font-bold">{item.departure.departure_time.slice(0, 5)}</div>
                 <div style={{ color: primaryColor }} className="text-sm">{item.originName}</div>
               </div>
-              <div className="flex-1 border-t-2 border-dashed border-gray-300" />
+              <div className="flex-1 border-t-2 border-dashed border-gray-300 relative">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gray-400" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gray-400" />
+              </div>
               <div className="text-right">
-                <div className="text-xl font-bold">--:--</div>
+                <div className="text-xl font-bold">{arrivalTime}</div>
                 <div style={{ color: primaryColor }} className="text-sm">{item.destName}</div>
               </div>
             </div>
@@ -467,6 +551,27 @@ export const WidgetShoppingCart = ({
           primaryColor={primaryColor}
         />
       </div>
+
+      {/* Boat Info Modal */}
+      {boatInfoModal && (
+        <BoatInfoModal
+          open={boatInfoModal.open}
+          onClose={() => setBoatInfoModal(null)}
+          onSelectTrip={() => setBoatInfoModal(null)}
+          boat={boatInfoModal.boat}
+          trip={boatInfoModal.trip}
+          route={boatInfoModal.route}
+          originPort={boatInfoModal.route ? getPort(boatInfoModal.route.origin_port_id) : null}
+          destPort={boatInfoModal.route ? getPort(boatInfoModal.route.destination_port_id) : null}
+          departureTime={boatInfoModal.departure?.departure_time}
+          departureDate={boatInfoModal.departure?.departure_date}
+          pricing={boatInfoModal.pricing}
+          paxAdult={paxAdult}
+          paxChild={paxChild}
+          primaryColor={primaryColor}
+          hideSelectButton
+        />
+      )}
     </div>
   );
 };

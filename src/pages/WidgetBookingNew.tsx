@@ -127,6 +127,7 @@ const WidgetBookingNew = () => {
       id: selectedOutbound.departure.id,
       departure: selectedOutbound.departure,
       trip: selectedOutbound.trip,
+      route: selectedOutbound.route,
       originName: origin?.name || '',
       destName: dest?.name || '',
       originPortId: selectedOutbound.route?.origin_port_id || '',
@@ -142,6 +143,7 @@ const WidgetBookingNew = () => {
       id: selectedReturn.departure.id,
       departure: selectedReturn.departure,
       trip: selectedReturn.trip,
+      route: selectedReturn.route,
       originName: origin?.name || '',
       destName: dest?.name || '',
       originPortId: selectedReturn.route?.origin_port_id || '',
@@ -270,6 +272,7 @@ const WidgetBookingNew = () => {
           <WidgetShoppingCart
             items={cartItems}
             boats={data?.boats || []}
+            ports={data?.ports || []}
             paxAdult={paxAdult}
             paxChild={paxChild}
             paxInfant={paxInfant}
