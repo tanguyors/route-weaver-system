@@ -5,6 +5,7 @@ import { Clock, Users, ChevronLeft, Ship, Sailboat, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BoatInfoModal } from './BoatInfoModal';
+import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
 interface Boat {
   id: string;
@@ -68,13 +69,7 @@ export const BookingStepDeparture = ({
     return acc;
   }, {} as Record<string, Departure[]>);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const { formatPrice } = useWidgetCurrency();
 
   const getBoat = (boatId: string | null) => {
     if (!boatId) return null;

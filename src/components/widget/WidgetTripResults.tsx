@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { BoatInfoModal } from './BoatInfoModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
 interface Boat {
   id: string;
@@ -104,14 +105,7 @@ export const WidgetTripResults = ({
 }: WidgetTripResultsProps) => {
   const isMobile = useIsMobile();
   const [outboundExpanded, setOutboundExpanded] = useState(true);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const { formatPrice } = useWidgetCurrency();
 
   const getBoat = (boatId: string | null) => {
     if (!boatId) return null;

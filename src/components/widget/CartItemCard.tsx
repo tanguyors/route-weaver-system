@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useWidgetLanguage } from '@/contexts/WidgetLanguageContext';
+import { useWidgetLanguage, useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
 interface Boat {
   id: string;
@@ -104,14 +104,7 @@ export const CartItemCard = ({
   onPickupDetailsChange,
 }: CartItemCardProps) => {
   const { t } = useWidgetLanguage();
-  
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const { formatPrice } = useWidgetCurrency();
 
   const calculateItemTotal = () => {
     return (paxAdult * item.pricing.adult) + (paxChild * item.pricing.child);

@@ -9,6 +9,7 @@ import {
   CarouselPrevious 
 } from '@/components/ui/carousel';
 import { Ship, Clock, MapPin, Users, X } from 'lucide-react';
+import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
 interface Boat {
   id: string;
@@ -87,13 +88,7 @@ export const BoatInfoModal = ({
     });
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const { formatPrice } = useWidgetCurrency();
 
   const totalPrice = pricing 
     ? (paxAdult * pricing.adult) + (paxChild * pricing.child) 

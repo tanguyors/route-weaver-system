@@ -4,6 +4,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { ChevronLeft, Loader2, Wallet, Building, CreditCard, Landmark } from 'lucide-react';
 import { format } from 'date-fns';
+import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'credit_card' | 'xendit';
 
@@ -84,14 +85,7 @@ export const BookingStepPayment = ({
   onBack,
 }: BookingStepPaymentProps) => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('cash');
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const { formatPrice } = useWidgetCurrency();
 
   const handleSubmit = () => {
     onSubmit(selectedMethod);

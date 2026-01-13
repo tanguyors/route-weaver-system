@@ -1,6 +1,28 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-export type SupportedLanguage = 'en' | 'fr' | 'ru' | 'zh' | 'es' | 'de' | 'nl' | 'id';
+export type SupportedLanguage = 'en' | 'fr' | 'ru' | 'zh' | 'es' | 'de' | 'nl' | 'id' | 'ko';
+
+// Currency types and configuration
+export type SupportedCurrency = 'IDR' | 'EUR' | 'GBP' | 'USD' | 'RUB' | 'CNY' | 'KRW';
+
+export interface CurrencyConfig {
+  code: SupportedCurrency;
+  symbol: string;
+  label: string;
+  flag: string;
+  rateFromIDR: number; // How many units of this currency per 1 IDR
+}
+
+// Exchange rates (approximate, base: IDR)
+export const CURRENCY_CONFIG: CurrencyConfig[] = [
+  { code: 'IDR', symbol: 'Rp', label: 'Indonesian Rupiah', flag: '🇮🇩', rateFromIDR: 1 },
+  { code: 'EUR', symbol: '€', label: 'Euro', flag: '🇪🇺', rateFromIDR: 0.000058 },
+  { code: 'GBP', symbol: '£', label: 'British Pound', flag: '🇬🇧', rateFromIDR: 0.000049 },
+  { code: 'USD', symbol: '$', label: 'US Dollar', flag: '🇺🇸', rateFromIDR: 0.000062 },
+  { code: 'RUB', symbol: '₽', label: 'Russian Ruble', flag: '🇷🇺', rateFromIDR: 0.0056 },
+  { code: 'CNY', symbol: '¥', label: 'Chinese Yuan', flag: '🇨🇳', rateFromIDR: 0.00045 },
+  { code: 'KRW', symbol: '₩', label: 'Korean Won', flag: '🇰🇷', rateFromIDR: 0.085 },
+];
 
 interface LanguageContextType {
   language: SupportedLanguage;
@@ -999,12 +1021,152 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'invalidEmail': 'Alamat email tidak valid',
     'invalidPhone': 'Nomor telepon tidak valid',
   },
+  
+  ko: {
+    // General
+    'select': '선택',
+    'back': '뒤로',
+    'next': '다음',
+    'confirm': '확인',
+    'apply': '적용',
+    'delete': '삭제',
+    'included': '포함',
+    'loading': '로딩 중...',
+    'noResults': '결과 없음',
+    
+    // Service type
+    'serviceType': '서비스 유형',
+    'sharedBoat': '공유 보트',
+    'privateBoat': '전세 보트',
+    'sharedBoatDesc': '다른 승객과 함께 정해진 시간에 이동',
+    'privateBoatDesc': '귀하의 그룹을 위한 전용 보트 대여',
+    'publicFastFerry': '공공 고속 페리',
+    
+    // Route selection
+    'selectRoute': '노선 선택',
+    'from': '출발',
+    'to': '도착',
+    'selectOrigin': '출발지 선택',
+    'selectDestination': '목적지 선택',
+    'selectDeparture': '출발 선택',
+    'tripType': '여행 유형',
+    'oneWay': '편도',
+    'roundTrip': '왕복',
+    'departureDate': '출발 날짜',
+    'returnDate': '귀국 날짜',
+    'searchTrips': '여행 검색',
+    'selectVoyage': '항해 선택',
+    'bookTickets': '티켓 예약',
+    
+    // Passengers
+    'passengers': '승객',
+    'adult': '성인',
+    'adults': '성인',
+    'child': '어린이',
+    'children': '어린이',
+    'infant': '유아',
+    'infants': '유아',
+    'yearsOld': '세',
+    'underYears': '{years}세 미만',
+    'adultAge': '성인 (12세 이상)',
+    'infantAge': '유아 (0-2세)',
+    
+    // Departures
+    'availableTrips': '이용 가능한 여행',
+    'noTripsAvailable': '이 날짜에 이용 가능한 여행이 없습니다',
+    'seatsAvailable': '좌석 이용 가능',
+    'departure': '출발',
+    'arrival': '도착',
+    'duration': '소요 시간',
+    'minutes': '분',
+    
+    // Addons
+    'addons': '추가 옵션',
+    'optionalAddons': '선택 추가 옵션',
+    'selectAddons': '추가 옵션 선택',
+    
+    // Pickup/Dropoff
+    'pickup': '픽업',
+    'dropoff': '하차',
+    'pickupOptions': '픽업 옵션',
+    'pickupArea': '픽업 지역',
+    'selectPickup': '픽업 선택',
+    'hotelAddress': '호텔 / 주소',
+    'enterHotelAddress': '호텔 또는 주소 입력',
+    'shuttleRates': '셔틀 요금',
+    'numberOfPassengers': '승객 수',
+    'car': '자동차',
+    'minibus': '미니버스',
+    'maxPax': '최대 {count}명',
+    'minBefore': '{minutes}분 전',
+    'noPickupAvailable': '이 항구에서 픽업 서비스를 이용할 수 없습니다.',
+    
+    // Shopping cart
+    'yourTrips': '내 여행',
+    'tickets': '티켓',
+    'selectTripToSeeSummary': '요약을 보려면 여행을 선택하세요',
+    'grandTotal': '총액',
+    'promoCode': '프로모션 코드',
+    'enterPromoCode': '프로모션 코드 입력',
+    'bookOtherTrip': '다른 여행 예약',
+    'proceedToCheckout': '결제로 진행',
+    'boatInfo': '보트 정보',
+    
+    // Checkout
+    'checkout': '결제',
+    'contactDetails': '연락처 정보',
+    'fullName': '성명',
+    'email': '이메일',
+    'phone': '전화번호',
+    'country': '국가',
+    'specialRequests': '특별 요청',
+    'termsAndConditions': '이용약관',
+    'iAgreeToTerms': '이용약관에 동의합니다',
+    'payNow': '지금 결제',
+    'payLater': '나중에 결제',
+    'bookNow': '지금 예약',
+    
+    // Booking success
+    'bookingConfirmed': '예약 완료!',
+    'bookingReference': '예약 번호',
+    'thankYou': '예약해 주셔서 감사합니다',
+    'confirmationSent': '확인 이메일이 발송되었습니다.',
+    'downloadTicket': '티켓 다운로드',
+    'bookAnother': '다른 여행 예약',
+    
+    // Private boat
+    'selectBoat': '보트 선택',
+    'boatDetails': '보트 상세 정보',
+    'capacity': '수용 인원',
+    'description': '설명',
+    'selectDate': '날짜 선택',
+    'selectTime': '시간 선택',
+    'departureTime': '출발 시간',
+    'route': '노선',
+    
+    // Errors
+    'errorOccurred': '오류가 발생했습니다',
+    'tryAgain': '다시 시도',
+    'required': '필수',
+    'invalidEmail': '잘못된 이메일 주소',
+    'invalidPhone': '잘못된 전화번호',
+  },
 };
 
+interface CurrencyContextType {
+  currency: SupportedCurrency;
+  setCurrency: (curr: SupportedCurrency) => void;
+  convertPrice: (priceInIDR: number) => number;
+  formatPrice: (priceInIDR: number) => string;
+  getCurrencyConfig: () => CurrencyConfig;
+}
+
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const WidgetLanguageProvider = ({ children, defaultLanguage = 'en' }: { children: ReactNode; defaultLanguage?: SupportedLanguage }) => {
   const [language, setLanguage] = useState<SupportedLanguage>(defaultLanguage);
+  const [currency, setCurrency] = useState<SupportedCurrency>('IDR');
 
   const t = (key: string, params?: Record<string, string | number>): string => {
     let text = translations[language]?.[key] || translations['en']?.[key] || key;
@@ -1016,9 +1178,41 @@ export const WidgetLanguageProvider = ({ children, defaultLanguage = 'en' }: { c
     return text;
   };
 
+  const getCurrencyConfig = (): CurrencyConfig => {
+    return CURRENCY_CONFIG.find(c => c.code === currency) || CURRENCY_CONFIG[0];
+  };
+
+  const convertPrice = (priceInIDR: number): number => {
+    const config = getCurrencyConfig();
+    return priceInIDR * config.rateFromIDR;
+  };
+
+  const formatPrice = (priceInIDR: number): string => {
+    const config = getCurrencyConfig();
+    const convertedPrice = convertPrice(priceInIDR);
+    
+    if (config.code === 'IDR') {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(convertedPrice);
+    }
+    
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: config.code,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(convertedPrice);
+  };
+
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {children}
+      <CurrencyContext.Provider value={{ currency, setCurrency, convertPrice, formatPrice, getCurrencyConfig }}>
+        {children}
+      </CurrencyContext.Provider>
     </LanguageContext.Provider>
   );
 };
@@ -1031,10 +1225,19 @@ export const useWidgetLanguage = () => {
   return context;
 };
 
+export const useWidgetCurrency = () => {
+  const context = useContext(CurrencyContext);
+  if (!context) {
+    throw new Error('useWidgetCurrency must be used within a WidgetLanguageProvider');
+  }
+  return context;
+};
+
 export const LANGUAGE_OPTIONS: { code: SupportedLanguage; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
   { code: 'ru', label: 'Русский', flag: '🇷🇺' },
   { code: 'zh', label: '中文', flag: '🇨🇳' },
   { code: 'es', label: 'Español', flag: '🇪🇸' },

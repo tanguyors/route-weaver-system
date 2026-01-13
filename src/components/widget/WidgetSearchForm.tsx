@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useWidgetLanguage } from '@/contexts/WidgetLanguageContext';
+import { useWidgetLanguage, useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
 interface Port {
   id: string;
@@ -202,13 +202,7 @@ export const WidgetSearchForm = ({
     onPrivateBoatSearch(selection);
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const { formatPrice } = useWidgetCurrency();
 
   // Field wrapper component
   const FieldWrapper = ({ 

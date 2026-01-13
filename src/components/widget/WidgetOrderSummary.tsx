@@ -1,6 +1,6 @@
 import { MapPin, CalendarDays, Car, Bus, Gift, Check } from 'lucide-react';
 import { format } from 'date-fns';
-
+import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 interface TripInfo {
   routeName: string;
   originName: string;
@@ -53,13 +53,7 @@ export const WidgetOrderSummary = ({
   primaryColor = '#1B5E3B',
   isPrivateBoat = false,
 }: WidgetOrderSummaryProps) => {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const { formatPrice } = useWidgetCurrency();
 
   // For private boats, pickups are included (price = 0 in total)
   const pickupsTotal = isPrivateBoat ? 0 : pickups.reduce((sum, p) => sum + p.price, 0);
