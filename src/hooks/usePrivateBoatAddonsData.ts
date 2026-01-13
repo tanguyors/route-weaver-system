@@ -14,9 +14,9 @@ export interface PrivateBoatActivityAddon {
   updated_at: string;
 }
 
-export interface PrivateBoatAddonAssignment {
+export interface PrivateBoatRouteAddon {
   id: string;
-  private_boat_id: string;
+  route_id: string;
   activity_addon_id: string;
   partner_id: string;
   pricing_type: 'included' | 'normal';
@@ -123,46 +123,53 @@ export const usePrivateBoatAddonsData = () => {
     return { error: null };
   };
 
-  // Fetch assignments for a specific private boat
-  const fetchBoatAddonAssignments = async (privateBoatId: string) => {
+  // Fetch addons for a specific route
+  const fetchRouteAddons = async (routeId: string): Promise<PrivateBoatRouteAddon[]> => {
     if (!partnerId) return [];
 
     const { data, error } = await supabase
-      .from('private_boat_addon_assignments')
+      .from('private_boat_route_addons')
       .select(`
         *,
         activity_addon:private_boat_activity_addons(*)
       `)
-      .eq('private_boat_id', privateBoatId);
+      .eq('route_id', routeId);
 
     if (error) {
-      console.error('Error fetching addon assignments:', error);
+      console.error('Error fetching route addons:', error);
       return [];
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      pricing_type: item.pricing_type as 'included' | 'normal',
+      activity_addon: item.activity_addon ? {
+        ...item.activity_addon,
+        status: item.activity_addon.status as 'active' | 'inactive',
+      } : undefined,
+    }));
   };
 
-  // Update assignments for a private boat
-  const updateBoatAddonAssignments = async (
-    privateBoatId: string,
-    assignments: { activity_addon_id: string; pricing_type: 'included' | 'normal' }[]
+  // Update addons for a route
+  const updateRouteAddons = async (
+    routeId: string,
+    addons: { activity_addon_id: string; pricing_type: 'included' | 'normal' }[]
   ) => {
     if (!partnerId) return { error: new Error('No partner ID') };
 
-    // Delete existing assignments
+    // Delete existing addons for this route
     await supabase
-      .from('private_boat_addon_assignments')
+      .from('private_boat_route_addons')
       .delete()
-      .eq('private_boat_id', privateBoatId);
+      .eq('route_id', routeId);
 
-    // Insert new assignments
-    if (assignments.length > 0) {
+    // Insert new addons
+    if (addons.length > 0) {
       const { error } = await supabase
-        .from('private_boat_addon_assignments')
+        .from('private_boat_route_addons')
         .insert(
-          assignments.map(a => ({
-            private_boat_id: privateBoatId,
+          addons.map(a => ({
+            route_id: routeId,
             activity_addon_id: a.activity_addon_id,
             partner_id: partnerId,
             pricing_type: a.pricing_type,
@@ -170,12 +177,11 @@ export const usePrivateBoatAddonsData = () => {
         );
 
       if (error) {
-        toast.error('Failed to update add-on assignments');
+        toast.error('Failed to update route add-ons');
         return { error };
       }
     }
 
-    toast.success('Add-on assignments updated');
     return { error: null };
   };
 
@@ -185,8 +191,8 @@ export const usePrivateBoatAddonsData = () => {
     createActivityAddon,
     updateActivityAddon,
     deleteActivityAddon,
-    fetchBoatAddonAssignments,
-    updateBoatAddonAssignments,
+    fetchRouteAddons,
+    updateRouteAddons,
     refetch: fetchActivityAddons,
   };
 };

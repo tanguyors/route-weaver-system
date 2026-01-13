@@ -2226,14 +2226,14 @@ export type Database = {
           },
         ]
       }
-      private_boat_addon_assignments: {
+      private_boat_route_addons: {
         Row: {
           activity_addon_id: string
           created_at: string
           id: string
           partner_id: string
           pricing_type: string
-          private_boat_id: string
+          route_id: string
         }
         Insert: {
           activity_addon_id: string
@@ -2241,7 +2241,7 @@ export type Database = {
           id?: string
           partner_id: string
           pricing_type?: string
-          private_boat_id: string
+          route_id: string
         }
         Update: {
           activity_addon_id?: string
@@ -2249,28 +2249,28 @@ export type Database = {
           id?: string
           partner_id?: string
           pricing_type?: string
-          private_boat_id?: string
+          route_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "private_boat_addon_assignments_activity_addon_id_fkey"
+            foreignKeyName: "private_boat_route_addons_activity_addon_id_fkey"
             columns: ["activity_addon_id"]
             isOneToOne: false
             referencedRelation: "private_boat_activity_addons"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "private_boat_addon_assignments_partner_id_fkey"
+            foreignKeyName: "private_boat_route_addons_partner_id_fkey"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "private_boat_addon_assignments_private_boat_id_fkey"
-            columns: ["private_boat_id"]
+            foreignKeyName: "private_boat_route_addons_route_id_fkey"
+            columns: ["route_id"]
             isOneToOne: false
-            referencedRelation: "private_boats"
+            referencedRelation: "private_boat_routes"
             referencedColumns: ["id"]
           },
         ]
