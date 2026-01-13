@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.generate-terms]
 verify_jwt = false
+
+[functions.paypal-webhook]
+verify_jwt = false
+
+[functions.validate-activity-ticket]
+verify_jwt = false
