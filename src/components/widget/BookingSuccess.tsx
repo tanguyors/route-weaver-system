@@ -1,9 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Download, Printer } from 'lucide-react';
+import { CheckCircle, Download, Printer, Loader2 } from 'lucide-react';
 import { TicketPDF } from './TicketPDF';
 import { PaymentMethod } from './BookingStepPayment';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface PassengerInfo {
   name: string;
@@ -78,14 +80,60 @@ export const BookingSuccess = ({
   primaryColor = '#1B5E3B',
 }: BookingSuccessProps) => {
   const ticketRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleDownload = () => {
-    // Trigger browser print dialog which can save as PDF
-    window.print();
+  const handleDownload = async () => {
+    if (!ticketRef.current) return;
+    
+    setIsGeneratingPDF(true);
+    
+    try {
+      const element = ticketRef.current;
+      
+      // Generate canvas from the ticket element
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+      
+      // Calculate dimensions for A4 PDF
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Add the image, handling multiple pages if needed
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // Download the PDF
+      const bookingRef = bookingId.slice(0, 8).toUpperCase();
+      pdf.save(`Ticket-${bookingRef}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const isRoundTrip = !!returnTrip;
@@ -149,11 +197,16 @@ export const BookingSuccess = ({
             </Button>
             <Button 
               onClick={handleDownload} 
+              disabled={isGeneratingPDF}
               className="flex-1 max-w-xs text-white"
               style={{ backgroundColor: primaryColor }}
             >
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
+              {isGeneratingPDF ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
             </Button>
           </div>
 
