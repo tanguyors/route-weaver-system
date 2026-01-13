@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useWidgetLanguage } from '@/contexts/WidgetLanguageContext';
 
 interface Boat {
   id: string;
@@ -102,6 +103,8 @@ export const CartItemCard = ({
   onVehicleTypeChange,
   onPickupDetailsChange,
 }: CartItemCardProps) => {
+  const { t } = useWidgetLanguage();
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -159,7 +162,7 @@ export const CartItemCard = ({
           className="text-gray-700 hover:text-red-600"
         >
           <Trash2 className="w-4 h-4 mr-1" />
-          Delete
+          {t('delete')}
         </Button>
       </div>
 
@@ -194,7 +197,7 @@ export const CartItemCard = ({
               style={{ borderColor: primaryColor, color: primaryColor }}
             >
               <Info className="h-3 w-3 mr-1" />
-              Boat Info
+              {t('boatInfo')}
             </Button>
           )}
         </div>
@@ -241,7 +244,7 @@ export const CartItemCard = ({
         <div className="flex items-center justify-end gap-4">
           <span className="text-sm text-gray-500 flex items-center gap-1">
             <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-xs">i</span>
-            Shuttle Rates
+            {t('shuttleRates')}
           </span>
           <Button
             type="button"
@@ -263,7 +266,7 @@ export const CartItemCard = ({
                 <span className="text-white text-[10px] leading-none">✓</span>
               )}
             </span>
-            Pick Up
+            {t('pickup')}
           </Button>
         </div>
 
@@ -271,15 +274,15 @@ export const CartItemCard = ({
         {pickupEnabled && (
           <div className="mt-4 rounded-lg border border-gray-200 p-4">
             <div className="text-sm font-semibold mb-2" style={{ color: primaryColor }}>
-              Pickup options
+              {t('pickupOptions')}
             </div>
             {availablePickups.length === 0 ? (
-              <p className="text-sm text-gray-500">No pickup services available for this departure port.</p>
+              <p className="text-sm text-gray-500">{t('noPickupAvailable')}</p>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <div className="text-sm text-gray-600 mb-1">Pickup area</div>
+                    <div className="text-sm text-gray-600 mb-1">{t('pickupArea')}</div>
                     <Select
                       value={pickupRuleId}
                       onValueChange={(v) => {
@@ -287,10 +290,10 @@ export const CartItemCard = ({
                       }}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select pickup" />
+                        <SelectValue placeholder={t('selectPickup')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NONE}>Select pickup</SelectItem>
+                        <SelectItem value={NONE}>{t('selectPickup')}</SelectItem>
                         {availablePickups.map(r => (
                           <SelectItem key={r.id} value={r.id}>
                             {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min before)` : ''}
@@ -301,9 +304,9 @@ export const CartItemCard = ({
                   </div>
 
                   <div>
-                    <div className="text-sm text-gray-600 mb-1">Hotel / Address</div>
+                    <div className="text-sm text-gray-600 mb-1">{t('hotelAddress')}</div>
                     <Input
-                      placeholder="Enter your hotel or address"
+                      placeholder={t('enterHotelAddress')}
                       value={pickupDetails}
                       onChange={(e) => onPickupDetailsChange(e.target.value)}
                       disabled={pickupRuleId === NONE}
@@ -313,7 +316,7 @@ export const CartItemCard = ({
 
                 {selectedPickupRule && (
                   <div className="mt-3">
-                    <div className="text-sm text-gray-600 mb-2">Number of passengers</div>
+                    <div className="text-sm text-gray-600 mb-2">{t('numberOfPassengers')}</div>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
@@ -326,7 +329,7 @@ export const CartItemCard = ({
                         )}
                       >
                         <Car className="h-5 w-5" />
-                        <span>Car (max 4 pax)</span>
+                        <span>{t('car')} ({t('maxPax', { count: 4 })})</span>
                         <span className="text-xs opacity-75">
                           +IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()}
                         </span>
@@ -342,7 +345,7 @@ export const CartItemCard = ({
                         )}
                       >
                         <Bus className="h-5 w-5" />
-                        <span>Minibus (max 10 pax)</span>
+                        <span>{t('minibus')} ({t('maxPax', { count: 10 })})</span>
                         <span className="text-xs opacity-75">
                           +IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()}
                         </span>

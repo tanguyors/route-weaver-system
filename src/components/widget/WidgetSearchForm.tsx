@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useWidgetLanguage } from '@/contexts/WidgetLanguageContext';
 
 interface Port {
   id: string;
@@ -127,6 +128,7 @@ export const WidgetSearchForm = ({
   privateBoats = [],
   onPrivateBoatSearch,
 }: WidgetSearchFormProps) => {
+  const { t } = useWidgetLanguage();
   const [departureDateOpen, setDepartureDateOpen] = useState(false);
   const [returnDateOpen, setReturnDateOpen] = useState(false);
   
@@ -240,7 +242,7 @@ export const WidgetSearchForm = ({
       >
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-bold flex items-center gap-2">
-            ▸ Book Tickets
+            ▸ {t('bookTickets')}
           </h2>
           {tagline && (
             <p className="italic text-white/90">{tagline}</p>
@@ -266,7 +268,7 @@ export const WidgetSearchForm = ({
               style={serviceType === 'public-ferry' ? { color: primaryColor } : {}}
             >
               <Ship className="h-4 w-4" />
-              Public Fast Ferry
+              {t('sharedBoat')}
             </button>
             <button
               onClick={() => setServiceType('private-boat')}
@@ -278,7 +280,7 @@ export const WidgetSearchForm = ({
               )}
             >
               <Anchor className="h-4 w-4" />
-              Private Boat
+              {t('privateBoat')}
             </button>
           </div>
         )}
@@ -286,7 +288,6 @@ export const WidgetSearchForm = ({
         {/* PUBLIC FERRY FIELDS */}
         {serviceType === 'public-ferry' && (
           <>
-            {/* Trip Type Toggle */}
             <div className="flex items-center gap-4 mb-6">
               <button
                 onClick={() => onTripTypeChange('one-way')}
@@ -297,7 +298,7 @@ export const WidgetSearchForm = ({
                     : "text-gray-500 bg-white border-gray-200 hover:bg-gray-50"
                 )}
               >
-                One-Way
+                {t('oneWay')}
               </button>
               <button
                 onClick={() => onTripTypeChange('round-trip')}
@@ -309,24 +310,24 @@ export const WidgetSearchForm = ({
                 )}
                 style={tripType === 'round-trip' ? { backgroundColor: primaryColor } : {}}
               >
-                Round-Trip
+                {t('roundTrip')}
               </button>
               <span className="text-sm text-gray-500 flex items-center gap-1">
                 <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-xs">i</span>
-                Select voyage
+                {t('selectVoyage')}
               </span>
             </div>
 
             {/* Row 1: From, To, Dates */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               {/* From */}
-              <FieldWrapper label="From" icon={MapPin}>
+              <FieldWrapper label={t('from')} icon={MapPin}>
                 <select
                   value={selectedOrigin}
                   onChange={(e) => onOriginChange(e.target.value)}
                   className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
                 >
-                  <option value="">Select departure</option>
+                  <option value="">{t('selectOrigin')}</option>
                   {ports.map((port) => (
                     <option key={port.id} value={port.id}>
                       {port.name} {port.area ? `(${port.area})` : ''}
@@ -336,14 +337,14 @@ export const WidgetSearchForm = ({
               </FieldWrapper>
 
               {/* To */}
-              <FieldWrapper label="To" icon={MapPin}>
+              <FieldWrapper label={t('to')} icon={MapPin}>
                 <select
                   value={selectedDestination}
                   onChange={(e) => onDestinationChange(e.target.value)}
                   disabled={!selectedOrigin}
                   className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none disabled:text-gray-400"
                 >
-                  <option value="">Select destination</option>
+                  <option value="">{t('selectDestination')}</option>
                   {availableDestinations.map((port) => (
                     <option key={port.id} value={port.id}>
                       {port.name} {port.area ? `(${port.area})` : ''}
@@ -353,11 +354,11 @@ export const WidgetSearchForm = ({
               </FieldWrapper>
 
               {/* Depart Date */}
-              <FieldWrapper label="Depart Date" icon={CalendarDays}>
+              <FieldWrapper label={t('departureDate')} icon={CalendarDays}>
                 <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen}>
                   <PopoverTrigger asChild>
                     <button className="w-full text-left text-gray-900 font-medium focus:outline-none">
-                      {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : 'Select date'}
+                      {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
                   </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -383,7 +384,7 @@ export const WidgetSearchForm = ({
               </FieldWrapper>
 
               {/* Return Date */}
-              <FieldWrapper label="Return Date" icon={CalendarDays}>
+              <FieldWrapper label={t('returnDate')} icon={CalendarDays}>
                 <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
                   <PopoverTrigger asChild>
                     <button 
@@ -393,7 +394,7 @@ export const WidgetSearchForm = ({
                       )}
                       disabled={tripType === 'one-way'}
                     >
-                      {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : 'Select date'}
+                      {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
                   </PopoverTrigger>
                   {tripType === 'round-trip' && (
@@ -427,7 +428,7 @@ export const WidgetSearchForm = ({
             {/* Row 2: Passengers */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {/* Adult */}
-              <FieldWrapper label="Adult(12+ years)" icon={Users}>
+              <FieldWrapper label={t('adultAge')} icon={Users}>
                 <select
                   value={paxAdult}
                   onChange={(e) => onPaxChange(Number(e.target.value), paxChild, paxInfant)}
@@ -440,7 +441,7 @@ export const WidgetSearchForm = ({
               </FieldWrapper>
 
               {/* Child */}
-              <FieldWrapper label="Child" icon={Users}>
+              <FieldWrapper label={t('child')} icon={Users}>
                 <select
                   value={paxChild}
                   onChange={(e) => onPaxChange(paxAdult, Number(e.target.value), paxInfant)}
@@ -453,7 +454,7 @@ export const WidgetSearchForm = ({
               </FieldWrapper>
 
               {/* Infants */}
-              <FieldWrapper label="Infants(0-2 years)" icon={Baby}>
+              <FieldWrapper label={t('infantAge')} icon={Baby}>
                 <select
                   value={paxInfant}
                   onChange={(e) => onPaxChange(paxAdult, paxChild, Number(e.target.value))}
@@ -472,7 +473,7 @@ export const WidgetSearchForm = ({
                 className="h-full min-h-[60px] rounded-lg text-white font-semibold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
                 style={{ backgroundColor: '#374151' }}
               >
-                {isLoading ? 'Searching...' : 'Search'}
+                {isLoading ? t('loading') : t('searchTrips')}
               </button>
             </div>
           </>
@@ -483,7 +484,7 @@ export const WidgetSearchForm = ({
           <div className="space-y-4">
             {/* Boat Selection */}
             <div>
-              <Label className="text-sm font-medium mb-2 block">Select Your Boat</Label>
+              <Label className="text-sm font-medium mb-2 block">{t('selectBoat')}</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {privateBoats.map(boat => (
                   <button
@@ -522,9 +523,8 @@ export const WidgetSearchForm = ({
 
             {selectedBoat && (
               <>
-                {/* From Port & Route */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FieldWrapper label="From Port" icon={MapPin}>
+                  <FieldWrapper label={t('from')} icon={MapPin}>
                     <select
                       value={selectedFromPortId}
                       onChange={(e) => {
@@ -533,7 +533,7 @@ export const WidgetSearchForm = ({
                       }}
                       className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
                     >
-                      <option value="">Select departure port</option>
+                      <option value="">{t('selectOrigin')}</option>
                       {getAvailableFromPorts().map(port => (
                         <option key={port.id} value={port.id}>
                           {port.name} {port.area && `(${port.area})`}
@@ -542,14 +542,14 @@ export const WidgetSearchForm = ({
                     </select>
                   </FieldWrapper>
 
-                  <FieldWrapper label="Destination" icon={MapPin}>
+                  <FieldWrapper label={t('to')} icon={MapPin}>
                     <select
                       value={selectedRouteId}
                       onChange={(e) => setSelectedRouteId(e.target.value)}
                       disabled={!selectedFromPortId}
                       className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none disabled:text-gray-400"
                     >
-                      <option value="">Select destination</option>
+                      <option value="">{t('selectDestination')}</option>
                       {availableRoutes.map(route => (
                         <option key={route.id} value={route.id}>
                           {route.to_port?.name} - {formatPrice(route.price)}
