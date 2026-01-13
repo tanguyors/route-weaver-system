@@ -239,29 +239,29 @@ export const WidgetSearchForm = ({
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Header with optional banner */}
       <div 
-        className="py-4 px-6 text-white"
+        className="py-3 sm:py-4 px-4 sm:px-6 text-white"
         style={{ backgroundColor: primaryColor }}
       >
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            ▸ {t('bookTickets')}
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-base sm:text-xl font-bold flex items-center gap-1 sm:gap-2 flex-wrap">
+            <span className="shrink-0">▸ {t('bookTickets')}</span>
             {tagline && (
-              <span className="italic text-white/90 font-normal text-base ml-2">{tagline}</span>
+              <span className="italic text-white/90 font-normal text-sm sm:text-base">{tagline}</span>
             )}
           </h2>
           {languageSelector}
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Service Type Toggle - Show only if both options available */}
         {hasPrivateBoats && (
-          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg mb-6">
+          <div className="flex gap-1 sm:gap-2 p-1 bg-gray-100 rounded-lg mb-4 sm:mb-6">
             <button
               onClick={() => hasPublicFerry && setServiceType('public-ferry')}
               disabled={!hasPublicFerry}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md text-sm font-medium transition-all",
+                "flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-all",
                 serviceType === 'public-ferry'
                   ? "bg-white shadow-sm"
                   : !hasPublicFerry
@@ -270,20 +270,20 @@ export const WidgetSearchForm = ({
               )}
               style={serviceType === 'public-ferry' ? { color: primaryColor } : {}}
             >
-              <Ship className="h-4 w-4" />
-              {t('sharedBoat')}
+              <Ship className="h-4 w-4 shrink-0" />
+              <span className="truncate">{t('sharedBoat')}</span>
             </button>
             <button
               onClick={() => setServiceType('private-boat')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md text-sm font-medium transition-all",
+                "flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-all",
                 serviceType === 'private-boat'
                   ? "bg-amber-600 text-white shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
               )}
             >
-              <Anchor className="h-4 w-4" />
-              {t('privateBoat')}
+              <Anchor className="h-4 w-4 shrink-0" />
+              <span className="truncate">{t('privateBoat')}</span>
             </button>
           </div>
         )}
@@ -291,11 +291,11 @@ export const WidgetSearchForm = ({
         {/* PUBLIC FERRY FIELDS */}
         {serviceType === 'public-ferry' && (
           <>
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
               <button
                 onClick={() => onTripTypeChange('one-way')}
                 className={cn(
-                  "px-6 py-2 rounded-full text-sm font-medium transition-all border",
+                  "px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-all border",
                   tripType === 'one-way' 
                     ? "text-gray-700 bg-gray-100 border-gray-300" 
                     : "text-gray-500 bg-white border-gray-200 hover:bg-gray-50"
@@ -306,7 +306,7 @@ export const WidgetSearchForm = ({
               <button
                 onClick={() => onTripTypeChange('round-trip')}
                 className={cn(
-                  "px-6 py-2 rounded-full text-sm font-medium transition-all",
+                  "px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-all",
                   tripType === 'round-trip' 
                     ? "text-white shadow-md" 
                     : "text-gray-500 bg-white border border-gray-200 hover:bg-gray-50"
@@ -315,14 +315,14 @@ export const WidgetSearchForm = ({
               >
                 {t('roundTrip')}
               </button>
-              <span className="text-sm text-gray-500 flex items-center gap-1">
+              <span className="hidden sm:flex text-sm text-gray-500 items-center gap-1">
                 <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-xs">i</span>
                 {t('selectVoyage')}
               </span>
             </div>
 
             {/* Row 1: From, To, Dates */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-3 sm:mb-4">
               {/* From */}
               <FieldWrapper label={t('from')} icon={MapPin}>
                 <select
@@ -429,13 +429,13 @@ export const WidgetSearchForm = ({
             </div>
 
             {/* Row 2: Passengers */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
               {/* Adult */}
               <FieldWrapper label={t('adultAge')} icon={Users}>
                 <select
                   value={paxAdult}
                   onChange={(e) => onPaxChange(Number(e.target.value), paxChild, paxInfant)}
-                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none text-sm sm:text-base"
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <option key={n} value={n}>{n}</option>
@@ -448,7 +448,7 @@ export const WidgetSearchForm = ({
                 <select
                   value={paxChild}
                   onChange={(e) => onPaxChange(paxAdult, Number(e.target.value), paxInfant)}
-                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none text-sm sm:text-base"
                 >
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <option key={n} value={n}>{n}</option>
@@ -461,7 +461,7 @@ export const WidgetSearchForm = ({
                 <select
                   value={paxInfant}
                   onChange={(e) => onPaxChange(paxAdult, paxChild, Number(e.target.value))}
-                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none"
+                  className="w-full bg-transparent text-gray-900 font-medium focus:outline-none cursor-pointer appearance-none text-sm sm:text-base"
                 >
                   {[0, 1, 2, 3, 4, 5].map((n) => (
                     <option key={n} value={n}>{n}</option>
@@ -469,11 +469,11 @@ export const WidgetSearchForm = ({
                 </select>
               </FieldWrapper>
 
-              {/* Search Button */}
+              {/* Search Button - Full width on mobile when 3-col grid */}
               <button
                 onClick={onSearch}
                 disabled={!canSearch || isLoading}
-                className="h-full min-h-[60px] rounded-lg text-white font-semibold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                className="col-span-3 md:col-span-1 h-full min-h-[50px] sm:min-h-[60px] rounded-lg text-white font-semibold text-base sm:text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
                 style={{ backgroundColor: '#374151' }}
               >
                 {isLoading ? t('loading') : t('searchTrips')}
