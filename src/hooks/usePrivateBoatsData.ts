@@ -293,10 +293,12 @@ export const usePrivateBoatRoutesData = (privateBoatId: string | null) => {
     price: number;
     duration_minutes?: number;
     status: 'active' | 'inactive';
-  }): Promise<{ error: Error | null }> => {
-    const { error } = await supabase
+  }): Promise<{ error: Error | null; data: { id: string } | null }> => {
+    const { data: insertedData, error } = await supabase
       .from('private_boat_routes')
-      .insert(data);
+      .insert(data)
+      .select('id')
+      .single();
 
     if (error) {
       if (error.code === '23505') {
@@ -304,12 +306,12 @@ export const usePrivateBoatRoutesData = (privateBoatId: string | null) => {
       } else {
         toast.error('Failed to create route');
       }
-      return { error };
+      return { error, data: null };
     }
 
     toast.success('Route added successfully');
     await fetchRoutes();
-    return { error: null };
+    return { error: null, data: insertedData };
   };
 
   const updateRoute = async (

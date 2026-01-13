@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -34,9 +35,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Route, Loader2, ArrowRight } from 'lucide-react';
-import { usePrivateBoatRoutesData, PrivateBoatRoute, Port } from '@/hooks/usePrivateBoatsData';
+import { Plus, Pencil, Trash2, Route, Loader2, ArrowRight, Gift } from 'lucide-react';
+import { usePrivateBoatRoutesData, PrivateBoatRoute } from '@/hooks/usePrivateBoatsData';
 import { PrivateBoat } from '@/hooks/usePrivateBoatsData';
+import { usePrivateBoatAddonsData, PrivateBoatActivityAddon } from '@/hooks/usePrivateBoatAddonsData';
 
 interface PrivateBoatRoutesModalProps {
   open: boolean;
@@ -54,6 +56,7 @@ const formatCurrency = (amount: number) => {
 
 const PrivateBoatRoutesModal = ({ open, onClose, boat }: PrivateBoatRoutesModalProps) => {
   const { routes, ports, loading, createRoute, updateRoute, deleteRoute } = usePrivateBoatRoutesData(boat?.id || null);
+  const { activityAddons, fetchRouteAddons, updateRouteAddons } = usePrivateBoatAddonsData();
   
   const [showForm, setShowForm] = useState(false);
   const [editingRoute, setEditingRoute] = useState<PrivateBoatRoute | null>(null);
@@ -67,6 +70,9 @@ const PrivateBoatRoutesModal = ({ open, onClose, boat }: PrivateBoatRoutesModalP
   const [durationMinutes, setDurationMinutes] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [formError, setFormError] = useState('');
+  
+  // Activity addons state
+  const [selectedAddons, setSelectedAddons] = useState<Map<string, 'included' | 'normal'>>(new Map());
 
   const resetForm = () => {
     setFromPortId('');
@@ -76,9 +82,10 @@ const PrivateBoatRoutesModal = ({ open, onClose, boat }: PrivateBoatRoutesModalP
     setStatus('active');
     setEditingRoute(null);
     setFormError('');
+    setSelectedAddons(new Map());
   };
 
-  const handleOpenForm = (route?: PrivateBoatRoute) => {
+  const handleOpenForm = async (route?: PrivateBoatRoute) => {
     if (route) {
       setEditingRoute(route);
       setFromPortId(route.from_port_id);
@@ -86,6 +93,14 @@ const PrivateBoatRoutesModal = ({ open, onClose, boat }: PrivateBoatRoutesModalP
       setPrice(route.price.toString());
       setDurationMinutes(route.duration_minutes?.toString() || '');
       setStatus(route.status);
+      
+      // Load existing addons for this route
+      const existingAddons = await fetchRouteAddons(route.id);
+      const addonMap = new Map<string, 'included' | 'normal'>();
+      existingAddons.forEach(a => {
+        addonMap.set(a.activity_addon_id, a.pricing_type);
+      });
+      setSelectedAddons(addonMap);
     } else {
       resetForm();
     }
@@ -127,13 +142,28 @@ const PrivateBoatRoutesModal = ({ open, onClose, boat }: PrivateBoatRoutesModalP
     };
 
     let result;
+    let routeId: string | null = null;
+    
     if (editingRoute) {
       result = await updateRoute(editingRoute.id, data);
+      routeId = editingRoute.id;
     } else {
       result = await createRoute({
         private_boat_id: boat!.id,
         ...data,
       });
+      if (!result.error && result.data) {
+        routeId = result.data.id;
+      }
+    }
+
+    // Save addon assignments if we have a route ID
+    if (!result.error && routeId) {
+      const addonsArray = Array.from(selectedAddons.entries()).map(([activity_addon_id, pricing_type]) => ({
+        activity_addon_id,
+        pricing_type,
+      }));
+      await updateRouteAddons(routeId, addonsArray);
     }
 
     setSaving(false);
@@ -143,6 +173,26 @@ const PrivateBoatRoutesModal = ({ open, onClose, boat }: PrivateBoatRoutesModalP
     } else {
       setFormError(result.error.message);
     }
+  };
+
+  const handleToggleAddon = (addonId: string) => {
+    setSelectedAddons(prev => {
+      const newMap = new Map(prev);
+      if (newMap.has(addonId)) {
+        newMap.delete(addonId);
+      } else {
+        newMap.set(addonId, 'normal'); // Default to normal pricing
+      }
+      return newMap;
+    });
+  };
+
+  const handleChangePricingType = (addonId: string, pricingType: 'included' | 'normal') => {
+    setSelectedAddons(prev => {
+      const newMap = new Map(prev);
+      newMap.set(addonId, pricingType);
+      return newMap;
+    });
   };
 
   const handleDelete = async () => {
@@ -246,7 +296,7 @@ const PrivateBoatRoutesModal = ({ open, onClose, boat }: PrivateBoatRoutesModalP
 
       {/* Add/Edit Route Dialog */}
       <Dialog open={showForm} onOpenChange={handleCloseForm}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingRoute ? 'Edit Route' : 'Add Route'}
@@ -323,6 +373,76 @@ const PrivateBoatRoutesModal = ({ open, onClose, boat }: PrivateBoatRoutesModalP
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Activity Add-ons Section */}
+            {activityAddons.filter(a => a.status === 'active').length > 0 && (
+              <div className="space-y-3 pt-2 border-t">
+                <Label className="flex items-center gap-2">
+                  <Gift className="h-4 w-4" />
+                  Activity Add-ons
+                </Label>
+                <div className="space-y-2">
+                  {activityAddons
+                    .filter(addon => addon.status === 'active')
+                    .map(addon => {
+                      const isSelected = selectedAddons.has(addon.id);
+                      const pricingType = selectedAddons.get(addon.id) || 'normal';
+                      
+                      return (
+                        <div 
+                          key={addon.id} 
+                          className={`p-3 rounded-lg border transition-colors ${
+                            isSelected ? 'border-primary bg-primary/5' : 'border-border'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              id={`addon-${addon.id}`}
+                              checked={isSelected}
+                              onCheckedChange={() => handleToggleAddon(addon.id)}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <label 
+                                htmlFor={`addon-${addon.id}`}
+                                className="font-medium cursor-pointer"
+                              >
+                                {addon.name}
+                              </label>
+                              {addon.description && (
+                                <p className="text-sm text-muted-foreground">{addon.description}</p>
+                              )}
+                              <p className="text-sm font-medium text-muted-foreground mt-1">
+                                Price: {formatCurrency(addon.price)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {isSelected && (
+                            <div className="mt-3 ml-6 flex gap-2">
+                              <Button
+                                type="button"
+                                variant={pricingType === 'included' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => handleChangePricingType(addon.id, 'included')}
+                              >
+                                Included
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={pricingType === 'normal' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => handleChangePricingType(addon.id, 'normal')}
+                              >
+                                Normal Price
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
 
             {formError && <p className="text-sm text-destructive">{formError}</p>}
           </div>
