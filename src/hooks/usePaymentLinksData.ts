@@ -83,7 +83,7 @@ export const usePaymentLinksData = () => {
           booking:bookings(
             id,
             customer:customers(full_name, email, phone),
-            departure:departures(
+            departure:departures!bookings_departure_id_fkey(
               departure_date,
               departure_time,
               trip:trips(trip_name)
@@ -157,7 +157,7 @@ export const usePaymentLinksData = () => {
           booking:bookings(
             id,
             customer:customers(full_name, email, phone),
-            departure:departures(
+            departure:departures!bookings_departure_id_fkey(
               departure_date,
               departure_time,
               trip:trips(trip_name)

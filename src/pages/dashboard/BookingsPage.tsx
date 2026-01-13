@@ -2,7 +2,7 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Search, Filter, Eye, MoreHorizontal, Users, Calendar, CreditCard } from 'lucide-react';
+import { BookOpen, Search, Filter, Eye, MoreHorizontal, Users, Calendar, CreditCard, ArrowLeftRight, Car } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useBookingsData, BookingWithDetails } from '@/hooks/useBookingsData';
 import { Badge } from '@/components/ui/badge';
@@ -194,10 +194,11 @@ const BookingsPage = () => {
                       <TableHead>Customer</TableHead>
                       <TableHead>Route</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Return</TableHead>
+                      <TableHead>Pickup</TableHead>
                       <TableHead>Pax</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Payment</TableHead>
-                      <TableHead>Channel</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -232,25 +233,38 @@ const BookingsPage = () => {
                             <p className="text-xs text-muted-foreground">{booking.departure?.departure_time?.slice(0, 5)}</p>
                           </TableCell>
                           <TableCell>
+                            {booking.return_departure ? (
+                              <div className="flex items-center gap-1">
+                                <ArrowLeftRight className="w-3 h-3 text-primary" />
+                                <span className="text-xs">
+                                  {format(new Date(booking.return_departure.departure_date), 'dd MMM')}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {booking.hasPickup ? (
+                              <div className="flex items-center gap-1 text-primary">
+                                <Car className="w-3 h-3" />
+                                <span className="text-xs">Yes</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <div className="flex items-center gap-1">
                               <Users className="w-3 h-3 text-muted-foreground" />
                               <span>{booking.pax_adult + booking.pax_child}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {booking.pax_adult}A {booking.pax_child > 0 && `+ ${booking.pax_child}C`}
-                            </p>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
-                              <CreditCard className="w-3 h-3 text-muted-foreground" />
-                              <span className="font-medium">{formatCurrency(booking.total_amount, booking.currency)}</span>
-                            </div>
+                            <span className="font-medium">{formatCurrency(booking.total_amount, booking.currency)}</span>
                           </TableCell>
                           <TableCell>
                             <Badge variant={paymentStatus.variant}>{paymentStatus.label}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{channelLabels[booking.channel] || booking.channel}</Badge>
                           </TableCell>
                           <TableCell>
                             <Badge variant={statusConfig[booking.status]?.variant || 'secondary'}>

@@ -76,7 +76,7 @@ const ModifyTicket = () => {
           total_amount,
           currency,
           customer:customers(full_name, phone, email),
-          departure:departures(
+          departure:departures!bookings_departure_id_fkey(
             departure_date,
             departure_time,
             route:routes(route_name)
