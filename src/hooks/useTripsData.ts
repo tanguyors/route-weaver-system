@@ -422,13 +422,38 @@ export const useTripsData = () => {
   const deleteSchedule = async (id: string) => {
     // Get the schedule to find its trip_id and departure_time
     const schedule = schedules.find(s => s.id === id);
-    if (schedule) {
-      // Delete departures that match this schedule's trip and departure time
-      await supabase.from('departures')
-        .delete()
-        .eq('trip_id', schedule.trip_id)
-        .eq('departure_time', schedule.departure_time);
+    if (!schedule) {
+      return { error: new Error('Schedule not found') };
     }
+
+    // Check if there are any bookings for departures matching this schedule
+    const { data: departuresWithBookings } = await supabase
+      .from('departures')
+      .select('id')
+      .eq('trip_id', schedule.trip_id)
+      .eq('departure_time', schedule.departure_time);
+
+    if (departuresWithBookings && departuresWithBookings.length > 0) {
+      const departureIds = departuresWithBookings.map(d => d.id);
+      
+      const { count: bookingsCount } = await supabase
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .in('departure_id', departureIds);
+
+      if (bookingsCount && bookingsCount > 0) {
+        return { 
+          error: new Error(`Cannot delete schedule: ${bookingsCount} booking(s) exist for this schedule. Please cancel or move the bookings first.`) 
+        };
+      }
+    }
+
+    // Delete departures that match this schedule's trip and departure time
+    await supabase.from('departures')
+      .delete()
+      .eq('trip_id', schedule.trip_id)
+      .eq('departure_time', schedule.departure_time);
+    
     // Then delete the schedule
     const { error } = await supabase.from('departure_templates').delete().eq('id', id);
     if (!error) await fetchSchedules();
