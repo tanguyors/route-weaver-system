@@ -49,11 +49,11 @@ const WidgetEmbedCode = ({
   const getStyleDescription = () => {
     switch (selectedStyle) {
       case 'block':
-        return 'Full booking form widget (recommended for dedicated pages)';
+        return 'Full booking form widget (coming soon)';
       case 'bar':
-        return 'Compact horizontal search bar (recommended for headers/hero sections)';
+        return 'Compact horizontal search bar (coming soon)';
       case 'test':
-        return 'New widget style with step-by-step flow (EkaJaya-inspired)';
+        return 'Step-by-step booking flow with shopping cart';
     }
   };
 
@@ -87,17 +87,17 @@ const WidgetEmbedCode = ({
         <Label>Widget Style</Label>
         <div className="grid grid-cols-3 gap-2">
           <Button
-            variant={selectedStyle === 'block' ? 'default' : 'outline'}
-            onClick={() => onStyleChange('block')}
-            className="flex items-center gap-2"
+            variant="outline"
+            disabled
+            className="flex items-center gap-2 opacity-50 cursor-not-allowed"
           >
             <LayoutGrid className="w-4 h-4" />
             Block
           </Button>
           <Button
-            variant={selectedStyle === 'bar' ? 'default' : 'outline'}
-            onClick={() => onStyleChange('bar')}
-            className="flex items-center gap-2"
+            variant="outline"
+            disabled
+            className="flex items-center gap-2 opacity-50 cursor-not-allowed"
           >
             <GripHorizontal className="w-4 h-4" />
             Bar
@@ -108,7 +108,7 @@ const WidgetEmbedCode = ({
             className="flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            Test (New)
+            Widget v2
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">

@@ -36,7 +36,7 @@ const WidgetPage = () => {
   } = useWidgetConfigData();
 
   const [creating, setCreating] = useState(false);
-  const [widgetStyle, setWidgetStyle] = useState<'block' | 'bar' | 'test'>('block');
+  const [widgetStyle, setWidgetStyle] = useState<'block' | 'bar' | 'test'>('test');
   const handleCreateWidget = async () => {
     setCreating(true);
     await createWidget();
@@ -119,7 +119,7 @@ const WidgetPage = () => {
               onClick={() => window.open(getDirectLink(widgetStyle), '_blank')}
             >
               <Eye className="w-4 h-4 mr-2" />
-              Preview ({widgetStyle === 'block' ? 'Block' : widgetStyle === 'bar' ? 'Bar' : 'Test (New)'})
+              Preview ({widgetStyle === 'test' ? 'Widget v2' : widgetStyle === 'block' ? 'Block' : 'Bar'})
             </Button>
           </div>
         </div>
@@ -170,7 +170,7 @@ const WidgetPage = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ExternalLink className="w-5 h-5" />
-                    Widget Preview ({widgetStyle === 'block' ? 'Block' : widgetStyle === 'bar' ? 'Bar' : 'Test (New)'})
+                    Widget Preview ({widgetStyle === 'test' ? 'Widget v2' : widgetStyle === 'block' ? 'Block' : 'Bar'})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
