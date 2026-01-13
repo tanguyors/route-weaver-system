@@ -6,12 +6,19 @@ import { WidgetSearchForm, PrivateBoatSelection } from '@/components/widget/Widg
 import { WidgetTripResults } from '@/components/widget/WidgetTripResults';
 import { WidgetShoppingCart, SelectedPickupInfo } from '@/components/widget/WidgetShoppingCart';
 import { WidgetBookingDetails } from '@/components/widget/WidgetBookingDetails';
+import { BookingStepPayment, PaymentMethod } from '@/components/widget/BookingStepPayment';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import { WidgetLanguageSelector } from '@/components/widget/WidgetLanguageSelector';
 import { WidgetLanguageProvider } from '@/contexts/WidgetLanguageContext';
 import { Card } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface PassengerInfo {
+  name: string;
+  age: string;
+  idNumber: string;
+}
 
 interface SelectedTrip {
   departure: any;
@@ -39,6 +46,16 @@ const WidgetBookingNew = () => {
   const [selectedOutbound, setSelectedOutbound] = useState<SelectedTrip | null>(null);
   const [selectedReturn, setSelectedReturn] = useState<SelectedTrip | null>(null);
   const [selectedPickups, setSelectedPickups] = useState<SelectedPickupInfo[]>([]);
+  
+  // Customer and passengers state
+  const [customerData, setCustomerData] = useState<{
+    full_name: string;
+    email: string;
+    phone: string;
+    country: string;
+  } | null>(null);
+  const [passengersData, setPassengersData] = useState<PassengerInfo[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('cash');
   
   // Private boat state
   const [privateBoatSelection, setPrivateBoatSelection] = useState<PrivateBoatSelection | null>(null);
@@ -159,19 +176,36 @@ const WidgetBookingNew = () => {
   const calculateTotal = (item: typeof cartItems[0]) => 
     (paxAdult * item.pricing.adult) + (paxChild * item.pricing.child);
 
-  const handleSubmit = async (formData: any) => {
-    if (!selectedOutbound) return;
+  // Handle details form submission - save customer/passengers and go to payment
+  const handleDetailsSubmit = (formData: { 
+    customer: { full_name: string; email: string; phone: string; country: string }; 
+    passengers: PassengerInfo[] 
+  }) => {
+    setCustomerData(formData.customer);
+    setPassengersData(formData.passengers);
+    setStep('payment');
+  };
+
+  // Handle payment submission - create the actual booking
+  const handlePaymentSubmit = async (paymentMethod: PaymentMethod) => {
+    if (!selectedOutbound || !customerData) return;
+    setSelectedPaymentMethod(paymentMethod);
     setIsSubmitting(true);
     try {
       const result = await createBooking(
         selectedOutbound.departure.id,
-        formData.customer,
+        customerData,
         paxAdult,
         paxChild,
         promoCode,
         []
       );
-      setBookingResult(result);
+      setBookingResult({
+        ...result,
+        payment_method: paymentMethod,
+        customer_name: customerData.full_name,
+        customer_email: customerData.email,
+      });
       setStep('finish');
       toast.success('Booking confirmed!');
     } catch (err: any) {
@@ -328,9 +362,9 @@ const WidgetBookingNew = () => {
             paxAdult={paxAdult}
             paxChild={paxChild}
             paxInfant={paxInfant}
-            onSubmit={handleSubmit}
+            onSubmit={handleDetailsSubmit}
             onBack={() => setStep('cart')}
-            isSubmitting={isSubmitting}
+            isSubmitting={false}
             primaryColor={primaryColor}
           />
         )}
@@ -352,15 +386,12 @@ const WidgetBookingNew = () => {
             paxAdult={privateBoatSelection.passengerCount}
             paxChild={0}
             paxInfant={0}
-            onSubmit={(formData) => {
-              // TODO: Handle private boat booking submission
-              toast.info('Private boat booking coming soon');
-            }}
+            onSubmit={handleDetailsSubmit}
             onBack={() => {
               setPrivateBoatSelection(null);
               setStep('search');
             }}
-            isSubmitting={isSubmitting}
+            isSubmitting={false}
             primaryColor={primaryColor}
             isPrivateBoat
             privateBoatName={privateBoatSelection.boat.name}
@@ -370,27 +401,68 @@ const WidgetBookingNew = () => {
           />
         )}
 
+        {/* Payment Step */}
+        {step === 'payment' && customerData && selectedOutbound && (
+          <BookingStepPayment
+            outbound={{
+              originName: getPort(selectedOutbound.route?.origin_port_id)?.name || '',
+              destName: getPort(selectedOutbound.route?.destination_port_id)?.name || '',
+              date: selectedOutbound.departure.departure_date,
+              time: selectedOutbound.departure.departure_time?.slice(0, 5),
+            }}
+            returnTrip={selectedReturn ? {
+              originName: getPort(selectedReturn.route?.origin_port_id)?.name || '',
+              destName: getPort(selectedReturn.route?.destination_port_id)?.name || '',
+              date: selectedReturn.departure.departure_date,
+              time: selectedReturn.departure.departure_time?.slice(0, 5),
+            } : undefined}
+            paxAdult={paxAdult}
+            paxChild={paxChild}
+            paxInfant={paxInfant}
+            passengers={passengersData}
+            customer={customerData}
+            totalAmount={
+              (cartItems[0] ? calculateTotal(cartItems[0]) : 0) + 
+              (cartItems[1] ? calculateTotal(cartItems[1]) : 0) +
+              selectedPickups.reduce((sum, p) => sum + (p.price || 0), 0)
+            }
+            primaryColor={primaryColor}
+            isSubmitting={isSubmitting}
+            onSubmit={handlePaymentSubmit}
+            onBack={() => setStep('details')}
+          />
+        )}
+
         {/* Success */}
-        {step === 'finish' && bookingResult && (
+        {step === 'finish' && bookingResult && customerData && (
           <BookingSuccess
             bookingId={bookingResult.booking_id}
             qrToken={bookingResult.qr_token}
             departure={{
               route: `${getPort(selectedOutbound?.route?.origin_port_id)?.name} → ${getPort(selectedOutbound?.route?.destination_port_id)?.name}`,
+              originName: getPort(selectedOutbound?.route?.origin_port_id)?.name || '',
+              destName: getPort(selectedOutbound?.route?.destination_port_id)?.name || '',
               date: selectedOutbound?.departure.departure_date || '',
               time: selectedOutbound?.departure.departure_time || '',
+              price: cartItems[0] ? calculateTotal(cartItems[0]) : 0,
             }}
             returnTrip={selectedReturn ? {
               route: `${getPort(selectedReturn?.route?.origin_port_id)?.name} → ${getPort(selectedReturn?.route?.destination_port_id)?.name}`,
+              originName: getPort(selectedReturn?.route?.origin_port_id)?.name || '',
+              destName: getPort(selectedReturn?.route?.destination_port_id)?.name || '',
               date: selectedReturn?.departure.departure_date || '',
               time: selectedReturn?.departure.departure_time || '',
+              price: cartItems[1] ? calculateTotal(cartItems[1]) : 0,
             } : undefined}
             paxAdult={paxAdult}
             paxChild={paxChild}
             paxInfant={paxInfant}
+            passengers={passengersData}
+            customer={customerData}
             totalAmount={bookingResult.total_amount}
             subtotalAmount={bookingResult.subtotal_amount}
-            customer={{ full_name: bookingResult.customer_name || '', email: bookingResult.customer_email || '' }}
+            pickups={selectedPickups.map(p => ({ name: p.cityName || '', details: p.hotelAddress || p.details || '', price: p.price || 0 }))}
+            paymentMethod={selectedPaymentMethod}
             primaryColor={primaryColor}
           />
         )}
