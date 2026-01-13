@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { CalendarDays, Trash2, Ship, Car, Bus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -174,6 +174,8 @@ export const WidgetShoppingCart = ({
   } | null>(null);
 
   const CartItemCard = ({ item }: { item: CartItem }) => {
+    const clickGuardRef = useRef(false);
+
     const boat = getBoat(item.departure.boat_id);
     const total = calculateItemTotal(item);
     const arrivalTime = calculateArrivalTime(item.departure.departure_time, item.route?.duration_minutes ?? null);
@@ -189,8 +191,27 @@ export const WidgetShoppingCart = ({
       ? availablePickups.find(r => r.id === pickupRuleId)
       : undefined;
 
-    const handleOpenBoatInfo = (e: React.MouseEvent) => {
-      e.stopPropagation();
+    const runGuarded = (fn: () => void) => {
+      return {
+        onPointerUp: (e: React.PointerEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          clickGuardRef.current = true;
+          fn();
+        },
+        onClick: (e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (clickGuardRef.current) {
+            clickGuardRef.current = false;
+            return;
+          }
+          fn();
+        },
+      };
+    };
+
+    const handleOpenBoatInfo = () => {
       if (boat) {
         setBoatInfoModal({
           open: true,
@@ -200,6 +221,16 @@ export const WidgetShoppingCart = ({
           departure: item.departure,
           pricing: item.pricing,
         });
+      }
+    };
+
+    const handleTogglePickup = () => {
+      const next = !pickupEnabled;
+      setPickupEnabledByItem(prev => ({ ...prev, [item.id]: next }));
+      if (!next) {
+        setPickupRuleIdByItem(prev => ({ ...prev, [item.id]: NONE }));
+        setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }));
+        setPickupDetailsByItem(prev => ({ ...prev, [item.id]: '' }));
       }
     };
 
@@ -223,8 +254,8 @@ export const WidgetShoppingCart = ({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => onRemoveItem(item.id)}
-            className="text-gray-400 hover:text-red-500"
+            {...runGuarded(() => onRemoveItem(item.id))}
+            className="text-gray-700 hover:text-red-600"
           >
             <Trash2 className="w-4 h-4 mr-1" />
             Delete
@@ -257,7 +288,7 @@ export const WidgetShoppingCart = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleOpenBoatInfo}
+                {...runGuarded(handleOpenBoatInfo)}
                 className="w-full mt-2 text-xs"
                 style={{ borderColor: primaryColor, color: primaryColor }}
               >
@@ -316,23 +347,21 @@ export const WidgetShoppingCart = ({
               variant="outline"
               className="gap-2"
               style={{ borderColor: primaryColor, color: primaryColor }}
-              onClick={() => {
-                const next = !pickupEnabled;
-                setPickupEnabledByItem(prev => ({ ...prev, [item.id]: next }));
-                if (!next) {
-                  setPickupRuleIdByItem(prev => ({ ...prev, [item.id]: NONE }));
-                  setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }));
-                  setPickupDetailsByItem(prev => ({ ...prev, [item.id]: '' }));
-                }
-              }}
+              {...runGuarded(handleTogglePickup)}
               disabled={availablePickups.length === 0}
             >
-              <input
-                type="checkbox"
-                checked={pickupEnabled}
-                readOnly
-                className="w-4 h-4"
-              />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "w-4 h-4 rounded border flex items-center justify-center",
+                  pickupEnabled ? "border-transparent" : "border-gray-300"
+                )}
+                style={pickupEnabled ? { backgroundColor: primaryColor } : undefined}
+              >
+                {pickupEnabled && (
+                  <span className="text-white text-[10px] leading-none">✓</span>
+                )}
+              </span>
               Pick Up
             </Button>
           </div>
