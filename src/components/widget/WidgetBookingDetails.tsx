@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WidgetOrderSummary } from './WidgetOrderSummary';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import { countries, phoneCodes } from '@/lib/countries';
 
 const customerSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -32,6 +33,7 @@ interface TripInfo {
   destName: string;
   date: string;
   time?: string;
+  arrivalTime?: string;
   paxAdult: number;
   paxChild: number;
   paxInfant: number;
@@ -123,7 +125,8 @@ export const WidgetBookingDetails = ({
     gender: '',
     email: '',
     email_confirm: '',
-    phone: '',
+    phoneCode: '+62',
+    phoneNumber: '',
     country: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -256,7 +259,7 @@ export const WidgetBookingDetails = ({
       customer: {
         full_name: customer.full_name,
         email: customer.email,
-        phone: customer.phone,
+        phone: `${customer.phoneCode}${customer.phoneNumber}`,
         country: customer.country,
       },
       passengers,
@@ -337,24 +340,50 @@ export const WidgetBookingDetails = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>* Phone</Label>
-              <Input
-                placeholder="Phone"
-                value={customer.phone}
-                onChange={(e) => setCustomer(prev => ({ ...prev, phone: e.target.value }))}
-                className="mt-1"
-              />
+              <div className="flex gap-2 mt-1">
+                <Select
+                  value={customer.phoneCode}
+                  onValueChange={(value) => setCustomer(prev => ({ ...prev, phoneCode: value }))}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Code" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] bg-white z-50">
+                    {phoneCodes.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Phone number"
+                  value={customer.phoneNumber}
+                  onChange={(e) => setCustomer(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  className="flex-1"
+                />
+              </div>
               {errors.phone && (
                 <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
               )}
             </div>
             <div>
               <Label>* Country</Label>
-              <Input
-                placeholder="Country"
+              <Select
                 value={customer.country}
-                onChange={(e) => setCustomer(prev => ({ ...prev, country: e.target.value }))}
-                className="mt-1"
-              />
+                onValueChange={(value) => setCustomer(prev => ({ ...prev, country: value }))}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px] bg-white z-50">
+                  {countries.map((country) => (
+                    <SelectItem key={country.code} value={country.name}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.country && (
                 <p className="text-sm text-red-500 mt-1">{errors.country}</p>
               )}
@@ -384,7 +413,9 @@ export const WidgetBookingDetails = ({
             
             <div className="text-sm text-gray-500 mb-4">
               📅 {format(new Date(trip.date), 'EEE, dd MMM yyyy')} 
-              (Adult x {trip.paxAdult}, Child x {trip.paxChild}, Infants x {trip.paxInfant})
+              {trip.time && <span className="ml-2">🕐 {trip.time}</span>}
+              {trip.arrivalTime && <span className="text-gray-400"> → {trip.arrivalTime}</span>}
+              <span className="ml-2">(Adult x {trip.paxAdult}, Child x {trip.paxChild}, Infants x {trip.paxInfant})</span>
             </div>
 
             {tripIndex === 0 && trips.length > 1 && (

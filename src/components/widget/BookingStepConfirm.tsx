@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, ChevronLeft, Calendar, Clock, Users, Loader2, Baby, ArrowLeftRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
+import { countries, phoneCodes } from '@/lib/countries';
 
 const customerSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -19,6 +21,7 @@ interface TripBooking {
   tripName: string;
   departureDate: string;
   departureTime: string;
+  arrivalTime?: string;
   adultPrice: number;
   childPrice: number;
 }
@@ -29,6 +32,7 @@ interface BookingState {
   tripName: string;
   departureDate: string;
   departureTime: string;
+  arrivalTime?: string;
   paxAdult: number;
   paxChild: number;
   paxInfant?: number;
@@ -54,7 +58,8 @@ export const BookingStepConfirm = ({
 }: BookingStepConfirmProps) => {
   const [customer, setCustomer] = useState({
     full_name: '',
-    phone: '',
+    phoneCode: '+62',
+    phoneNumber: '',
     email: '',
     country: '',
   });
@@ -69,7 +74,13 @@ export const BookingStepConfirm = ({
   };
 
   const handleSubmit = () => {
-    const result = customerSchema.safeParse(customer);
+    const fullPhone = `${customer.phoneCode}${customer.phoneNumber}`;
+    const result = customerSchema.safeParse({
+      full_name: customer.full_name,
+      phone: fullPhone,
+      email: customer.email,
+      country: customer.country,
+    });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach(err => {
@@ -82,7 +93,12 @@ export const BookingStepConfirm = ({
     }
     
     setErrors({});
-    onSubmit(customer);
+    onSubmit({
+      full_name: customer.full_name,
+      phone: fullPhone,
+      email: customer.email,
+      country: customer.country,
+    });
   };
 
   const isRoundTrip = !!booking.returnTrip;
@@ -124,6 +140,9 @@ export const BookingStepConfirm = ({
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 <span>{booking.departureTime.slice(0, 5)}</span>
+                {booking.arrivalTime && (
+                  <span className="text-muted-foreground/70">→ {booking.arrivalTime.slice(0, 5)}</span>
+                )}
               </div>
             </div>
             <div className="text-sm font-medium">{booking.routeName}</div>
@@ -138,10 +157,13 @@ export const BookingStepConfirm = ({
                   <Calendar className="h-4 w-4" />
                   <span>{format(new Date(booking.returnTrip.departureDate), 'MMM d, yyyy')}</span>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>{booking.returnTrip.departureTime.slice(0, 5)}</span>
-                </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>{booking.returnTrip.departureTime.slice(0, 5)}</span>
+                {booking.returnTrip.arrivalTime && (
+                  <span className="text-muted-foreground/70">→ {booking.returnTrip.arrivalTime.slice(0, 5)}</span>
+                )}
+              </div>
               </div>
               <div className="text-sm font-medium">{booking.returnTrip.routeName}</div>
             </div>
@@ -191,15 +213,33 @@ export const BookingStepConfirm = ({
 
           <div>
             <Label htmlFor="phone">Phone / WhatsApp</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="+62812345678"
-              value={customer.phone}
-              onChange={(e) => setCustomer(prev => ({ ...prev, phone: e.target.value }))}
-              className="mt-1"
-              disabled={isSubmitting}
-            />
+            <div className="flex gap-2 mt-1">
+              <Select
+                value={customer.phoneCode}
+                onValueChange={(value) => setCustomer(prev => ({ ...prev, phoneCode: value }))}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="Code" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px] bg-background z-50">
+                  {phoneCodes.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="812345678"
+                value={customer.phoneNumber}
+                onChange={(e) => setCustomer(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                className="flex-1"
+                disabled={isSubmitting}
+              />
+            </div>
             {errors.phone && (
               <p className="text-sm text-destructive mt-1">{errors.phone}</p>
             )}
@@ -223,14 +263,22 @@ export const BookingStepConfirm = ({
 
           <div>
             <Label htmlFor="country">Country</Label>
-            <Input
-              id="country"
-              placeholder="Indonesia"
+            <Select
               value={customer.country}
-              onChange={(e) => setCustomer(prev => ({ ...prev, country: e.target.value }))}
-              className="mt-1"
+              onValueChange={(value) => setCustomer(prev => ({ ...prev, country: value }))}
               disabled={isSubmitting}
-            />
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select country" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px] bg-background z-50">
+                {countries.map((country) => (
+                  <SelectItem key={country.code} value={country.name}>
+                    {country.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
