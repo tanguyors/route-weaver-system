@@ -41,8 +41,8 @@ export const DepartureCard = ({ departure, compact = false, onClick }: Departure
     }
   };
 
-  const routeName = departure.trip?.route?.route_name || 
-    `${departure.trip?.route?.origin_port?.name || ''} → ${departure.trip?.route?.destination_port?.name || ''}`;
+  const tripName = departure.trip?.trip_name || 'Unknown Trip';
+  const boatName = departure.boat?.name;
 
   if (compact) {
     return (
@@ -54,7 +54,8 @@ export const DepartureCard = ({ departure, compact = false, onClick }: Departure
         )}
       >
         <div className="font-medium truncate">{departure.departure_time.slice(0, 5)}</div>
-        <div className="truncate opacity-80">{available}/{departure.capacity_total}</div>
+        <div className="truncate opacity-80 text-[10px]">{tripName}</div>
+        {boatName && <div className="truncate opacity-60 text-[10px]">{boatName}</div>}
       </div>
     );
   }
@@ -77,10 +78,18 @@ export const DepartureCard = ({ departure, compact = false, onClick }: Departure
         </span>
       </div>
       
-      <div className="flex items-center gap-2 mb-2">
-        <Ship className="h-4 w-4 opacity-70" />
-        <span className="text-sm font-medium truncate">{routeName}</span>
+      {/* Trip Name */}
+      <div className="mb-1">
+        <span className="text-sm font-medium">{tripName}</span>
       </div>
+      
+      {/* Boat Name */}
+      {boatName && (
+        <div className="flex items-center gap-2 mb-2">
+          <Ship className="h-3.5 w-3.5 opacity-70" />
+          <span className="text-xs opacity-80">{boatName}</span>
+        </div>
+      )}
       
       <div className="flex items-center gap-2">
         <Users className="h-4 w-4 opacity-70" />
