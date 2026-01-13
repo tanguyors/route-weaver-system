@@ -1,9 +1,10 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Download, Printer } from 'lucide-react';
 import { TicketPDF } from './TicketPDF';
 import { PaymentMethod } from './BookingStepPayment';
+import { downloadElementAsPdf } from '@/lib/pdf/downloadElementAsPdf';
 
 interface PassengerInfo {
   name: string;
@@ -77,15 +78,25 @@ export const BookingSuccess = ({
   primaryColor = '#1B5E3B',
 }: BookingSuccessProps) => {
   const ticketRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleDownload = () => {
-    // Use print dialog with "Save as PDF" option
-    // Most browsers support this natively
-    window.print();
+  const handleDownload = async () => {
+    if (!ticketRef.current || isDownloading) return;
+
+    const bookingRef = bookingId.slice(0, 8).toUpperCase();
+    setIsDownloading(true);
+    try {
+      await downloadElementAsPdf({
+        element: ticketRef.current,
+        fileName: `Ticket-${bookingRef}.pdf`,
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const isRoundTrip = !!returnTrip;
@@ -154,12 +165,13 @@ export const BookingSuccess = ({
               Print Ticket
             </Button>
             <Button 
-              onClick={handleDownload} 
+              onClick={handleDownload}
+              disabled={isDownloading}
               className="flex-1 max-w-xs text-white"
               style={{ backgroundColor: primaryColor }}
             >
               <Download className="h-4 w-4 mr-2" />
-              Download PDF
+              {isDownloading ? 'Preparing PDF...' : 'Download PDF'}
             </Button>
           </div>
 

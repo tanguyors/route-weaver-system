@@ -81,7 +81,19 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
   partnerLogo,
   primaryColor = '#1B5E3B',
 }, ref) => {
-  const formatPrice = (price: number) => {
+  const toMoney = (value: unknown): number => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+
+    const str = String(value).trim();
+    // Keep digits and minus sign only (handles "Rp 900.000" / "900,000" / etc.)
+    const digits = str.replace(/[^\d-]/g, '');
+    const n = Number(digits);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const formatPrice = (value: unknown) => {
+    const price = toMoney(value);
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
@@ -92,13 +104,15 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
   const isRoundTrip = !!returnTrip;
   const bookingRef = bookingId.slice(0, 8).toUpperCase();
 
-  // Calculate ticket price for display (outbound + return prices)
-  const ticketPrice = outbound.price + (returnTrip?.price || 0);
-  const pickupsTotal = pickups.reduce((sum, p) => sum + p.price, 0);
-  
-  // Calculate correct total (ticket + pickups + addons - discount)
-  const calculatedTotal = ticketPrice + pickupsTotal + (addonsAmount || 0) - (discountAmount || 0);
-  const displayTotal = calculatedTotal > 0 ? calculatedTotal : totalAmount;
+  const outboundPrice = toMoney(outbound.price);
+  const returnPrice = toMoney(returnTrip?.price);
+  const ticketPrice = outboundPrice + returnPrice;
+  const pickupsTotal = pickups.reduce((sum, p) => sum + toMoney(p.price), 0);
+
+  const computedTotal =
+    ticketPrice + pickupsTotal + toMoney(addonsAmount) - toMoney(discountAmount);
+
+  const displayTotal = computedTotal > 0 ? computedTotal : toMoney(totalAmount);
 
   return (
     <div 
@@ -112,7 +126,13 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
         style={{ backgroundColor: primaryColor }}
       >
         {partnerLogo ? (
-          <img src={partnerLogo} alt={partnerName} className="h-10 mx-auto mb-1" />
+          <img
+            src={partnerLogo}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
+            alt={partnerName}
+            className="h-10 mx-auto mb-1"
+          />
         ) : (
           <h1 className="text-2xl font-bold">{partnerName}</h1>
         )}
@@ -145,7 +165,9 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
           {outbound.boatImage && (
             <div className="flex-shrink-0">
               <img 
-                src={outbound.boatImage} 
+                src={outbound.boatImage}
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
                 alt={outbound.boatName || 'Boat'} 
                 className="w-24 h-20 object-cover rounded-lg border"
               />
@@ -211,7 +233,9 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
             {returnTrip.boatImage && (
               <div className="flex-shrink-0">
                 <img 
-                  src={returnTrip.boatImage} 
+                  src={returnTrip.boatImage}
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                   alt={returnTrip.boatName || 'Boat'} 
                   className="w-24 h-20 object-cover rounded-lg border"
                 />
