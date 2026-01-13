@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +53,28 @@ const TripForm = ({ open, onClose, onSubmit, routes, initialData, isEdit }: Trip
   const [childPrice, setChildPrice] = useState(initialData?.child_price?.toString() || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setRouteId(initialData.route_id || '');
+      setTripName(initialData.trip_name || '');
+      setDescription(initialData.description || '');
+      setCapacityDefault(initialData.capacity_default?.toString() || '50');
+      setStatus(initialData.status || 'active');
+      setAdultPrice(initialData.adult_price?.toString() || '');
+      setChildPrice(initialData.child_price?.toString() || '');
+    } else {
+      // Reset to defaults when no initialData
+      setRouteId('');
+      setTripName('');
+      setDescription('');
+      setCapacityDefault('50');
+      setStatus('active');
+      setAdultPrice('');
+      setChildPrice('');
+    }
+  }, [initialData]);
 
   const activeRoutes = routes.filter(r => r.status === 'active');
 
