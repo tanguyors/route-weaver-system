@@ -95,6 +95,10 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
   // Calculate ticket price for display (outbound + return prices)
   const ticketPrice = outbound.price + (returnTrip?.price || 0);
   const pickupsTotal = pickups.reduce((sum, p) => sum + p.price, 0);
+  
+  // Calculate correct total (ticket + pickups + addons - discount)
+  const calculatedTotal = ticketPrice + pickupsTotal + (addonsAmount || 0) - (discountAmount || 0);
+  const displayTotal = calculatedTotal > 0 ? calculatedTotal : totalAmount;
 
   return (
     <div 
@@ -389,7 +393,7 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
         >
           <span className="font-bold text-lg">TOTAL</span>
           <span className="text-2xl font-bold" style={{ color: primaryColor }}>
-            {formatPrice(totalAmount)}
+            {formatPrice(displayTotal)}
           </span>
         </div>
       </div>
