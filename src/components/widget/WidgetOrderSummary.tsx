@@ -29,6 +29,7 @@ interface WidgetOrderSummaryProps {
   discountAmount?: number;
   promoCode?: string;
   primaryColor?: string;
+  isPrivateBoat?: boolean;
 }
 
 export const WidgetOrderSummary = ({
@@ -39,6 +40,7 @@ export const WidgetOrderSummary = ({
   discountAmount = 0,
   promoCode,
   primaryColor = '#22c55e',
+  isPrivateBoat = false,
 }: WidgetOrderSummaryProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -48,7 +50,8 @@ export const WidgetOrderSummary = ({
     }).format(price);
   };
 
-  const pickupsTotal = pickups.reduce((sum, p) => sum + p.price, 0);
+  // For private boats, pickups are included (price = 0 in total)
+  const pickupsTotal = isPrivateBoat ? 0 : pickups.reduce((sum, p) => sum + p.price, 0);
   const subtotal = (outbound?.price || 0) + (returnTrip?.price || 0) + addonsTotal + pickupsTotal;
   const grandTotal = subtotal - discountAmount;
 
@@ -149,7 +152,16 @@ export const WidgetOrderSummary = ({
                     )}
                   </div>
                 </div>
-                <span className="font-bold">{formatPrice(pickup.price)}</span>
+                {isPrivateBoat ? (
+                  <div className="text-right">
+                    <span className="line-through text-white/50 text-xs mr-2">
+                      {formatPrice(pickup.price)}
+                    </span>
+                    <span className="font-bold text-yellow-400">Inclus</span>
+                  </div>
+                ) : (
+                  <span className="font-bold">{formatPrice(pickup.price)}</span>
+                )}
               </div>
             ))}
           </div>

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Minus, Car, Bus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WidgetOrderSummary } from './WidgetOrderSummary';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
@@ -45,6 +46,16 @@ interface PickupInfo {
   beforeDepartureMinutes?: number;
 }
 
+interface PickupDropoffRule {
+  id: string;
+  from_port_id: string;
+  service_type: 'pickup' | 'dropoff';
+  city_name: string;
+  car_price: number;
+  bus_price: number;
+  before_departure_minutes?: number;
+}
+
 interface WidgetBookingDetailsProps {
   outbound: TripInfo;
   returnTrip?: TripInfo;
@@ -61,6 +72,8 @@ interface WidgetBookingDetailsProps {
   primaryColor?: string;
   isPrivateBoat?: boolean;
   privateBoatName?: string;
+  pickupDropoffRules?: PickupDropoffRule[];
+  originPortId?: string;
 }
 
 export const WidgetBookingDetails = ({
@@ -76,6 +89,8 @@ export const WidgetBookingDetails = ({
   primaryColor = '#22c55e',
   isPrivateBoat = false,
   privateBoatName,
+  pickupDropoffRules = [],
+  originPortId,
 }: WidgetBookingDetailsProps) => {
   const totalPassengers = paxAdult + paxChild + paxInfant;
 
@@ -101,6 +116,42 @@ export const WidgetBookingDetails = ({
   const [expandedPassenger, setExpandedPassenger] = useState<number | null>(0);
   const [useCustomerAsFirstPassenger, setUseCustomerAsFirstPassenger] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Private boat pickup selection
+  const [pickupEnabled, setPickupEnabled] = useState(false);
+  const [selectedPickupRuleId, setSelectedPickupRuleId] = useState<string>('');
+  const [pickupVehicleType, setPickupVehicleType] = useState<'car' | 'bus'>('car');
+  const [pickupDetails, setPickupDetails] = useState('');
+
+  // Filter pickup rules for private boat (based on origin port)
+  const availablePickupRules = useMemo(() => {
+    if (!isPrivateBoat || !originPortId) return [];
+    return pickupDropoffRules.filter(
+      r => r.service_type === 'pickup' && r.from_port_id === originPortId
+    );
+  }, [isPrivateBoat, originPortId, pickupDropoffRules]);
+
+  const selectedPickupRule = useMemo(() => {
+    return availablePickupRules.find(r => r.id === selectedPickupRuleId);
+  }, [availablePickupRules, selectedPickupRuleId]);
+
+  // Build combined pickups (passed from parent + local private boat selection)
+  const combinedPickups = useMemo(() => {
+    if (!isPrivateBoat || !pickupEnabled || !selectedPickupRule) {
+      return pickups;
+    }
+    const price = pickupVehicleType === 'car' ? selectedPickupRule.car_price : selectedPickupRule.bus_price;
+    return [
+      ...pickups,
+      {
+        cityName: selectedPickupRule.city_name,
+        vehicleType: pickupVehicleType,
+        price,
+        details: pickupDetails || undefined,
+        beforeDepartureMinutes: selectedPickupRule.before_departure_minutes,
+      },
+    ];
+  }, [isPrivateBoat, pickupEnabled, selectedPickupRule, pickupVehicleType, pickupDetails, pickups]);
 
   const updatePassenger = (index: number, field: keyof PassengerInfo, value: string) => {
     setPassengers(prev => {
@@ -351,6 +402,115 @@ export const WidgetBookingDetails = ({
           </div>
         ))}
 
+        {/* Private Boat Pickup Selection */}
+        {isPrivateBoat && availablePickupRules.length > 0 && (
+          <div className="bg-white rounded-lg border p-6">
+            <h2 className="text-xl font-bold mb-4" style={{ color: primaryColor }}>
+              Pickup Service
+              <span className="ml-2 text-sm font-normal text-green-600">(Inclus avec Private Boat)</span>
+            </h2>
+
+            <div className="flex items-center gap-4 mb-4">
+              <Checkbox
+                id="enablePickup"
+                checked={pickupEnabled}
+                onCheckedChange={(checked) => {
+                  setPickupEnabled(!!checked);
+                  if (!checked) {
+                    setSelectedPickupRuleId('');
+                    setPickupVehicleType('car');
+                    setPickupDetails('');
+                  }
+                }}
+              />
+              <Label htmlFor="enablePickup" className="cursor-pointer">
+                Ajouter un service de pickup (gratuit)
+              </Label>
+            </div>
+
+            {pickupEnabled && (
+              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-sm text-gray-600 mb-1">Zone de pickup</Label>
+                    <Select
+                      value={selectedPickupRuleId}
+                      onValueChange={setSelectedPickupRuleId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionner une zone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availablePickupRules.map(r => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min avant)` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm text-gray-600 mb-1">Hôtel / Adresse</Label>
+                    <Input
+                      placeholder="Entrez votre hôtel ou adresse"
+                      value={pickupDetails}
+                      onChange={(e) => setPickupDetails(e.target.value)}
+                      disabled={!selectedPickupRuleId}
+                    />
+                  </div>
+                </div>
+
+                {selectedPickupRule && (
+                  <div>
+                    <Label className="text-sm text-gray-600 mb-2">Type de véhicule</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPickupVehicleType('car')}
+                        className={cn(
+                          'rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all flex flex-col items-center gap-1',
+                          pickupVehicleType === 'car'
+                            ? 'border-gray-900 bg-gray-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        )}
+                      >
+                        <Car className="h-5 w-5" />
+                        <span>Voiture (max 4 pax)</span>
+                        <span className="text-xs">
+                          <span className="line-through text-gray-400 mr-1">
+                            IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()}
+                          </span>
+                          <span className="text-green-600 font-bold">Inclus</span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPickupVehicleType('bus')}
+                        className={cn(
+                          'rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all flex flex-col items-center gap-1',
+                          pickupVehicleType === 'bus'
+                            ? 'border-gray-900 bg-gray-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        )}
+                      >
+                        <Bus className="h-5 w-5" />
+                        <span>Minibus (max 10 pax)</span>
+                        <span className="text-xs">
+                          <span className="line-through text-gray-400 mr-1">
+                            IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()}
+                          </span>
+                          <span className="text-green-600 font-bold">Inclus</span>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Payment Type */}
         <div className="bg-white rounded-lg border p-6">
           <div className="flex items-center gap-4">
@@ -411,8 +571,9 @@ export const WidgetBookingDetails = ({
             ...returnTrip,
             routeName: `${returnTrip.originName} - ${returnTrip.destName}`,
           } : undefined}
-          pickups={pickups}
+          pickups={combinedPickups}
           primaryColor={primaryColor}
+          isPrivateBoat={isPrivateBoat}
         />
       </div>
     </div>
