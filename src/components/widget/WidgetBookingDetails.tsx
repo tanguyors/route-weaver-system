@@ -407,7 +407,7 @@ export const WidgetBookingDetails = ({
           <div className="bg-white rounded-lg border p-6">
             <h2 className="text-xl font-bold mb-4" style={{ color: primaryColor }}>
               Pickup Service
-              <span className="ml-2 text-sm font-normal text-green-600">(Inclus avec Private Boat)</span>
+              <span className="ml-2 text-sm font-normal text-green-600">(Included with Private Boat)</span>
             </h2>
 
             <div className="flex items-center gap-4 mb-4">
@@ -424,7 +424,7 @@ export const WidgetBookingDetails = ({
                 }}
               />
               <Label htmlFor="enablePickup" className="cursor-pointer">
-                Ajouter un service de pickup (gratuit)
+                Add pickup service (free)
               </Label>
             </div>
 
@@ -432,18 +432,18 @@ export const WidgetBookingDetails = ({
               <div className="space-y-4 rounded-lg border border-gray-200 p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-sm text-gray-600 mb-1">Zone de pickup</Label>
+                    <Label className="text-sm text-gray-600 mb-1">Pickup area</Label>
                     <Select
                       value={selectedPickupRuleId}
                       onValueChange={setSelectedPickupRuleId}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Sélectionner une zone" />
+                        <SelectValue placeholder="Select a zone" />
                       </SelectTrigger>
                       <SelectContent>
                         {availablePickupRules.map(r => (
                           <SelectItem key={r.id} value={r.id}>
-                            {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min avant)` : ''}
+                            {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min before)` : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -451,9 +451,9 @@ export const WidgetBookingDetails = ({
                   </div>
 
                   <div>
-                    <Label className="text-sm text-gray-600 mb-1">Hôtel / Adresse</Label>
+                    <Label className="text-sm text-gray-600 mb-1">Hotel / Address</Label>
                     <Input
-                      placeholder="Entrez votre hôtel ou adresse"
+                      placeholder="Enter your hotel or address"
                       value={pickupDetails}
                       onChange={(e) => setPickupDetails(e.target.value)}
                       disabled={!selectedPickupRuleId}
@@ -463,7 +463,7 @@ export const WidgetBookingDetails = ({
 
                 {selectedPickupRule && (
                   <div>
-                    <Label className="text-sm text-gray-600 mb-2">Type de véhicule</Label>
+                    <Label className="text-sm text-gray-600 mb-2">Vehicle type</Label>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
@@ -476,12 +476,12 @@ export const WidgetBookingDetails = ({
                         )}
                       >
                         <Car className="h-5 w-5" />
-                        <span>Voiture (max 4 pax)</span>
+                        <span>Car (max 4 pax)</span>
                         <span className="text-xs">
                           <span className="line-through text-gray-400 mr-1">
                             IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()}
                           </span>
-                          <span className="text-green-600 font-bold">Inclus</span>
+                          <span className="text-green-600 font-bold">Included</span>
                         </span>
                       </button>
                       <button
@@ -500,7 +500,7 @@ export const WidgetBookingDetails = ({
                           <span className="line-through text-gray-400 mr-1">
                             IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()}
                           </span>
-                          <span className="text-green-600 font-bold">Inclus</span>
+                          <span className="text-green-600 font-bold">Included</span>
                         </span>
                       </button>
                     </div>
