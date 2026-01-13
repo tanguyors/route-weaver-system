@@ -7,6 +7,8 @@ import { WidgetTripResults } from '@/components/widget/WidgetTripResults';
 import { WidgetShoppingCart, SelectedPickupInfo } from '@/components/widget/WidgetShoppingCart';
 import { WidgetBookingDetails } from '@/components/widget/WidgetBookingDetails';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
+import { WidgetLanguageSelector } from '@/components/widget/WidgetLanguageSelector';
+import { WidgetLanguageProvider } from '@/contexts/WidgetLanguageContext';
 import { Card } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -179,9 +181,15 @@ const WidgetBookingNew = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Step Indicator */}
-      <WidgetStepIndicator currentStep={step} primaryColor={primaryColor} />
+    <WidgetLanguageProvider>
+      <div className="min-h-screen bg-gray-100">
+        {/* Language Selector */}
+        <div className="absolute top-3 right-4 z-50">
+          <WidgetLanguageSelector primaryColor={primaryColor} />
+        </div>
+
+        {/* Step Indicator */}
+        <WidgetStepIndicator currentStep={step} primaryColor={primaryColor} />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Search Form */}
@@ -383,13 +391,14 @@ const WidgetBookingNew = () => {
         )}
       </div>
 
-      {/* Powered by tag */}
-      <div className="fixed bottom-2 right-4">
-        <span className="text-xs text-gray-400">
-          By <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: primaryColor }}>SriBooking.com</a>
-        </span>
+        {/* Powered by tag */}
+        <div className="fixed bottom-2 right-4">
+          <span className="text-xs text-gray-400">
+            By <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: primaryColor }}>SriBooking.com</a>
+          </span>
+        </div>
       </div>
-    </div>
+    </WidgetLanguageProvider>
   );
 };
 
