@@ -22,7 +22,7 @@ interface Boat {
 interface Trip {
   id: string;
   trip_name: string;
-  description: string | null;
+  description?: string | null;
 }
 
 interface Route {
@@ -52,6 +52,7 @@ interface BoatInfoModalProps {
   paxAdult?: number;
   paxChild?: number;
   primaryColor?: string;
+  hideSelectButton?: boolean;
 }
 
 export const BoatInfoModal = ({
@@ -69,6 +70,7 @@ export const BoatInfoModal = ({
   paxAdult = 0,
   paxChild = 0,
   primaryColor = '#1B5E3B',
+  hideSelectButton = false,
 }: BoatInfoModalProps) => {
   if (!boat) return null;
 
@@ -253,21 +255,22 @@ export const BoatInfoModal = ({
           <Button 
             variant="outline" 
             onClick={onClose}
-            className="flex-1"
+            className={hideSelectButton ? "w-full" : "flex-1"}
           >
-            <X className="h-4 w-4 mr-2" />
             Close
           </Button>
-          <Button 
-            onClick={() => {
-              onSelectTrip();
-              onClose();
-            }}
-            className="flex-1 text-white font-semibold"
-            style={{ backgroundColor: primaryColor }}
-          >
-            Select This Trip
-          </Button>
+          {!hideSelectButton && (
+            <Button 
+              onClick={() => {
+                onSelectTrip();
+                onClose();
+              }}
+              className="flex-1 text-white font-semibold"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Select This Trip
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
