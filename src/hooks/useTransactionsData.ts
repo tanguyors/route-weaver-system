@@ -125,7 +125,7 @@ export const useTransactionsData = () => {
             id,
             total_amount,
             customer:customers(full_name, email),
-            departure:departures(
+            departure:departures!bookings_departure_id_fkey(
               departure_date,
               trip:trips(trip_name)
             )
@@ -153,7 +153,7 @@ export const useTransactionsData = () => {
           booking:bookings(
             id,
             customer:customers(full_name),
-            departure:departures(
+            departure:departures!bookings_departure_id_fkey(
               departure_date,
               trip:trips(trip_name)
             )

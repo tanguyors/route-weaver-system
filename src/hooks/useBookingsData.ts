@@ -23,6 +23,7 @@ export interface BookingWithDetails {
   id: string;
   partner_id: string;
   departure_id: string;
+  return_departure_id: string | null;
   customer_id: string;
   channel: string;
   pax_adult: number;
@@ -62,6 +63,21 @@ export interface BookingWithDetails {
       };
     };
   };
+  return_departure?: {
+    id: string;
+    departure_date: string;
+    departure_time: string;
+    trip?: {
+      id: string;
+      trip_name: string;
+      route?: {
+        id: string;
+        route_name: string;
+        origin?: { id: string; name: string };
+        destination?: { id: string; name: string };
+      };
+    };
+  };
   payments?: {
     id: string;
     amount: number;
@@ -76,6 +92,7 @@ export interface BookingWithDetails {
     status: string;
   };
   addons?: BookingAddon[];
+  hasPickup?: boolean;
 }
 
 export interface CreateBookingData {
@@ -130,9 +147,13 @@ export const useBookingsData = () => {
       .select(`
         *,
         customer:customers(id, full_name, email, phone, country),
-        departure:departures(
+        departure:departures!bookings_departure_id_fkey(
           id, departure_date, departure_time,
           boat:boats(id, name, image_url),
+          trip:trips(id, trip_name, route:routes(id, route_name, origin:ports!routes_origin_port_id_fkey(id, name), destination:ports!routes_destination_port_id_fkey(id, name)))
+        ),
+        return_departure:departures!bookings_return_departure_id_fkey(
+          id, departure_date, departure_time,
           trip:trips(id, trip_name, route:routes(id, route_name, origin:ports!routes_origin_port_id_fkey(id, name), destination:ports!routes_destination_port_id_fkey(id, name)))
         ),
         ticket:tickets(id, qr_token, status),
@@ -167,12 +188,17 @@ export const useBookingsData = () => {
             .eq('booking_id', booking.id)
             .order('created_at', { ascending: false });
           
+          const addons = Array.isArray(booking.addons) ? booking.addons : [];
+          const hasPickup = addons.some((a: any) => a.pickup_zone_id || a.pickup_info);
+          
           return {
             ...booking,
             customer: Array.isArray(booking.customer) ? booking.customer[0] : booking.customer,
             departure: Array.isArray(booking.departure) ? booking.departure[0] : booking.departure,
+            return_departure: Array.isArray(booking.return_departure) ? booking.return_departure[0] : booking.return_departure,
             ticket: Array.isArray(booking.ticket) ? booking.ticket[0] : booking.ticket,
-            addons: Array.isArray(booking.addons) ? booking.addons : [],
+            addons,
+            hasPickup,
             payments: payments || [],
           };
         })

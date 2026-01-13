@@ -1119,6 +1119,7 @@ export type Database = {
           partner_id: string
           pax_adult: number
           pax_child: number
+          return_departure_id: string | null
           status: Database["public"]["Enums"]["booking_status"]
           subtotal_amount: number
           total_amount: number
@@ -1137,6 +1138,7 @@ export type Database = {
           partner_id: string
           pax_adult?: number
           pax_child?: number
+          return_departure_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           subtotal_amount: number
           total_amount: number
@@ -1155,6 +1157,7 @@ export type Database = {
           partner_id?: string
           pax_adult?: number
           pax_child?: number
+          return_departure_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           subtotal_amount?: number
           total_amount?: number
@@ -1180,6 +1183,13 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_return_departure_id_fkey"
+            columns: ["return_departure_id"]
+            isOneToOne: false
+            referencedRelation: "departures"
             referencedColumns: ["id"]
           },
         ]
