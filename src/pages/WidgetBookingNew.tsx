@@ -380,15 +380,18 @@ const WidgetBookingNew = () => {
               date: selectedOutbound?.departure.departure_date || '',
               time: selectedOutbound?.departure.departure_time || '',
             }}
+            returnTrip={selectedReturn ? {
+              route: `${getPort(selectedReturn?.route?.origin_port_id)?.name} → ${getPort(selectedReturn?.route?.destination_port_id)?.name}`,
+              date: selectedReturn?.departure.departure_date || '',
+              time: selectedReturn?.departure.departure_time || '',
+            } : undefined}
             paxAdult={paxAdult}
             paxChild={paxChild}
             paxInfant={paxInfant}
             totalAmount={bookingResult.total_amount}
             subtotalAmount={bookingResult.subtotal_amount}
-            addonsAmount={0}
-            discountAmount={0}
-            addons={[]}
-            customer={{ full_name: '', email: '' }}
+            customer={{ full_name: bookingResult.customer_name || '', email: bookingResult.customer_email || '' }}
+            primaryColor={primaryColor}
           />
         )}
       </div>
