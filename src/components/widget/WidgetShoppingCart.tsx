@@ -149,12 +149,14 @@ export const WidgetShoppingCart = ({
 
   const pickupRulesByPort = useMemo(() => {
     const map = new Map<string, PickupDropoffRule[]>();
+    console.log('pickupDropoffRules received:', pickupDropoffRules);
     for (const rule of pickupDropoffRules) {
       if (rule.service_type !== 'pickup') continue;
       const list = map.get(rule.from_port_id) || [];
       list.push(rule);
       map.set(rule.from_port_id, list);
     }
+    console.log('pickupRulesByPort map:', Object.fromEntries(map));
     return map;
   }, [pickupDropoffRules]);
 
@@ -184,6 +186,7 @@ export const WidgetShoppingCart = ({
     const pickupDetails = pickupDetailsByItem[item.id] ?? '';
 
     const availablePickups = pickupRulesByPort.get(item.originPortId) || [];
+    console.log('Cart item originPortId:', item.originPortId, 'availablePickups:', availablePickups);
     const selectedPickupRule = pickupRuleId !== NONE
       ? availablePickups.find(r => r.id === pickupRuleId)
       : undefined;
