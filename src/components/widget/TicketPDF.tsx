@@ -92,8 +92,8 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
   const isRoundTrip = !!returnTrip;
   const bookingRef = bookingId.slice(0, 8).toUpperCase();
 
-  // Calculate ticket price for display
-  const ticketPrice = subtotalAmount || (outbound.price + (returnTrip?.price || 0));
+  // Calculate ticket price for display (outbound + return prices)
+  const ticketPrice = outbound.price + (returnTrip?.price || 0);
   const pickupsTotal = pickups.reduce((sum, p) => sum + p.price, 0);
 
   return (
