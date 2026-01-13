@@ -185,6 +185,22 @@ serve(async (req) => {
       pickup_dropoff_rules: pickupDropoffRules,
     }));
 
+    // Get schedule boat assignments (fallback for departures missing boat_id)
+    const { data: departureTemplates } = await supabase
+      .from('departure_templates')
+      .select('trip_id, departure_time, boat_id')
+      .eq('partner_id', partnerId)
+      .eq('status', 'active')
+      .not('boat_id', 'is', null);
+
+    const normalizeTime = (t: string) => (t || '').slice(0, 5);
+    const templateBoatMap = new Map<string, string>();
+
+    for (const t of (departureTemplates || []) as any[]) {
+      if (!t?.trip_id || !t?.departure_time || !t?.boat_id) continue;
+      templateBoatMap.set(`${t.trip_id}__${normalizeTime(t.departure_time)}`, t.boat_id);
+    }
+
     // Build departures query
     let departuresQuery = supabase
       .from('departures')
@@ -208,6 +224,12 @@ serve(async (req) => {
       filteredDepartures = filteredDepartures.filter(d => matchingRouteIds.includes(d.route_id));
     }
 
+    // Apply schedule fallback boat_id (do not override if departure already has boat_id)
+    filteredDepartures = filteredDepartures.map((d: any) => {
+      if (d.boat_id) return d;
+      const boatId = templateBoatMap.get(`${d.trip_id}__${normalizeTime(d.departure_time)}`);
+      return boatId ? { ...d, boat_id: boatId } : d;
+    });
     // Build unique ports list
     const ports = new Map();
     for (const route of routes || []) {
