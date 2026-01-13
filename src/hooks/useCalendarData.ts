@@ -15,6 +15,7 @@ export interface CalendarDeparture {
   capacity_reserved: number;
   status: 'open' | 'closed' | 'sold_out' | 'cancelled';
   notes_internal?: string | null;
+  boat_id?: string | null;
   trip?: {
     id: string;
     trip_name: string;
@@ -24,6 +25,11 @@ export interface CalendarDeparture {
       origin_port?: { name: string };
       destination_port?: { name: string };
     };
+  };
+  boat?: {
+    id: string;
+    name: string;
+    image_url?: string | null;
   };
 }
 
@@ -73,6 +79,11 @@ export const useCalendarData = () => {
             origin_port:ports!routes_origin_port_id_fkey(name),
             destination_port:ports!routes_destination_port_id_fkey(name)
           )
+        ),
+        boat:boats(
+          id,
+          name,
+          image_url
         )
       `)
       .gte('departure_date', dateRange.start)
