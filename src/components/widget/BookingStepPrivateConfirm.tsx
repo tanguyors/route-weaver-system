@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Anchor, Calendar, Clock, MapPin, Users, ArrowLeft, Loader2, Car } from 'lucide-react';
-import { PrivateBoatSelection } from './BookingStepPrivateBoat';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Anchor, Calendar, Clock, MapPin, Users, ArrowLeft, Loader2, Car, Gift } from 'lucide-react';
+import { PrivateBoatSelection, SelectedActivityAddon } from './BookingStepPrivateBoat';
 
 interface BookingStepPrivateConfirmProps {
   selection: PrivateBoatSelection;
   isSubmitting: boolean;
-  onSubmit: (customer: CustomerInfo) => void;
+  onSubmit: (customer: CustomerInfo, activityAddons: SelectedActivityAddon[]) => void;
   onBack: () => void;
 }
 
@@ -34,10 +35,35 @@ export const BookingStepPrivateConfirm = ({
     country: '',
   });
 
+  // Activity addons selection
+  const [selectedActivityAddons, setSelectedActivityAddons] = useState<Set<string>>(new Set());
+  
+  const routeActivityAddons = selection.route.activity_addons || [];
+
+  // Calculate activity addons total (only non-included ones)
+  const activityAddonsTotal = useMemo(() => {
+    return routeActivityAddons
+      .filter(ra => selectedActivityAddons.has(ra.activity_addon_id) && ra.pricing_type === 'normal')
+      .reduce((sum, ra) => sum + ra.activity_addon.price, 0);
+  }, [routeActivityAddons, selectedActivityAddons]);
+
+  const handleToggleActivityAddon = (addonId: string) => {
+    setSelectedActivityAddons(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(addonId)) {
+        newSet.delete(addonId);
+      } else {
+        newSet.add(addonId);
+      }
+      return newSet;
+    });
+  };
+
   const calculateTotal = () => {
     let total = selection.route.price;
     if (selection.pickup) total += selection.pickup.rule.price;
     if (selection.dropoff) total += selection.dropoff.rule.price;
+    total += activityAddonsTotal;
     return total;
   };
 
@@ -46,7 +72,15 @@ export const BookingStepPrivateConfirm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (canSubmit) {
-      onSubmit(customer);
+      const selectedAddons: SelectedActivityAddon[] = routeActivityAddons
+        .filter(ra => selectedActivityAddons.has(ra.activity_addon_id))
+        .map(ra => ({
+          addon_id: ra.activity_addon_id,
+          name: ra.activity_addon.name,
+          price: ra.activity_addon.price,
+          pricing_type: ra.pricing_type,
+        }));
+      onSubmit(customer, selectedAddons);
     }
   };
 
@@ -119,6 +153,65 @@ export const BookingStepPrivateConfirm = ({
               </div>
             </div>
 
+            {/* Activity Add-ons Selection */}
+            {routeActivityAddons.length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <h4 className="font-medium flex items-center gap-2 text-sm text-muted-foreground uppercase tracking-wide">
+                    <Gift className="h-4 w-4" />
+                    Activity Add-ons
+                  </h4>
+                  <div className="space-y-2">
+                    {routeActivityAddons.map(ra => {
+                      const isSelected = selectedActivityAddons.has(ra.activity_addon_id);
+                      const isIncluded = ra.pricing_type === 'included';
+                      
+                      return (
+                        <div 
+                          key={ra.id}
+                          className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-amber-500 bg-amber-50'
+                              : 'border-border hover:border-amber-300'
+                          }`}
+                          onClick={() => handleToggleActivityAddon(ra.activity_addon_id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => handleToggleActivityAddon(ra.activity_addon_id)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">{ra.activity_addon.name}</span>
+                                {isIncluded ? (
+                                  <span className="flex items-center gap-2">
+                                    <span className="line-through text-muted-foreground text-sm">
+                                      IDR {Number(ra.activity_addon.price).toLocaleString()}
+                                    </span>
+                                    <span className="text-green-600 font-bold text-sm">Included</span>
+                                  </span>
+                                ) : (
+                                  <span className="font-bold text-sm text-amber-600">
+                                    +IDR {Number(ra.activity_addon.price).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                              {ra.activity_addon.description && (
+                                <p className="text-xs text-muted-foreground mt-1">{ra.activity_addon.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* Pickup/Dropoff */}
             {(selection.pickup || selection.dropoff) && (
               <>
@@ -154,6 +247,19 @@ export const BookingStepPrivateConfirm = ({
                 <span>Boat Charter</span>
                 <span>IDR {selection.route.price.toLocaleString()}</span>
               </div>
+              {routeActivityAddons
+                .filter(ra => selectedActivityAddons.has(ra.activity_addon_id))
+                .map(ra => (
+                  <div key={ra.id} className="flex justify-between text-muted-foreground">
+                    <span>{ra.activity_addon.name}</span>
+                    {ra.pricing_type === 'included' ? (
+                      <span className="text-green-600">Included</span>
+                    ) : (
+                      <span>IDR {ra.activity_addon.price.toLocaleString()}</span>
+                    )}
+                  </div>
+                ))
+              }
               {selection.pickup && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Pickup Service</span>
