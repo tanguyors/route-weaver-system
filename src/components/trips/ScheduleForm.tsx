@@ -135,8 +135,13 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
       return;
     }
 
-    if (seasonalStart && seasonalEnd && seasonalStart > seasonalEnd) {
-      setError('Seasonal end date must be after start date');
+    if (!seasonalStart || !seasonalEnd) {
+      setError('Please enter both start and end dates for the schedule period');
+      return;
+    }
+
+    if (seasonalStart > seasonalEnd) {
+      setError('End date must be after start date');
       return;
     }
 
@@ -302,23 +307,29 @@ const ScheduleForm = ({ open, onClose, onSubmit, trips, initialData, isEdit }: S
           </div>
 
           <div className="space-y-2">
-            <Label>Seasonal Period (Optional)</Label>
+            <Label>Schedule Period *</Label>
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="date"
-                placeholder="Start date"
-                value={seasonalStart}
-                onChange={e => setSeasonalStart(e.target.value)}
-              />
-              <Input
-                type="date"
-                placeholder="End date"
-                value={seasonalEnd}
-                onChange={e => setSeasonalEnd(e.target.value)}
-              />
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">Start Date</span>
+                <Input
+                  type="date"
+                  value={seasonalStart}
+                  onChange={e => setSeasonalStart(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">End Date</span>
+                <Input
+                  type="date"
+                  value={seasonalEnd}
+                  onChange={e => setSeasonalEnd(e.target.value)}
+                  required
+                />
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Leave empty for year-round operation
+              Departures will be generated for this period
             </p>
           </div>
 
