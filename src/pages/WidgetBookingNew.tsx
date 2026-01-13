@@ -180,15 +180,13 @@ const WidgetBookingNew = () => {
     }
   };
 
+  const languageSelector = <WidgetLanguageSelector primaryColor={primaryColor} />;
+
   return (
     <WidgetLanguageProvider>
       <div className="min-h-screen bg-gray-100">
-        {/* Step Indicator with Language Selector */}
-        <WidgetStepIndicator 
-          currentStep={step} 
-          primaryColor={primaryColor}
-          languageSelector={<WidgetLanguageSelector primaryColor={primaryColor} />}
-        />
+        {/* Step Indicator */}
+        <WidgetStepIndicator currentStep={step} primaryColor={primaryColor} />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Search Form */}
@@ -212,6 +210,7 @@ const WidgetBookingNew = () => {
             onPaxChange={(a, c, i) => { setPaxAdult(a); setPaxChild(c); setPaxInfant(i); }}
             onSearch={handleSearch}
             primaryColor={primaryColor}
+            languageSelector={languageSelector}
             privateBoats={data?.private_boats || []}
             onPrivateBoatSearch={(selection) => {
               setPrivateBoatSelection(selection);
@@ -242,6 +241,7 @@ const WidgetBookingNew = () => {
               onPaxChange={(a, c, i) => { setPaxAdult(a); setPaxChild(c); setPaxInfant(i); }}
               onSearch={handleSearch}
               primaryColor={primaryColor}
+              languageSelector={languageSelector}
               privateBoats={data?.private_boats || []}
               onPrivateBoatSearch={(selection) => {
                 setPrivateBoatSelection(selection);

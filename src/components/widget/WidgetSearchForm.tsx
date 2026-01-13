@@ -98,6 +98,7 @@ interface WidgetSearchFormProps {
   primaryColor?: string;
   logoUrl?: string;
   tagline?: string;
+  languageSelector?: React.ReactNode;
   // Private boat props
   privateBoats?: PrivateBoat[];
   onPrivateBoatSearch?: (selection: PrivateBoatSelection) => void;
@@ -125,6 +126,7 @@ export const WidgetSearchForm = ({
   primaryColor = '#1B5E3B',
   logoUrl,
   tagline,
+  languageSelector,
   privateBoats = [],
   onPrivateBoatSearch,
 }: WidgetSearchFormProps) => {
@@ -240,13 +242,14 @@ export const WidgetSearchForm = ({
         className="py-4 px-6 text-white"
         style={{ backgroundColor: primaryColor }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold flex items-center gap-2">
             ▸ {t('bookTickets')}
+            {tagline && (
+              <span className="italic text-white/90 font-normal text-base ml-2">{tagline}</span>
+            )}
           </h2>
-          {tagline && (
-            <p className="italic text-white/90">{tagline}</p>
-          )}
+          {languageSelector}
         </div>
       </div>
 
