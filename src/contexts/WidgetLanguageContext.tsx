@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-export type SupportedLanguage = 'en' | 'fr' | 'ru' | 'zh' | 'es' | 'de' | 'nl';
+export type SupportedLanguage = 'en' | 'fr' | 'ru' | 'zh' | 'es' | 'de' | 'nl' | 'id';
 
 interface LanguageContextType {
   language: SupportedLanguage;
   setLanguage: (lang: SupportedLanguage) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const translations: Record<SupportedLanguage, Record<string, string>> = {
@@ -869,6 +869,136 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'invalidEmail': 'Ongeldig e-mailadres',
     'invalidPhone': 'Ongeldig telefoonnummer',
   },
+  
+  id: {
+    // General
+    'select': 'Pilih',
+    'back': 'Kembali',
+    'next': 'Lanjut',
+    'confirm': 'Konfirmasi',
+    'apply': 'Terapkan',
+    'delete': 'Hapus',
+    'included': 'Termasuk',
+    'loading': 'Memuat...',
+    'noResults': 'Tidak ada hasil',
+    
+    // Service type
+    'serviceType': 'Jenis Layanan',
+    'sharedBoat': 'Kapal Bersama',
+    'privateBoat': 'Kapal Pribadi',
+    'sharedBoatDesc': 'Bepergian dengan penumpang lain sesuai jadwal',
+    'privateBoatDesc': 'Charter kapal eksklusif untuk grup Anda',
+    'publicFastFerry': 'Ferry Cepat Umum',
+    
+    // Route selection
+    'selectRoute': 'Pilih Rute',
+    'from': 'Dari',
+    'to': 'Ke',
+    'selectOrigin': 'Pilih asal',
+    'selectDestination': 'Pilih tujuan',
+    'selectDeparture': 'Pilih keberangkatan',
+    'tripType': 'Jenis Perjalanan',
+    'oneWay': 'Sekali Jalan',
+    'roundTrip': 'Pulang Pergi',
+    'departureDate': 'Tanggal Berangkat',
+    'returnDate': 'Tanggal Kembali',
+    'searchTrips': 'Cari Perjalanan',
+    'selectVoyage': 'Pilih perjalanan',
+    'bookTickets': 'Pesan Tiket',
+    
+    // Passengers
+    'passengers': 'Penumpang',
+    'adult': 'Dewasa',
+    'adults': 'Dewasa',
+    'child': 'Anak',
+    'children': 'Anak-anak',
+    'infant': 'Bayi',
+    'infants': 'Bayi',
+    'yearsOld': 'tahun',
+    'underYears': 'di bawah {years} tahun',
+    'adultAge': 'Dewasa (12+ tahun)',
+    'infantAge': 'Bayi (0-2 tahun)',
+    
+    // Departures
+    'availableTrips': 'Perjalanan Tersedia',
+    'noTripsAvailable': 'Tidak ada perjalanan untuk tanggal ini',
+    'seatsAvailable': 'kursi tersedia',
+    'departure': 'Keberangkatan',
+    'arrival': 'Kedatangan',
+    'duration': 'Durasi',
+    'minutes': 'menit',
+    
+    // Addons
+    'addons': 'Tambahan',
+    'optionalAddons': 'Tambahan Opsional',
+    'selectAddons': 'Pilih Tambahan',
+    
+    // Pickup/Dropoff
+    'pickup': 'Jemput',
+    'dropoff': 'Antar',
+    'pickupOptions': 'Opsi Penjemputan',
+    'pickupArea': 'Area Penjemputan',
+    'selectPickup': 'Pilih penjemputan',
+    'hotelAddress': 'Hotel / Alamat',
+    'enterHotelAddress': 'Masukkan hotel atau alamat Anda',
+    'shuttleRates': 'Tarif Antar-Jemput',
+    'numberOfPassengers': 'Jumlah penumpang',
+    'car': 'Mobil',
+    'minibus': 'Minibus',
+    'maxPax': 'maks {count} orang',
+    'minBefore': '{minutes} menit sebelum',
+    'noPickupAvailable': 'Tidak ada layanan penjemputan untuk pelabuhan ini.',
+    
+    // Shopping cart
+    'yourTrips': 'Perjalanan Anda',
+    'tickets': 'Tiket',
+    'selectTripToSeeSummary': 'Pilih perjalanan untuk melihat ringkasan',
+    'grandTotal': 'Total',
+    'promoCode': 'Kode Promo',
+    'enterPromoCode': 'Masukkan kode promo',
+    'bookOtherTrip': 'Pesan perjalanan lain',
+    'proceedToCheckout': 'Lanjut ke Pembayaran',
+    'boatInfo': 'Info Kapal',
+    
+    // Checkout
+    'checkout': 'Pembayaran',
+    'contactDetails': 'Detail Kontak',
+    'fullName': 'Nama Lengkap',
+    'email': 'Email',
+    'phone': 'Telepon',
+    'country': 'Negara',
+    'specialRequests': 'Permintaan Khusus',
+    'termsAndConditions': 'Syarat dan Ketentuan',
+    'iAgreeToTerms': 'Saya setuju dengan syarat dan ketentuan',
+    'payNow': 'Bayar Sekarang',
+    'payLater': 'Bayar Nanti',
+    'bookNow': 'Pesan Sekarang',
+    
+    // Booking success
+    'bookingConfirmed': 'Pemesanan Dikonfirmasi!',
+    'bookingReference': 'Nomor Referensi',
+    'thankYou': 'Terima kasih atas pemesanan Anda',
+    'confirmationSent': 'Email konfirmasi telah dikirim ke alamat Anda.',
+    'downloadTicket': 'Unduh Tiket',
+    'bookAnother': 'Pesan Perjalanan Lain',
+    
+    // Private boat
+    'selectBoat': 'Pilih Kapal',
+    'boatDetails': 'Detail Kapal',
+    'capacity': 'Kapasitas',
+    'description': 'Deskripsi',
+    'selectDate': 'Pilih Tanggal',
+    'selectTime': 'Pilih Waktu',
+    'departureTime': 'Waktu Keberangkatan',
+    'route': 'Rute',
+    
+    // Errors
+    'errorOccurred': 'Terjadi kesalahan',
+    'tryAgain': 'Coba Lagi',
+    'required': 'Wajib diisi',
+    'invalidEmail': 'Alamat email tidak valid',
+    'invalidPhone': 'Nomor telepon tidak valid',
+  },
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -876,8 +1006,14 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export const WidgetLanguageProvider = ({ children, defaultLanguage = 'en' }: { children: ReactNode; defaultLanguage?: SupportedLanguage }) => {
   const [language, setLanguage] = useState<SupportedLanguage>(defaultLanguage);
 
-  const t = (key: string): string => {
-    return translations[language]?.[key] || translations['en']?.[key] || key;
+  const t = (key: string, params?: Record<string, string | number>): string => {
+    let text = translations[language]?.[key] || translations['en']?.[key] || key;
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        text = text.replace(`{${k}}`, String(v));
+      });
+    }
+    return text;
   };
 
   return (
@@ -898,6 +1034,7 @@ export const useWidgetLanguage = () => {
 export const LANGUAGE_OPTIONS: { code: SupportedLanguage; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
   { code: 'ru', label: 'Русский', flag: '🇷🇺' },
   { code: 'zh', label: '中文', flag: '🇨🇳' },
   { code: 'es', label: 'Español', flag: '🇪🇸' },
