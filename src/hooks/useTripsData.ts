@@ -34,6 +34,8 @@ export interface Trip {
   status: 'active' | 'inactive';
   created_at: string;
   route?: Route;
+  adult_price?: number;
+  child_price?: number;
 }
 
 export interface DepartureTemplate {
@@ -107,9 +109,25 @@ export const useTripsData = () => {
     }
     const { data, error } = await query.order('created_at', { ascending: false });
     if (!error && data) {
+      // Fetch base prices for all trips
+      const tripIds = data.map(t => t.id);
+      const { data: priceRules } = await supabase
+        .from('price_rules')
+        .select('trip_id, adult_price, child_price')
+        .in('trip_id', tripIds)
+        .eq('rule_type', 'base')
+        .eq('status', 'active');
+
+      const priceMap = new Map<string, { adult_price: number; child_price: number | null }>();
+      for (const rule of priceRules || []) {
+        priceMap.set(rule.trip_id, { adult_price: rule.adult_price, child_price: rule.child_price });
+      }
+
       const enriched = data.map(trip => ({
         ...trip,
         route: routes.find(r => r.id === trip.route_id),
+        adult_price: priceMap.get(trip.id)?.adult_price,
+        child_price: priceMap.get(trip.id)?.child_price,
       }));
       setTrips(enriched as Trip[]);
     }
