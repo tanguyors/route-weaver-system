@@ -53,6 +53,7 @@ export interface SelectedPickupInfo {
   vehicleType: 'car' | 'bus';
   price: number;
   details?: string;
+  hotelAddress?: string;
   beforeDepartureMinutes?: number;
 }
 
@@ -192,6 +193,7 @@ export const WidgetShoppingCart = ({
             vehicleType,
             price,
             details: pickupDetailsByItem[item.id] || undefined,
+            hotelAddress: pickupDetailsByItem[item.id] || undefined,
             beforeDepartureMinutes: rule.before_departure_minutes,
           });
         }
