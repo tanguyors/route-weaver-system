@@ -12,7 +12,8 @@ import { BookingWithDetails } from '@/hooks/useBookingsData';
 import { format } from 'date-fns';
 import { 
   Calendar, Clock, Users, CreditCard, QrCode, Ship, 
-  Phone, Mail, MapPin, Plus, XCircle, Loader2, AlertTriangle 
+  Phone, Mail, MapPin, Plus, XCircle, Loader2, AlertTriangle,
+  ArrowRight, Car, Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -128,10 +129,20 @@ export const BookingDetailModal = ({
             <div className="p-4 bg-muted rounded-lg space-y-3">
               <div className="flex items-center gap-2">
                 <Ship className="h-5 w-5 text-primary" />
-                <span className="font-semibold">
-                  {booking.departure?.trip?.route?.route_name || 'Unknown Route'}
+                <span className="font-semibold">Outbound Trip</span>
+              </div>
+              
+              {/* Route */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium">
+                  {booking.departure?.trip?.route?.origin?.name || 'Origin'}
+                </span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">
+                  {booking.departure?.trip?.route?.destination?.name || 'Destination'}
                 </span>
               </div>
+              
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -146,6 +157,14 @@ export const BookingDetailModal = ({
                   <span>{booking.departure?.departure_time?.slice(0, 5) || 'N/A'}</span>
                 </div>
               </div>
+              
+              {booking.departure?.boat && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Ship className="h-4 w-4 text-muted-foreground" />
+                  <span>Boat: {booking.departure.boat.name}</span>
+                </div>
+              )}
+              
               <div className="flex items-center gap-2 text-sm">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span>
@@ -154,6 +173,58 @@ export const BookingDetailModal = ({
                 </span>
               </div>
             </div>
+
+            {/* Add-ons Section */}
+            {booking.addons && booking.addons.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Add-ons & Services
+                </h4>
+                <div className="space-y-2">
+                  {booking.addons.map((addon) => (
+                    <div key={addon.id} className="p-3 border rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {addon.pickup_zone_id ? (
+                              <Car className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Package className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <span className="font-medium">{addon.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              x{addon.qty}
+                            </span>
+                          </div>
+                          
+                          {/* Pickup Info */}
+                          {addon.pickup_info && (
+                            <div className="mt-2 pl-6 space-y-1 text-sm text-muted-foreground">
+                              {addon.pickup_info.hotel_name && (
+                                <p>Hotel: {addon.pickup_info.hotel_name}</p>
+                              )}
+                              {addon.pickup_info.address && (
+                                <p className="flex items-start gap-1">
+                                  <MapPin className="h-3 w-3 mt-1 shrink-0" />
+                                  {addon.pickup_info.address}
+                                </p>
+                              )}
+                              {addon.pickup_info.pickup_note && (
+                                <p className="italic">Note: {addon.pickup_info.pickup_note}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <span className="font-medium text-sm">
+                          {formatPrice(addon.total)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Customer Info */}
             <div className="space-y-2">
@@ -188,18 +259,34 @@ export const BookingDetailModal = ({
 
             {/* Pricing Summary */}
             <div className="space-y-2">
-              <h4 className="font-semibold">Pricing</h4>
+              <h4 className="font-semibold">Pricing Breakdown</h4>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(booking.subtotal_amount)}</span>
-                </div>
+                {/* Calculate ticket price without addons */}
+                {(() => {
+                  const addonsTotal = booking.addons?.reduce((sum, a) => sum + a.total, 0) || 0;
+                  const ticketPrice = booking.subtotal_amount - addonsTotal;
+                  return (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Ticket ({booking.pax_adult + booking.pax_child} pax)</span>
+                        <span>{formatPrice(ticketPrice)}</span>
+                      </div>
+                      {addonsTotal > 0 && (
+                        <div className="flex justify-between">
+                          <span>Add-ons</span>
+                          <span>{formatPrice(addonsTotal)}</span>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 {booking.discount_amount > 0 && (
                   <div className="flex justify-between text-destructive">
                     <span>Discount</span>
                     <span>-{formatPrice(booking.discount_amount)}</span>
                   </div>
                 )}
+                <Separator className="my-2" />
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
                   <span>{formatPrice(booking.total_amount)}</span>

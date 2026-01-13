@@ -3,6 +3,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 
+export interface BookingAddon {
+  id: string;
+  addon_id: string | null;
+  name: string;
+  qty: number;
+  price: number;
+  total: number;
+  pickup_zone_id: string | null;
+  pickup_info: {
+    hotel_name?: string;
+    address?: string;
+    pickup_note?: string;
+  } | null;
+  created_at: string;
+}
+
 export interface BookingWithDetails {
   id: string;
   partner_id: string;
@@ -30,12 +46,19 @@ export interface BookingWithDetails {
     id: string;
     departure_date: string;
     departure_time: string;
+    boat?: {
+      id: string;
+      name: string;
+      image_url: string | null;
+    };
     trip?: {
       id: string;
       trip_name: string;
       route?: {
         id: string;
         route_name: string;
+        origin?: { id: string; name: string };
+        destination?: { id: string; name: string };
       };
     };
   };
@@ -52,6 +75,7 @@ export interface BookingWithDetails {
     qr_token: string;
     status: string;
   };
+  addons?: BookingAddon[];
 }
 
 export interface CreateBookingData {
@@ -108,9 +132,11 @@ export const useBookingsData = () => {
         customer:customers(id, full_name, email, phone, country),
         departure:departures(
           id, departure_date, departure_time,
-          trip:trips(id, trip_name, route:routes(id, route_name))
+          boat:boats(id, name, image_url),
+          trip:trips(id, trip_name, route:routes(id, route_name, origin:ports!routes_origin_port_id_fkey(id, name), destination:ports!routes_destination_port_id_fkey(id, name)))
         ),
-        ticket:tickets(id, qr_token, status)
+        ticket:tickets(id, qr_token, status),
+        addons:booking_addons(id, addon_id, name, qty, price, total, pickup_zone_id, pickup_info, created_at)
       `)
       .order('created_at', { ascending: false })
       .limit(100);
@@ -146,6 +172,7 @@ export const useBookingsData = () => {
             customer: Array.isArray(booking.customer) ? booking.customer[0] : booking.customer,
             departure: Array.isArray(booking.departure) ? booking.departure[0] : booking.departure,
             ticket: Array.isArray(booking.ticket) ? booking.ticket[0] : booking.ticket,
+            addons: Array.isArray(booking.addons) ? booking.addons : [],
             payments: payments || [],
           };
         })
