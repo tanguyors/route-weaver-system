@@ -129,6 +129,21 @@ export const WidgetShoppingCart = ({
     pricing: { adult: number; child: number };
   } | null>(null);
 
+  // Helper to calculate arrival time
+  const calculateArrivalTime = (departureTime: string, durationMinutes: number | null): string | undefined => {
+    if (!durationMinutes) return undefined;
+    
+    const [hours, minutes] = departureTime.slice(0, 5).split(':').map(Number);
+    const departureDate = new Date();
+    departureDate.setHours(hours, minutes, 0, 0);
+    
+    const arrivalDate = new Date(departureDate.getTime() + durationMinutes * 60000);
+    const arrivalHours = arrivalDate.getHours().toString().padStart(2, '0');
+    const arrivalMinutes = arrivalDate.getMinutes().toString().padStart(2, '0');
+    
+    return `${arrivalHours}:${arrivalMinutes}`;
+  };
+
   // Calculate totals for order summary
   const outboundItem = items.find(i => i.direction === 'outbound');
   const returnItem = items.find(i => i.direction === 'return');
@@ -139,6 +154,7 @@ export const WidgetShoppingCart = ({
     destName: outboundItem.destName,
     date: outboundItem.departure.departure_date,
     time: outboundItem.departure.departure_time?.slice(0, 5),
+    arrivalTime: calculateArrivalTime(outboundItem.departure.departure_time, outboundItem.route?.duration_minutes ?? null),
     paxAdult,
     paxChild,
     paxInfant,
@@ -151,6 +167,7 @@ export const WidgetShoppingCart = ({
     destName: returnItem.destName,
     date: returnItem.departure.departure_date,
     time: returnItem.departure.departure_time?.slice(0, 5),
+    arrivalTime: calculateArrivalTime(returnItem.departure.departure_time, returnItem.route?.duration_minutes ?? null),
     paxAdult,
     paxChild,
     paxInfant,

@@ -7,6 +7,7 @@ interface TripInfo {
   destName: string;
   date: string;
   time?: string;
+  arrivalTime?: string;
   paxAdult: number;
   paxChild: number;
   paxInfant: number;
@@ -85,7 +86,11 @@ export const WidgetOrderSummary = ({
       {/* Date & Time */}
       <div className="flex items-center gap-2 text-sm mb-2">
         <CalendarDays className="w-3 h-3 text-yellow-400" />
-        <span>{format(new Date(trip.date), 'dd MMM yyyy')}{trip.time ? ` - ${trip.time}` : ''}</span>
+        <span>
+          {format(new Date(trip.date), 'dd MMM yyyy')}
+          {trip.time ? ` - ${trip.time}` : ''}
+          {trip.arrivalTime ? ` → ${trip.arrivalTime}` : ''}
+        </span>
       </div>
 
       {/* Passengers */}
