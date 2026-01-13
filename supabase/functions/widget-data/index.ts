@@ -201,7 +201,8 @@ serve(async (req) => {
       templateBoatMap.set(`${t.trip_id}__${normalizeTime(t.departure_time)}`, t.boat_id);
     }
 
-    // Build departures query
+    // Build departures query - fetch all open departures for the partner
+    // Increased limit to accommodate round-trip bookings (both directions)
     let departuresQuery = supabase
       .from('departures')
       .select('id, trip_id, route_id, departure_date, departure_time, capacity_total, capacity_reserved, status, boat_id')
@@ -210,19 +211,12 @@ serve(async (req) => {
       .gte('departure_date', date || new Date().toISOString().split('T')[0])
       .order('departure_date')
       .order('departure_time')
-      .limit(50);
+      .limit(200);
 
     const { data: departures } = await departuresQuery;
 
-    // Filter by route if origin/destination provided
+    // Note: Filtering by origin/destination is now done client-side to support round-trip bookings
     let filteredDepartures = departures || [];
-    if (originPortId && destinationPortId) {
-      const matchingRoutes = (routes || []).filter(
-        r => r.origin_port_id === originPortId && r.destination_port_id === destinationPortId
-      );
-      const matchingRouteIds = matchingRoutes.map(r => r.id);
-      filteredDepartures = filteredDepartures.filter(d => matchingRouteIds.includes(d.route_id));
-    }
 
     // Apply schedule fallback boat_id (do not override if departure already has boat_id)
     // Also filter out past departures for today
