@@ -1,12 +1,10 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
-import { format } from 'date-fns';
-import { CalendarDays, Trash2, Ship, Car, Bus, Info } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { Ship } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WidgetOrderSummary } from './WidgetOrderSummary';
-import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BoatInfoModal } from './BoatInfoModal';
+import { CartItemCard, CartItem } from './CartItemCard';
 
 interface Boat {
   id: string;
@@ -49,26 +47,6 @@ interface PickupDropoffRule {
 type VehicleType = 'car' | 'bus';
 
 const NONE = '__none__';
-
-interface CartItem {
-  id: string;
-  departure: {
-    id: string;
-    trip_id: string;
-    route_id: string;
-    departure_date: string;
-    departure_time: string;
-    boat_id: string | null;
-  };
-  trip: Trip | undefined;
-  route?: Route;
-  originName: string;
-  destName: string;
-  originPortId: string;
-  destPortId: string;
-  pricing: { adult: number; child: number };
-  direction: 'outbound' | 'return';
-}
 
 export interface SelectedPickupInfo {
   cityName: string;
@@ -113,17 +91,10 @@ export const WidgetShoppingCart = ({
   onPickupsChange,
   primaryColor = '#1B5E3B',
 }: WidgetShoppingCartProps) => {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
 
   const getBoat = (boatId: string | null) => {
     if (!boatId) return null;
-    return boats.find(b => b.id === boatId);
+    return boats.find(b => b.id === boatId) || null;
   };
 
   const calculateItemTotal = (item: CartItem) => {
@@ -131,21 +102,6 @@ export const WidgetShoppingCart = ({
   };
 
   const getPort = (portId: string) => ports.find(p => p.id === portId);
-
-  // Calculate arrival time based on departure time and duration
-  const calculateArrivalTime = (departureTime: string, durationMinutes: number | null): string => {
-    if (!durationMinutes) return '--:--';
-    
-    const [hours, minutes] = departureTime.slice(0, 5).split(':').map(Number);
-    const departureDate = new Date();
-    departureDate.setHours(hours, minutes, 0, 0);
-    
-    const arrivalDate = new Date(departureDate.getTime() + durationMinutes * 60000);
-    const arrivalHours = arrivalDate.getHours().toString().padStart(2, '0');
-    const arrivalMinutes = arrivalDate.getMinutes().toString().padStart(2, '0');
-    
-    return `${arrivalHours}:${arrivalMinutes}`;
-  };
 
   const pickupRulesByPort = useMemo(() => {
     const map = new Map<string, PickupDropoffRule[]>();
@@ -172,304 +128,6 @@ export const WidgetShoppingCart = ({
     departure: CartItem['departure'] | null;
     pricing: { adult: number; child: number };
   } | null>(null);
-
-  const CartItemCard = ({ item }: { item: CartItem }) => {
-    const clickGuardRef = useRef(false);
-
-    const boat = getBoat(item.departure.boat_id);
-    const total = calculateItemTotal(item);
-    const arrivalTime = calculateArrivalTime(item.departure.departure_time, item.route?.duration_minutes ?? null);
-
-    const pickupEnabled = pickupEnabledByItem[item.id] ?? false;
-    const pickupRuleId = pickupRuleIdByItem[item.id] ?? NONE;
-    const pickupVehicleType = pickupVehicleTypeByItem[item.id] ?? 'car';
-    const pickupDetails = pickupDetailsByItem[item.id] ?? '';
-
-    const originPortId = item.route?.origin_port_id || item.originPortId;
-    const availablePickups = pickupRulesByPort.get(originPortId) || [];
-    
-    // Debug: log pour vérifier l'ID du port et les pickups disponibles
-    // (à supprimer une fois que tout est OK)
-    console.log('🔍 Pickup Debug:', {
-      itemId: item.id,
-      originPortId,
-      originName: item.originName,
-      availablePickupsForThisPort: availablePickups,
-    });
-    const selectedPickupRule = pickupRuleId !== NONE
-      ? availablePickups.find(r => r.id === pickupRuleId)
-      : undefined;
-
-    const runGuarded = (fn: () => void) => {
-      return {
-        onPointerUp: (e: React.PointerEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          clickGuardRef.current = true;
-          fn();
-        },
-        onClick: (e: React.MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (clickGuardRef.current) {
-            clickGuardRef.current = false;
-            return;
-          }
-          fn();
-        },
-      };
-    };
-
-    const handleOpenBoatInfo = () => {
-      if (boat) {
-        setBoatInfoModal({
-          open: true,
-          boat,
-          trip: item.trip,
-          route: item.route,
-          departure: item.departure,
-          pricing: item.pricing,
-        });
-      }
-    };
-
-    const handleTogglePickup = () => {
-      const next = !pickupEnabled;
-      setPickupEnabledByItem(prev => ({ ...prev, [item.id]: next }));
-      if (!next) {
-        setPickupRuleIdByItem(prev => ({ ...prev, [item.id]: NONE }));
-        setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }));
-        setPickupDetailsByItem(prev => ({ ...prev, [item.id]: '' }));
-      }
-    };
-
-    return (
-      <div className="bg-white rounded-lg border-2 border-gray-200 p-4 mb-4">
-        {/* Date Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
-              style={{ borderTopColor: primaryColor }}
-            />
-            <div className="flex items-center gap-2" style={{ color: primaryColor }}>
-              <CalendarDays className="w-4 h-4" />
-              <span className="font-medium">
-                {format(new Date(item.departure.departure_date), 'EEE, dd MMM yyyy')}
-              </span>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            {...runGuarded(() => onRemoveItem(item.id))}
-            className="text-gray-700 hover:text-red-600"
-          >
-            <Trash2 className="w-4 h-4 mr-1" />
-            Delete
-          </Button>
-        </div>
-
-        <div className="flex gap-4">
-          {/* Boat Image & Info */}
-          <div className="w-44 flex-shrink-0">
-            <div className="h-28 rounded-lg overflow-hidden bg-gray-100">
-              {boat?.image_url ? (
-                <img 
-                  src={boat.image_url} 
-                  alt={boat.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Ship className="w-12 h-12 text-gray-300" />
-                </div>
-              )}
-            </div>
-            {/* Boat Name */}
-            <p className="text-center text-sm font-medium text-gray-700 mt-2 truncate">
-              {boat?.name || 'Boat'}
-            </p>
-            {/* Boat Info Button */}
-            {boat && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                {...runGuarded(handleOpenBoatInfo)}
-                className="w-full mt-2 text-xs"
-                style={{ borderColor: primaryColor, color: primaryColor }}
-              >
-                <Info className="h-3 w-3 mr-1" />
-                Boat Info
-              </Button>
-            )}
-          </div>
-
-          {/* Trip Info */}
-          <div className="flex-1">
-            <h3 
-              className="font-bold text-lg mb-2"
-              style={{ color: primaryColor }}
-            >
-              {item.trip?.trip_name || 'Trip'}
-            </h3>
-
-            {/* Times */}
-            <div className="flex items-center gap-6 mb-2">
-              <div>
-                <div className="text-xl font-bold">{item.departure.departure_time.slice(0, 5)}</div>
-                <div style={{ color: primaryColor }} className="text-sm">{item.originName}</div>
-              </div>
-              <div className="flex-1 border-t-2 border-dashed border-gray-300 relative">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gray-400" />
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gray-400" />
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-bold">{arrivalTime}</div>
-                <div style={{ color: primaryColor }} className="text-sm">{item.destName}</div>
-              </div>
-            </div>
-
-            {/* Price */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">
-                Adult X {paxAdult}, Child X {paxChild}, Infants X {paxInfant}
-              </span>
-              <span className="font-bold" style={{ color: primaryColor }}>
-                {formatPrice(total)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Shuttle option */}
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex items-center justify-end gap-4">
-            <span className="text-sm text-gray-500 flex items-center gap-1">
-              <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-xs">i</span>
-              Shuttle Rates
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              className="gap-2"
-              style={{ borderColor: primaryColor, color: primaryColor }}
-              {...runGuarded(handleTogglePickup)}
-              disabled={availablePickups.length === 0}
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "w-4 h-4 rounded border flex items-center justify-center",
-                  pickupEnabled ? "border-transparent" : "border-gray-300"
-                )}
-                style={pickupEnabled ? { backgroundColor: primaryColor } : undefined}
-              >
-                {pickupEnabled && (
-                  <span className="text-white text-[10px] leading-none">✓</span>
-                )}
-              </span>
-              Pick Up
-            </Button>
-          </div>
-
-          {/* Pickup options (shown when enabled) */}
-          {pickupEnabled && (
-            <div className="mt-4 rounded-lg border border-gray-200 p-4">
-              <div className="text-sm font-semibold mb-2" style={{ color: primaryColor }}>
-                Pickup options
-              </div>
-              {availablePickups.length === 0 ? (
-                <p className="text-sm text-gray-500">No pickup services available for this departure port.</p>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Pickup area</div>
-                      <Select
-                        value={pickupRuleId}
-                        onValueChange={(v) => {
-                          setPickupRuleIdByItem(prev => ({ ...prev, [item.id]: v }));
-                          if (v === NONE) {
-                            setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }));
-                            setPickupDetailsByItem(prev => ({ ...prev, [item.id]: '' }));
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select pickup" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NONE}>Select pickup</SelectItem>
-                          {availablePickups.map(r => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min before)` : ''}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Hotel / Address</div>
-                      <Input
-                        placeholder="Enter your hotel or address"
-                        value={pickupDetails}
-                        onChange={(e) => setPickupDetailsByItem(prev => ({ ...prev, [item.id]: e.target.value }))}
-                        disabled={pickupRuleId === NONE}
-                      />
-                    </div>
-                  </div>
-
-                  {selectedPickupRule && (
-                    <div className="mt-3">
-                      <div className="text-sm text-gray-600 mb-2">Number of passengers</div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'car' }))}
-                          className={cn(
-                            'rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all flex flex-col items-center gap-1',
-                            pickupVehicleType === 'car'
-                              ? 'border-gray-900 bg-gray-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          )}
-                        >
-                          <Car className="h-5 w-5" />
-                          <span>Car (max 4 pax)</span>
-                          <span className="text-xs opacity-75">
-                            +IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPickupVehicleTypeByItem(prev => ({ ...prev, [item.id]: 'bus' }))}
-                          className={cn(
-                            'rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all flex flex-col items-center gap-1',
-                            pickupVehicleType === 'bus'
-                              ? 'border-gray-900 bg-gray-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          )}
-                        >
-                          <Bus className="h-5 w-5" />
-                          <span>Minibus (max 10 pax)</span>
-                          <span className="text-xs opacity-75">
-                            +IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   // Calculate totals for order summary
   const outboundItem = items.find(i => i.direction === 'outbound');
@@ -502,13 +160,13 @@ export const WidgetShoppingCart = ({
   // Collect selected pickups for order summary
   const selectedPickups = useMemo(() => {
     const result: SelectedPickupInfo[] = [];
-      for (const item of items) {
-        const enabled = pickupEnabledByItem[item.id];
-        const ruleId = pickupRuleIdByItem[item.id];
-        if (enabled && ruleId && ruleId !== NONE) {
-          const originPortId = item.route?.origin_port_id || item.originPortId;
-          const availablePickups = pickupRulesByPort.get(originPortId) || [];
-          const rule = availablePickups.find(r => r.id === ruleId);
+    for (const item of items) {
+      const enabled = pickupEnabledByItem[item.id];
+      const ruleId = pickupRuleIdByItem[item.id];
+      if (enabled && ruleId && ruleId !== NONE) {
+        const originPortId = item.route?.origin_port_id || item.originPortId;
+        const availablePickups = pickupRulesByPort.get(originPortId) || [];
+        const rule = availablePickups.find(r => r.id === ruleId);
         if (rule) {
           const vehicleType = pickupVehicleTypeByItem[item.id] || 'car';
           const price = vehicleType === 'car' ? rule.car_price : rule.bus_price;
@@ -530,100 +188,162 @@ export const WidgetShoppingCart = ({
     onPickupsChange?.(selectedPickups);
   }, [selectedPickups, onPickupsChange]);
 
+  const handleTogglePickup = (itemId: string) => {
+    const current = pickupEnabledByItem[itemId] ?? false;
+    const next = !current;
+    setPickupEnabledByItem(prev => ({ ...prev, [itemId]: next }));
+    if (!next) {
+      setPickupRuleIdByItem(prev => ({ ...prev, [itemId]: NONE }));
+      setPickupVehicleTypeByItem(prev => ({ ...prev, [itemId]: 'car' }));
+      setPickupDetailsByItem(prev => ({ ...prev, [itemId]: '' }));
+    }
+  };
+
+  const handlePickupRuleChange = (itemId: string, ruleId: string) => {
+    setPickupRuleIdByItem(prev => ({ ...prev, [itemId]: ruleId }));
+    if (ruleId === NONE) {
+      setPickupVehicleTypeByItem(prev => ({ ...prev, [itemId]: 'car' }));
+      setPickupDetailsByItem(prev => ({ ...prev, [itemId]: '' }));
+    }
+  };
+
+  const handleVehicleTypeChange = (itemId: string, type: VehicleType) => {
+    setPickupVehicleTypeByItem(prev => ({ ...prev, [itemId]: type }));
+  };
+
+  const handlePickupDetailsChange = (itemId: string, details: string) => {
+    setPickupDetailsByItem(prev => ({ ...prev, [itemId]: details }));
+  };
+
+  const handleOpenBoatInfo = (item: CartItem, boat: Boat) => {
+    setBoatInfoModal({
+      open: true,
+      boat,
+      trip: item.trip,
+      route: item.route,
+      departure: item.departure,
+      pricing: item.pricing,
+    });
+  };
+
   return (
     <>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Main Content */}
-      <div className="lg:col-span-2">
-        {/* Cart Items */}
-        {items.length === 0 ? (
-          <div className="bg-white rounded-lg p-8 text-center text-gray-500">
-            <Ship className="w-16 h-16 mx-auto mb-4 opacity-30" />
-            <p className="text-lg font-medium">Your cart is empty</p>
-            <p className="text-sm mt-1">Select trips to add them to your cart</p>
-          </div>
-        ) : (
-          items.map(item => (
-            <CartItemCard key={item.id} item={item} />
-          ))
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
+        <div className="lg:col-span-2">
+          {/* Cart Items */}
+          {items.length === 0 ? (
+            <div className="bg-white rounded-lg p-8 text-center text-gray-500">
+              <Ship className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p className="text-lg font-medium">Your cart is empty</p>
+              <p className="text-sm mt-1">Select trips to add them to your cart</p>
+            </div>
+          ) : (
+            items.map(item => {
+              const originPortId = item.route?.origin_port_id || item.originPortId;
+              const availablePickups = pickupRulesByPort.get(originPortId) || [];
 
-        {/* Promo Code */}
-        <div className="bg-white rounded-lg border p-4 mt-4">
-          <div className="flex items-center gap-4">
-            <span className="font-semibold">Promotional Code</span>
-            <div className="flex-1 flex gap-2">
-              <Input
-                placeholder="Enter promo code"
-                value={promoCode}
-                onChange={(e) => onPromoCodeChange(e.target.value.toUpperCase())}
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                onClick={onApplyPromo}
-                className="text-white"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Apply
-              </Button>
+              return (
+                <CartItemCard
+                  key={item.id}
+                  item={item}
+                  boat={getBoat(item.departure.boat_id)}
+                  paxAdult={paxAdult}
+                  paxChild={paxChild}
+                  paxInfant={paxInfant}
+                  primaryColor={primaryColor}
+                  availablePickups={availablePickups}
+                  pickupEnabled={pickupEnabledByItem[item.id] ?? false}
+                  pickupRuleId={pickupRuleIdByItem[item.id] ?? NONE}
+                  pickupVehicleType={pickupVehicleTypeByItem[item.id] ?? 'car'}
+                  pickupDetails={pickupDetailsByItem[item.id] ?? ''}
+                  onRemoveItem={onRemoveItem}
+                  onOpenBoatInfo={(boat) => handleOpenBoatInfo(item, boat)}
+                  onTogglePickup={() => handleTogglePickup(item.id)}
+                  onPickupRuleChange={(ruleId) => handlePickupRuleChange(item.id, ruleId)}
+                  onVehicleTypeChange={(type) => handleVehicleTypeChange(item.id, type)}
+                  onPickupDetailsChange={(details) => handlePickupDetailsChange(item.id, details)}
+                />
+              );
+            })
+          )}
+
+          {/* Promo Code */}
+          <div className="bg-white rounded-lg border p-4 mt-4">
+            <div className="flex items-center gap-4">
+              <span className="font-semibold">Promotional Code</span>
+              <div className="flex-1 flex gap-2">
+                <Input
+                  placeholder="Enter promo code"
+                  value={promoCode}
+                  onChange={(e) => onPromoCodeChange(e.target.value.toUpperCase())}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={onApplyPromo}
+                  className="text-white"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  Apply
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Actions */}
+          <div className="flex gap-4 mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBack}
+              className="flex-1 py-6 text-lg"
+            >
+              Book other trip
+            </Button>
+            <Button
+              type="button"
+              onClick={onProceed}
+              disabled={items.length === 0}
+              className="flex-1 py-6 text-lg text-white"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Proceed to Checkout
+            </Button>
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-4 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            className="flex-1 py-6 text-lg"
-          >
-            Book other trip
-          </Button>
-          <Button
-            type="button"
-            onClick={onProceed}
-            disabled={items.length === 0}
-            className="flex-1 py-6 text-lg text-white"
-            style={{ backgroundColor: primaryColor }}
-          >
-            Proceed to Checkout
-          </Button>
+        {/* Order Summary Sidebar */}
+        <div className="lg:col-span-1">
+          <WidgetOrderSummary
+            outbound={outboundSummary}
+            returnTrip={returnSummary}
+            pickups={selectedPickups}
+            primaryColor={primaryColor}
+          />
         </div>
       </div>
 
-      {/* Order Summary Sidebar */}
-      <div className="lg:col-span-1">
-        <WidgetOrderSummary
-          outbound={outboundSummary}
-          returnTrip={returnSummary}
-          pickups={selectedPickups}
+      {/* Boat Info Modal */}
+      {boatInfoModal && (
+        <BoatInfoModal
+          open={boatInfoModal.open}
+          onClose={() => setBoatInfoModal(null)}
+          onSelectTrip={() => setBoatInfoModal(null)}
+          boat={boatInfoModal.boat}
+          trip={boatInfoModal.trip}
+          route={boatInfoModal.route}
+          originPort={boatInfoModal.route ? getPort(boatInfoModal.route.origin_port_id) : null}
+          destPort={boatInfoModal.route ? getPort(boatInfoModal.route.destination_port_id) : null}
+          departureTime={boatInfoModal.departure?.departure_time}
+          departureDate={boatInfoModal.departure?.departure_date}
+          pricing={boatInfoModal.pricing}
+          paxAdult={paxAdult}
+          paxChild={paxChild}
           primaryColor={primaryColor}
+          hideSelectButton
         />
-      </div>
-    </div>
-
-    {/* Boat Info Modal */}
-    {boatInfoModal && (
-      <BoatInfoModal
-        open={boatInfoModal.open}
-        onClose={() => setBoatInfoModal(null)}
-        onSelectTrip={() => setBoatInfoModal(null)}
-        boat={boatInfoModal.boat}
-        trip={boatInfoModal.trip}
-        route={boatInfoModal.route}
-        originPort={boatInfoModal.route ? getPort(boatInfoModal.route.origin_port_id) : null}
-        destPort={boatInfoModal.route ? getPort(boatInfoModal.route.destination_port_id) : null}
-        departureTime={boatInfoModal.departure?.departure_time}
-        departureDate={boatInfoModal.departure?.departure_date}
-        pricing={boatInfoModal.pricing}
-        paxAdult={paxAdult}
-        paxChild={paxChild}
-        primaryColor={primaryColor}
-        hideSelectButton
-      />
-    )}
+      )}
     </>
   );
 };
