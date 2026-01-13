@@ -10,6 +10,7 @@ export interface Boat {
   description: string | null;
   capacity: number;
   image_url: string | null;
+  images: string[];
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
@@ -55,6 +56,7 @@ export const useBoatsData = () => {
     description?: string;
     capacity: number;
     image_url?: string;
+    images?: string[];
     status: 'active' | 'inactive';
   }): Promise<{ error: Error | null }> => {
     if (!partnerId) {
@@ -67,6 +69,7 @@ export const useBoatsData = () => {
       description: data.description || null,
       capacity: data.capacity,
       image_url: data.image_url || null,
+      images: data.images || [],
       status: data.status,
     });
 
@@ -87,6 +90,7 @@ export const useBoatsData = () => {
       description: string;
       capacity: number;
       image_url: string;
+      images: string[];
       status: 'active' | 'inactive';
     }>
   ): Promise<{ error: Error | null }> => {
