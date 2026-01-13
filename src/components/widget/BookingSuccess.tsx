@@ -90,6 +90,15 @@ export const BookingSuccess = ({
 
   const isRoundTrip = !!returnTrip;
 
+  // Calculate prices for ticket display
+  const outboundPrice = departure.price || 0;
+  const returnPrice = returnTrip?.price || 0;
+  const pickupsTotal = pickups.reduce((sum, p) => sum + (p.price || 0), 0);
+  
+  // Calculate correct total if not provided or incorrect
+  const calculatedTotal = outboundPrice + returnPrice + pickupsTotal;
+  const finalTotalAmount = totalAmount > 0 ? totalAmount : calculatedTotal;
+
   const outboundForTicket = {
     route: departure.route,
     originName: departure.originName || departure.route.split(' → ')[0] || '',
@@ -99,7 +108,7 @@ export const BookingSuccess = ({
     arrivalTime: departure.arrivalTime,
     boatName: departure.boatName,
     boatImage: departure.boatImage,
-    price: departure.price || (subtotalAmount ? (isRoundTrip ? subtotalAmount / 2 : subtotalAmount) : 0),
+    price: outboundPrice,
   };
 
   const returnForTicket = returnTrip ? {
@@ -111,7 +120,7 @@ export const BookingSuccess = ({
     arrivalTime: returnTrip.arrivalTime,
     boatName: returnTrip.boatName,
     boatImage: returnTrip.boatImage,
-    price: returnTrip.price || (subtotalAmount ? subtotalAmount / 2 : 0),
+    price: returnPrice,
   } : undefined;
 
   const customerForTicket = {
@@ -174,8 +183,8 @@ export const BookingSuccess = ({
           paxInfant={paxInfant}
           passengers={passengers}
           customer={customerForTicket}
-          totalAmount={totalAmount}
-          subtotalAmount={subtotalAmount}
+          totalAmount={finalTotalAmount}
+          subtotalAmount={outboundPrice + returnPrice}
           addonsAmount={addonsAmount}
           discountAmount={discountAmount}
           pickups={pickups}
