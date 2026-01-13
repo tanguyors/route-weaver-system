@@ -507,13 +507,31 @@ const TripsPage = () => {
           } else {
             result = await createSchedule(data);
             
-            // If status is active and we have dates, generate departures automatically
+            // If status is active and we have dates, generate departures automatically for each created schedule
             if (!result.error && data.status === 'active' && data.seasonal_start_date && data.seasonal_end_date) {
-              await generateDepartures(data.trip_id, data.seasonal_start_date, data.seasonal_end_date);
-              toast({
-                title: 'Schedule Created',
-                description: 'Departures have been generated for the schedule period',
-              });
+              const createdSchedules = (result as any).createdSchedules || [];
+              let totalDepartures = 0;
+              
+              for (const schedule of createdSchedules) {
+                const regenResult = await regenerateScheduleDepartures(
+                  schedule.id,
+                  data.seasonal_start_date,
+                  data.seasonal_end_date
+                );
+                totalDepartures += regenResult.count || 0;
+              }
+              
+              if (totalDepartures > 0) {
+                toast({
+                  title: 'Schedule Created',
+                  description: `${totalDepartures} departures have been generated for the schedule period`,
+                });
+              } else {
+                toast({
+                  title: 'Schedule Created',
+                  description: 'No departures generated for the selected days/period',
+                });
+              }
             }
           }
           
