@@ -261,6 +261,8 @@ const TripsPage = () => {
                       <TableRow>
                         <TableHead>Trip Name</TableHead>
                         <TableHead>Route</TableHead>
+                        <TableHead>Adult Price</TableHead>
+                        <TableHead>Child Price</TableHead>
                         <TableHead>Capacity</TableHead>
                         <TableHead>Status</TableHead>
                         {canEdit && <TableHead className="w-[50px]"></TableHead>}
@@ -272,6 +274,12 @@ const TripsPage = () => {
                           <TableCell className="font-medium">{trip.trip_name}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {trip.route?.route_name || 'Unknown route'}
+                          </TableCell>
+                          <TableCell>
+                            {trip.adult_price ? `${trip.adult_price.toLocaleString()} IDR` : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {trip.child_price ? `${trip.child_price.toLocaleString()} IDR` : '-'}
                           </TableCell>
                           <TableCell>{trip.capacity_default} seats</TableCell>
                           <TableCell>
