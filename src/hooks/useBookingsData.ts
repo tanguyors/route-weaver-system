@@ -19,6 +19,13 @@ export interface BookingAddon {
   created_at: string;
 }
 
+export interface BookingPassenger {
+  id: string;
+  full_name: string;
+  age_group: string;
+  id_number: string | null;
+}
+
 export interface BookingWithDetails {
   id: string;
   partner_id: string;
@@ -67,6 +74,11 @@ export interface BookingWithDetails {
     id: string;
     departure_date: string;
     departure_time: string;
+    boat?: {
+      id: string;
+      name: string;
+      image_url: string | null;
+    };
     trip?: {
       id: string;
       trip_name: string;
@@ -92,6 +104,7 @@ export interface BookingWithDetails {
     status: string;
   };
   addons?: BookingAddon[];
+  passengers?: BookingPassenger[];
   hasPickup?: boolean;
 }
 
@@ -154,10 +167,12 @@ export const useBookingsData = () => {
         ),
         return_departure:departures!bookings_return_departure_id_fkey(
           id, departure_date, departure_time,
+          boat:boats(id, name, image_url),
           trip:trips(id, trip_name, route:routes(id, route_name, origin:ports!routes_origin_port_id_fkey(id, name), destination:ports!routes_destination_port_id_fkey(id, name)))
         ),
         ticket:tickets(id, qr_token, status),
-        addons:booking_addons(id, addon_id, name, qty, price, total, pickup_zone_id, pickup_info, created_at)
+        addons:booking_addons(id, addon_id, name, qty, price, total, pickup_zone_id, pickup_info, created_at),
+        passengers:passengers(id, full_name, age_group, id_number)
       `)
       .order('created_at', { ascending: false })
       .limit(100);
@@ -189,6 +204,7 @@ export const useBookingsData = () => {
             .order('created_at', { ascending: false });
           
           const addons = Array.isArray(booking.addons) ? booking.addons : [];
+          const passengers = Array.isArray(booking.passengers) ? booking.passengers : [];
           const hasPickup = addons.some((a: any) => a.pickup_zone_id || a.pickup_info);
           
           return {
@@ -198,6 +214,7 @@ export const useBookingsData = () => {
             return_departure: Array.isArray(booking.return_departure) ? booking.return_departure[0] : booking.return_departure,
             ticket: Array.isArray(booking.ticket) ? booking.ticket[0] : booking.ticket,
             addons,
+            passengers,
             hasPickup,
             payments: payments || [],
           };
