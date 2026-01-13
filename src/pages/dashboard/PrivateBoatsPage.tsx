@@ -47,12 +47,14 @@ import {
   Route, 
   Clock,
   Search,
-  Car
+  Car,
+  Activity
 } from 'lucide-react';
 import { usePrivateBoatsData, PrivateBoat, PrivateBoatStatus } from '@/hooks/usePrivateBoatsData';
 import PrivateBoatForm from '@/components/private-boats/PrivateBoatForm';
 import PrivateBoatRoutesModal from '@/components/private-boats/PrivateBoatRoutesModal';
 import PickupDropoffRulesTab from '@/components/private-boats/PickupDropoffRulesTab';
+import ActivityAddonsTab from '@/components/private-boats/ActivityAddonsTab';
 
 const PrivateBoatsPage = () => {
   const { 
@@ -162,6 +164,10 @@ const PrivateBoatsPage = () => {
             <TabsTrigger value="boats" className="gap-2">
               <Anchor className="h-4 w-4" />
               Private Boats
+            </TabsTrigger>
+            <TabsTrigger value="activity-addons" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Activity Add-ons
             </TabsTrigger>
             <TabsTrigger value="pickup-dropoff" className="gap-2">
               <Car className="h-4 w-4" />
@@ -322,6 +328,20 @@ const PrivateBoatsPage = () => {
                     </Table>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="activity-addons" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Activity Add-ons
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ActivityAddonsTab />
               </CardContent>
             </Card>
           </TabsContent>
