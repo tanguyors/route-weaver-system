@@ -1,4 +1,4 @@
-import { MapPin, CalendarDays, Car, Bus } from 'lucide-react';
+import { MapPin, CalendarDays, Car, Bus, Gift } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TripInfo {
@@ -21,10 +21,18 @@ interface PickupInfo {
   beforeDepartureMinutes?: number;
 }
 
+interface ActivityAddonInfo {
+  addon_id: string;
+  name: string;
+  price: number;
+  pricing_type: 'included' | 'normal';
+}
+
 interface WidgetOrderSummaryProps {
   outbound?: TripInfo;
   returnTrip?: TripInfo;
   pickups?: PickupInfo[];
+  activityAddons?: ActivityAddonInfo[];
   addonsTotal?: number;
   discountAmount?: number;
   promoCode?: string;
@@ -36,6 +44,7 @@ export const WidgetOrderSummary = ({
   outbound,
   returnTrip,
   pickups = [],
+  activityAddons = [],
   addonsTotal = 0,
   discountAmount = 0,
   promoCode,
@@ -123,6 +132,33 @@ export const WidgetOrderSummary = ({
       <div className="p-4" style={{ backgroundColor: primaryColor, opacity: 0.9 }}>
         {outbound && <TripCard trip={outbound} />}
         {returnTrip && <TripCard trip={returnTrip} isReturn />}
+
+        {/* Activity Add-ons */}
+        {activityAddons.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {activityAddons.map((addon) => (
+              <div 
+                key={addon.addon_id} 
+                className="flex items-center justify-between p-3 rounded-lg bg-white/10 text-white text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <Gift className="w-4 h-4 text-yellow-400" />
+                  <span className="font-medium">{addon.name}</span>
+                </div>
+                {addon.pricing_type === 'included' ? (
+                  <div className="text-right">
+                    <span className="line-through text-white/50 text-xs mr-2">
+                      {formatPrice(addon.price)}
+                    </span>
+                    <span className="font-bold text-yellow-400">Included</span>
+                  </div>
+                ) : (
+                  <span className="font-bold">{formatPrice(addon.price)}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Pickup/Dropoff services */}
         {pickups.length > 0 && (

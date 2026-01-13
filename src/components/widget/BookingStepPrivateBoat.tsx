@@ -6,6 +6,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Anchor, MapPin, Clock, Calendar, ArrowRight, ArrowLeft, Users } from 'lucide-react';
 
+interface RouteActivityAddon {
+  id: string;
+  route_id: string;
+  activity_addon_id: string;
+  pricing_type: 'included' | 'normal';
+  activity_addon: {
+    id: string;
+    name: string;
+    description: string | null;
+    price: number;
+  };
+}
+
 interface PrivateBoatRoute {
   id: string;
   private_boat_id: string;
@@ -15,6 +28,7 @@ interface PrivateBoatRoute {
   duration_minutes: number | null;
   from_port: { id: string; name: string; area: string } | null;
   to_port: { id: string; name: string; area: string } | null;
+  activity_addons?: RouteActivityAddon[];
 }
 
 interface PickupDropoffRule {
@@ -50,6 +64,13 @@ interface BookingStepPrivateBoatProps {
   onBack: () => void;
 }
 
+export interface SelectedActivityAddon {
+  addon_id: string;
+  name: string;
+  price: number;
+  pricing_type: 'included' | 'normal';
+}
+
 export interface PrivateBoatSelection {
   boat: PrivateBoat;
   route: PrivateBoatRoute;
@@ -66,6 +87,7 @@ export interface PrivateBoatSelection {
     details: string;
     vehicleType: VehicleType;
   };
+  activityAddons?: SelectedActivityAddon[];
 }
 
 export const BookingStepPrivateBoat = ({

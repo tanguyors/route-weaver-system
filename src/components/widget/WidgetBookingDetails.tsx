@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Plus, Minus, Car, Bus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Minus, Car, Bus, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,6 +56,25 @@ interface PickupDropoffRule {
   before_departure_minutes?: number;
 }
 
+interface RouteActivityAddon {
+  id: string;
+  activity_addon_id: string;
+  pricing_type: 'included' | 'normal';
+  activity_addon: {
+    id: string;
+    name: string;
+    description: string | null;
+    price: number;
+  };
+}
+
+interface SelectedActivityAddon {
+  addon_id: string;
+  name: string;
+  price: number;
+  pricing_type: 'included' | 'normal';
+}
+
 interface WidgetBookingDetailsProps {
   outbound: TripInfo;
   returnTrip?: TripInfo;
@@ -74,6 +93,8 @@ interface WidgetBookingDetailsProps {
   privateBoatName?: string;
   pickupDropoffRules?: PickupDropoffRule[];
   originPortId?: string;
+  routeActivityAddons?: RouteActivityAddon[];
+  onActivityAddonsChange?: (addons: SelectedActivityAddon[]) => void;
 }
 
 export const WidgetBookingDetails = ({
@@ -91,6 +112,8 @@ export const WidgetBookingDetails = ({
   privateBoatName,
   pickupDropoffRules = [],
   originPortId,
+  routeActivityAddons = [],
+  onActivityAddonsChange,
 }: WidgetBookingDetailsProps) => {
   const totalPassengers = paxAdult + paxChild + paxInfant;
 
@@ -123,6 +146,9 @@ export const WidgetBookingDetails = ({
   const [pickupVehicleType, setPickupVehicleType] = useState<'car' | 'bus'>('car');
   const [pickupDetails, setPickupDetails] = useState('');
 
+  // Activity addons selection
+  const [selectedActivityAddons, setSelectedActivityAddons] = useState<Set<string>>(new Set());
+
   // Filter pickup rules for private boat (based on origin port)
   const availablePickupRules = useMemo(() => {
     if (!isPrivateBoat || !originPortId) return [];
@@ -152,6 +178,51 @@ export const WidgetBookingDetails = ({
       },
     ];
   }, [isPrivateBoat, pickupEnabled, selectedPickupRule, pickupVehicleType, pickupDetails, pickups]);
+
+  // Build selected activity addons for order summary
+  const activityAddonsForSummary = useMemo(() => {
+    return routeActivityAddons
+      .filter(ra => selectedActivityAddons.has(ra.activity_addon_id))
+      .map(ra => ({
+        addon_id: ra.activity_addon_id,
+        name: ra.activity_addon.name,
+        price: ra.activity_addon.price,
+        pricing_type: ra.pricing_type,
+      }));
+  }, [routeActivityAddons, selectedActivityAddons]);
+
+  // Calculate activity addons total (only non-included ones)
+  const activityAddonsTotal = useMemo(() => {
+    return activityAddonsForSummary
+      .filter(a => a.pricing_type === 'normal')
+      .reduce((sum, a) => sum + a.price, 0);
+  }, [activityAddonsForSummary]);
+
+  const handleToggleActivityAddon = (addonId: string) => {
+    setSelectedActivityAddons(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(addonId)) {
+        newSet.delete(addonId);
+      } else {
+        newSet.add(addonId);
+      }
+      
+      // Notify parent of change
+      if (onActivityAddonsChange) {
+        const selected = routeActivityAddons
+          .filter(ra => newSet.has(ra.activity_addon_id))
+          .map(ra => ({
+            addon_id: ra.activity_addon_id,
+            name: ra.activity_addon.name,
+            price: ra.activity_addon.price,
+            pricing_type: ra.pricing_type,
+          }));
+        onActivityAddonsChange(selected);
+      }
+      
+      return newSet;
+    });
+  };
 
   const updatePassenger = (index: number, field: keyof PassengerInfo, value: string) => {
     setPassengers(prev => {
@@ -402,6 +473,64 @@ export const WidgetBookingDetails = ({
           </div>
         ))}
 
+        {/* Private Boat Activity Add-ons Selection */}
+        {isPrivateBoat && routeActivityAddons.length > 0 && (
+          <div className="bg-white rounded-lg border p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: primaryColor }}>
+              <Gift className="h-5 w-5" />
+              Activity Add-ons
+            </h2>
+            
+            <div className="space-y-3">
+              {routeActivityAddons.map(ra => {
+                const isSelected = selectedActivityAddons.has(ra.activity_addon_id);
+                const isIncluded = ra.pricing_type === 'included';
+                
+                return (
+                  <div 
+                    key={ra.id}
+                    className={cn(
+                      'p-4 rounded-lg border-2 transition-all cursor-pointer',
+                      isSelected
+                        ? 'border-primary bg-primary/5'
+                        : 'border-gray-200 hover:border-gray-300'
+                    )}
+                    onClick={() => handleToggleActivityAddon(ra.activity_addon_id)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => handleToggleActivityAddon(ra.activity_addon_id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{ra.activity_addon.name}</span>
+                          {isIncluded ? (
+                            <span className="flex items-center gap-2">
+                              <span className="line-through text-gray-400 text-sm">
+                                IDR {Number(ra.activity_addon.price).toLocaleString()}
+                              </span>
+                              <span className="text-green-600 font-bold text-sm">Included</span>
+                            </span>
+                          ) : (
+                            <span className="font-bold text-sm" style={{ color: primaryColor }}>
+                              IDR {Number(ra.activity_addon.price).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        {ra.activity_addon.description && (
+                          <p className="text-sm text-gray-500 mt-1">{ra.activity_addon.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Private Boat Pickup Selection */}
         {isPrivateBoat && availablePickupRules.length > 0 && (
           <div className="bg-white rounded-lg border p-6">
@@ -572,6 +701,8 @@ export const WidgetBookingDetails = ({
             routeName: `${returnTrip.originName} - ${returnTrip.destName}`,
           } : undefined}
           pickups={combinedPickups}
+          activityAddons={activityAddonsForSummary}
+          addonsTotal={activityAddonsTotal}
           primaryColor={primaryColor}
           isPrivateBoat={isPrivateBoat}
         />

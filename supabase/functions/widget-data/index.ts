@@ -124,6 +124,7 @@ serve(async (req) => {
     // Get private boat routes with port details
     const privateBoatIds = (privateBoats || []).map(pb => pb.id);
     let privateBoatRoutes: any[] = [];
+    let routeIds: string[] = [];
     if (privateBoatIds.length > 0) {
       const { data: pbRoutes } = await supabase
         .from('private_boat_routes')
@@ -135,7 +136,27 @@ serve(async (req) => {
         .in('private_boat_id', privateBoatIds)
         .eq('status', 'active');
       privateBoatRoutes = pbRoutes || [];
+      routeIds = privateBoatRoutes.map(r => r.id);
     }
+
+    // Get activity addons for private boat routes
+    let routeActivityAddons: any[] = [];
+    if (routeIds.length > 0) {
+      const { data: raData } = await supabase
+        .from('private_boat_route_addons')
+        .select(`
+          id, route_id, activity_addon_id, pricing_type,
+          activity_addon:private_boat_activity_addons(id, name, description, price)
+        `)
+        .in('route_id', routeIds);
+      routeActivityAddons = raData || [];
+    }
+
+    // Attach activity addons to routes
+    const privateBoatRoutesWithAddons = privateBoatRoutes.map(route => ({
+      ...route,
+      activity_addons: routeActivityAddons.filter(ra => ra.route_id === route.id),
+    }));
 
     // Get pickup/dropoff rules for private boats (GLOBAL - from private_pickup_dropoff_rules)
     const { data: pdRules } = await supabase
@@ -160,7 +181,7 @@ serve(async (req) => {
     // Attach routes and rules to private boats (rules are global, attach to all boats)
     const privateBoatsWithData = (privateBoats || []).map(boat => ({
       ...boat,
-      routes: privateBoatRoutes.filter(r => r.private_boat_id === boat.id),
+      routes: privateBoatRoutesWithAddons.filter(r => r.private_boat_id === boat.id),
       pickup_dropoff_rules: pickupDropoffRules,
     }));
 
