@@ -69,7 +69,7 @@ serve(async (req) => {
     // Get boats for this partner (Public Fast Ferry fleet)
     const { data: boats } = await supabase
       .from('boats')
-      .select('id, name, description, capacity, image_url')
+      .select('id, name, description, capacity, image_url, images')
       .eq('partner_id', partnerId)
       .eq('status', 'active');
 
