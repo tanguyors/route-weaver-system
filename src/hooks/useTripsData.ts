@@ -312,7 +312,7 @@ export const useTripsData = () => {
     status?: 'active' | 'inactive';
     boat_id?: string;
   }) => {
-    if (!partnerId && !isAdmin) return { error: new Error('No partner assigned') };
+    if (!partnerId && !isAdmin) return { error: new Error('No partner assigned'), createdSchedules: [] };
     
     // Create multiple schedules for each departure time
     const schedulesToCreate = data.departure_times.map(time => ({
@@ -326,10 +326,13 @@ export const useTripsData = () => {
       boat_id: data.boat_id || null,
     }));
 
-    const { error } = await supabase.from('departure_templates').insert(schedulesToCreate);
+    const { data: createdData, error } = await supabase
+      .from('departure_templates')
+      .insert(schedulesToCreate)
+      .select();
     
     if (!error) await fetchSchedules();
-    return { error };
+    return { error, createdSchedules: createdData || [] };
   };
 
   const updateSchedule = async (id: string, data: Partial<DepartureTemplate>) => {
