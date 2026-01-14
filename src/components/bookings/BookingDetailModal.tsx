@@ -127,11 +127,22 @@ export const BookingDetailModal = ({
           <TabsContent value="details" className="flex-1 overflow-auto space-y-4 mt-4">
             {/* Outbound Trip Info */}
             <div className="p-4 bg-muted rounded-lg space-y-3">
-              <div className="flex items-center gap-2">
-                <Ship className="h-5 w-5 text-primary" />
-                <span className="font-semibold">
-                  {booking.return_departure ? 'Outbound Trip' : 'Trip Details'}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Ship className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">
+                    {booking.return_departure ? 'Outbound Trip' : 'Trip Details'}
+                  </span>
+                </div>
+                {/* Unit prices */}
+                {(booking.outbound_price_adult || booking.outbound_price_child) && (
+                  <div className="text-xs text-muted-foreground text-right">
+                    <div>Adult: <span className="font-medium text-foreground">{formatPrice(booking.outbound_price_adult || 0)}</span></div>
+                    {booking.pax_child > 0 && (
+                      <div>Child: <span className="font-medium text-foreground">{formatPrice(booking.outbound_price_child || 0)}</span></div>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* Boat Image */}
@@ -157,6 +168,7 @@ export const BookingDetailModal = ({
                 </span>
               </div>
               
+              {/* Date and Times */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -166,9 +178,33 @@ export const BookingDetailModal = ({
                       : 'N/A'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{booking.departure?.departure_time?.slice(0, 5) || 'N/A'}</span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                      Dep: <span className="font-medium">{booking.departure?.departure_time?.slice(0, 5) || 'N/A'}</span>
+                    </span>
+                  </div>
+                  {booking.departure?.trip?.route?.duration_minutes && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="h-4 w-4 opacity-0" />
+                      <span>
+                        Arr: <span className="font-medium text-foreground">
+                          {(() => {
+                            const depTime = booking.departure?.departure_time;
+                            const duration = booking.departure?.trip?.route?.duration_minutes;
+                            if (!depTime || !duration) return 'N/A';
+                            const [h, m] = depTime.split(':').map(Number);
+                            const totalMinutes = h * 60 + m + duration;
+                            const arrH = Math.floor(totalMinutes / 60) % 24;
+                            const arrM = totalMinutes % 60;
+                            return `${arrH.toString().padStart(2, '0')}:${arrM.toString().padStart(2, '0')}`;
+                          })()}
+                        </span>
+                        <span className="text-xs ml-1">({booking.departure?.trip?.route?.duration_minutes} min)</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -183,9 +219,20 @@ export const BookingDetailModal = ({
             {/* Return Trip Info */}
             {booking.return_departure && (
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-3">
-                <div className="flex items-center gap-2">
-                  <Ship className="h-5 w-5 text-emerald-600" />
-                  <span className="font-semibold text-emerald-700">Return Trip</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Ship className="h-5 w-5 text-emerald-600" />
+                    <span className="font-semibold text-emerald-700">Return Trip</span>
+                  </div>
+                  {/* Unit prices */}
+                  {(booking.return_price_adult || booking.return_price_child) && (
+                    <div className="text-xs text-muted-foreground text-right">
+                      <div>Adult: <span className="font-medium text-foreground">{formatPrice(booking.return_price_adult || 0)}</span></div>
+                      {booking.pax_child > 0 && (
+                        <div>Child: <span className="font-medium text-foreground">{formatPrice(booking.return_price_child || 0)}</span></div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Boat Image */}
@@ -211,6 +258,7 @@ export const BookingDetailModal = ({
                   </span>
                 </div>
                 
+                {/* Date and Times */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -220,9 +268,33 @@ export const BookingDetailModal = ({
                         : 'N/A'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{booking.return_departure?.departure_time?.slice(0, 5) || 'N/A'}</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        Dep: <span className="font-medium">{booking.return_departure?.departure_time?.slice(0, 5) || 'N/A'}</span>
+                      </span>
+                    </div>
+                    {booking.return_departure?.trip?.route?.duration_minutes && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4 opacity-0" />
+                        <span>
+                          Arr: <span className="font-medium text-foreground">
+                            {(() => {
+                              const depTime = booking.return_departure?.departure_time;
+                              const duration = booking.return_departure?.trip?.route?.duration_minutes;
+                              if (!depTime || !duration) return 'N/A';
+                              const [h, m] = depTime.split(':').map(Number);
+                              const totalMinutes = h * 60 + m + duration;
+                              const arrH = Math.floor(totalMinutes / 60) % 24;
+                              const arrM = totalMinutes % 60;
+                              return `${arrH.toString().padStart(2, '0')}:${arrM.toString().padStart(2, '0')}`;
+                            })()}
+                          </span>
+                          <span className="text-xs ml-1">({booking.return_departure?.trip?.route?.duration_minutes} min)</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 

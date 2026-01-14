@@ -65,11 +65,14 @@ export interface BookingWithDetails {
       route?: {
         id: string;
         route_name: string;
+        duration_minutes: number | null;
         origin?: { id: string; name: string };
         destination?: { id: string; name: string };
       };
     };
   };
+  outbound_price_adult?: number;
+  outbound_price_child?: number;
   return_departure?: {
     id: string;
     departure_date: string;
@@ -85,11 +88,14 @@ export interface BookingWithDetails {
       route?: {
         id: string;
         route_name: string;
+        duration_minutes: number | null;
         origin?: { id: string; name: string };
         destination?: { id: string; name: string };
       };
     };
   };
+  return_price_adult?: number;
+  return_price_child?: number;
   payments?: {
     id: string;
     amount: number;
@@ -160,15 +166,15 @@ export const useBookingsData = () => {
       .select(`
         *,
         customer:customers(id, full_name, email, phone, country),
-        departure:departures!bookings_departure_id_fkey(
+      departure:departures!bookings_departure_id_fkey(
           id, departure_date, departure_time,
           boat:boats(id, name, image_url),
-          trip:trips(id, trip_name, route:routes(id, route_name, origin:ports!routes_origin_port_id_fkey(id, name), destination:ports!routes_destination_port_id_fkey(id, name)))
+          trip:trips(id, trip_name, route:routes(id, route_name, duration_minutes, origin:ports!routes_origin_port_id_fkey(id, name), destination:ports!routes_destination_port_id_fkey(id, name)))
         ),
         return_departure:departures!bookings_return_departure_id_fkey(
           id, departure_date, departure_time,
           boat:boats(id, name, image_url),
-          trip:trips(id, trip_name, route:routes(id, route_name, origin:ports!routes_origin_port_id_fkey(id, name), destination:ports!routes_destination_port_id_fkey(id, name)))
+          trip:trips(id, trip_name, route:routes(id, route_name, duration_minutes, origin:ports!routes_origin_port_id_fkey(id, name), destination:ports!routes_destination_port_id_fkey(id, name)))
         ),
         ticket:tickets(id, qr_token, status),
         addons:booking_addons(id, addon_id, name, qty, price, total, pickup_zone_id, pickup_info, created_at),
@@ -206,17 +212,58 @@ export const useBookingsData = () => {
           const addons = Array.isArray(booking.addons) ? booking.addons : [];
           const passengers = Array.isArray(booking.passengers) ? booking.passengers : [];
           const hasPickup = addons.some((a: any) => a.pickup_zone_id || a.pickup_info);
+
+          const departure = Array.isArray(booking.departure) ? booking.departure[0] : booking.departure;
+          const returnDeparture = Array.isArray(booking.return_departure) ? booking.return_departure[0] : booking.return_departure;
+
+          // Fetch prices from price_rules for outbound trip
+          let outboundPriceAdult = 0;
+          let outboundPriceChild = 0;
+          if (departure?.trip?.id) {
+            const { data: priceRule } = await supabase
+              .from('price_rules')
+              .select('adult_price, child_price')
+              .eq('trip_id', departure.trip.id)
+              .eq('status', 'active')
+              .eq('rule_type', 'base')
+              .maybeSingle();
+            if (priceRule) {
+              outboundPriceAdult = priceRule.adult_price || 0;
+              outboundPriceChild = priceRule.child_price || 0;
+            }
+          }
+
+          // Fetch prices from price_rules for return trip
+          let returnPriceAdult = 0;
+          let returnPriceChild = 0;
+          if (returnDeparture?.trip?.id) {
+            const { data: priceRule } = await supabase
+              .from('price_rules')
+              .select('adult_price, child_price')
+              .eq('trip_id', returnDeparture.trip.id)
+              .eq('status', 'active')
+              .eq('rule_type', 'base')
+              .maybeSingle();
+            if (priceRule) {
+              returnPriceAdult = priceRule.adult_price || 0;
+              returnPriceChild = priceRule.child_price || 0;
+            }
+          }
           
           return {
             ...booking,
             customer: Array.isArray(booking.customer) ? booking.customer[0] : booking.customer,
-            departure: Array.isArray(booking.departure) ? booking.departure[0] : booking.departure,
-            return_departure: Array.isArray(booking.return_departure) ? booking.return_departure[0] : booking.return_departure,
+            departure,
+            return_departure: returnDeparture,
             ticket: Array.isArray(booking.ticket) ? booking.ticket[0] : booking.ticket,
             addons,
             passengers,
             hasPickup,
             payments: payments || [],
+            outbound_price_adult: outboundPriceAdult,
+            outbound_price_child: outboundPriceChild,
+            return_price_adult: returnPriceAdult,
+            return_price_child: returnPriceChild,
           };
         })
       );
