@@ -269,6 +269,39 @@ serve(async (req) => {
       );
     }
 
+    // Check if departure date is TODAY - only allow check-in on the day of departure
+    const departureDate = legDeparture?.departure_date;
+    if (departureDate && departureDate !== today) {
+      console.log("Check-in date mismatch - departure:", departureDate, "today:", today);
+      
+      const isBeforeDeparture = departureDate > today;
+      const message = isBeforeDeparture 
+        ? `Check-in not yet allowed. This ${legToValidate} ticket is for ${departureDate}.`
+        : `Check-in expired. This ${legToValidate} ticket was for ${departureDate}.`;
+      
+      await supabase.from("checkin_events").insert({
+        ticket_id: ticket.id,
+        partner_id: partner_id,
+        scanned_by_user_id: user_id,
+        result: "invalid",
+        leg_type: legToValidate,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: message,
+          reason: isBeforeDeparture ? "too_early" : "expired",
+          ticket: { 
+            id: ticket.id, 
+            booking,
+            departure_date: departureDate,
+          },
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check ticket base status (for cancelled/refunded/expired)
     if (ticket.status === "cancelled" || ticket.status === "refunded" || ticket.status === "expired") {
       console.log("Ticket status invalid:", ticket.status);
@@ -338,11 +371,8 @@ serve(async (req) => {
 
     console.log("Ticket validated successfully:", ticket.id, "leg:", legToValidate);
 
-    // Check if departure date matches today
-    const departureDate = legDeparture?.departure_date;
-    const dateWarning = departureDate && departureDate !== today 
-      ? `Note: This ${legToValidate} ticket is for ${departureDate}, not today.`
-      : null;
+    // Build route info for response
+    const validatedDepartureDate = legDeparture?.departure_date;
 
     // Build route info for response
     const routeInfo = legDeparture?.route 
@@ -361,7 +391,7 @@ serve(async (req) => {
           departure_time: legDeparture?.departure_time,
           departure_date: legDeparture?.departure_date,
         },
-        warning: dateWarning,
+        // Date is already validated above, no warning needed
         // Info about remaining legs
         remainingLegs: {
           outbound: legToValidate === 'return' ? (outboundAlreadyValidated ? 'validated' : 'pending') : 'just_validated',
