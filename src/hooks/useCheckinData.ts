@@ -66,7 +66,7 @@ export const useCheckinData = () => {
           ticket:tickets(
             booking:bookings(
               customer:customers(full_name),
-              departure:departures(
+              departure:departures!bookings_departure_id_fkey(
                 departure_date,
                 departure_time,
                 trip:trips(trip_name)
