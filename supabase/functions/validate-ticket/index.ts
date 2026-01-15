@@ -26,7 +26,7 @@ serve(async (req) => {
 
     const { qr_token, user_id, partner_id }: ValidateRequest = await req.json();
 
-    console.log("Validating QR token:", qr_token);
+    console.log("Validating QR token:", qr_token, "by partner:", partner_id);
 
     if (!qr_token || !user_id || !partner_id) {
       return new Response(
@@ -35,13 +35,17 @@ serve(async (req) => {
       );
     }
 
-    // Find ticket by QR token
+    // Find ticket by QR token with booking info (including return departure)
     const { data: ticket, error: ticketError } = await supabase
       .from("tickets")
       .select(`
         id,
         status,
         validated_at,
+        outbound_validated_at,
+        outbound_validated_by_partner_id,
+        return_validated_at,
+        return_validated_by_partner_id,
         booking:bookings(
           id,
           pax_adult,
@@ -49,7 +53,18 @@ serve(async (req) => {
           partner_id,
           status,
           customer:customers(full_name, email, phone),
-          departure:departures(
+          departure:departures!bookings_departure_id_fkey(
+            id,
+            departure_date,
+            departure_time,
+            partner_id,
+            trip:trips(trip_name),
+            route:routes(
+              origin:ports!routes_origin_port_id_fkey(name),
+              destination:ports!routes_destination_port_id_fkey(name)
+            )
+          ),
+          return_departure:departures!bookings_return_departure_id_fkey(
             id,
             departure_date,
             departure_time,
@@ -74,7 +89,6 @@ serve(async (req) => {
     if (!ticket) {
       console.log("Ticket not found for token:", qr_token);
       
-      // Log failed attempt
       await supabase.from("checkin_events").insert({
         ticket_id: null,
         partner_id: partner_id,
@@ -94,96 +108,218 @@ serve(async (req) => {
 
     const booking = ticket.booking as any;
 
-    // Verify partner ownership
-    if (booking?.partner_id !== partner_id) {
-      console.log("Partner mismatch:", booking?.partner_id, "vs", partner_id);
+    // Check booking status first
+    if (booking?.status === "cancelled") {
+      console.log("Booking is cancelled");
       
       await supabase.from("checkin_events").insert({
         ticket_id: ticket.id,
         partner_id: partner_id,
         scanned_by_user_id: user_id,
-        result: "invalid",
+        result: "cancelled",
       });
 
       return new Response(
         JSON.stringify({
           success: false,
-          message: "This ticket belongs to a different operator",
-          reason: "invalid",
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check ticket status
-    const ticketStatus = ticket.status;
-    let reason: string | null = null;
-    let message = "";
-
-    switch (ticketStatus) {
-      case "validated":
-        reason = "already_used";
-        message = `Ticket already used at ${new Date(ticket.validated_at).toLocaleString()}`;
-        break;
-      case "cancelled":
-        reason = "cancelled";
-        message = "This ticket has been cancelled";
-        break;
-      case "refunded":
-        reason = "refunded";
-        message = "This ticket has been refunded";
-        break;
-      case "expired":
-        reason = "expired";
-        message = "This ticket has expired";
-        break;
-      case "pending":
-        // Valid - proceed with validation
-        break;
-      default:
-        reason = "invalid";
-        message = "Unknown ticket status";
-    }
-
-    // If invalid, log and return
-    if (reason) {
-      console.log("Invalid ticket status:", ticketStatus);
-
-      await supabase.from("checkin_events").insert({
-        ticket_id: ticket.id,
-        partner_id: partner_id,
-        scanned_by_user_id: user_id,
-        result: reason === "already_used" ? "already_used" : "invalid",
-      });
-
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message,
-          reason,
+          message: "This booking has been cancelled",
+          reason: "cancelled",
           ticket: { id: ticket.id, booking },
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if departure is today (optional warning)
-    const today = new Date().toISOString().split("T")[0];
-    const departureDate = booking?.departure?.departure_date;
+    // Determine which leg to validate based on:
+    // 1. Which partner is scanning (match departure partner)
+    // 2. Which leg hasn't been validated yet
+    // 3. Date matching
     
-    if (departureDate && departureDate !== today) {
-      console.log("Warning: Ticket is for different date:", departureDate, "vs today:", today);
-      // We still allow validation but include a warning
+    const outboundDeparture = booking?.departure;
+    const returnDeparture = booking?.return_departure;
+    const today = new Date().toISOString().split("T")[0];
+    
+    const outboundPartnerId = outboundDeparture?.partner_id || booking?.partner_id;
+    const returnPartnerId = returnDeparture?.partner_id || booking?.partner_id;
+    
+    const outboundAlreadyValidated = !!ticket.outbound_validated_at;
+    const returnAlreadyValidated = !!ticket.return_validated_at;
+    
+    console.log("Outbound partner:", outboundPartnerId, "validated:", outboundAlreadyValidated);
+    console.log("Return partner:", returnPartnerId, "validated:", returnAlreadyValidated);
+    console.log("Scanning partner:", partner_id);
+
+    let legToValidate: 'outbound' | 'return' | null = null;
+    let legDeparture: any = null;
+    let validationError: { message: string; reason: string } | null = null;
+
+    // Logic to determine which leg to validate:
+    // Priority 1: Match by partner + not yet validated
+    // Priority 2: Match by date (today) + not yet validated
+    // Priority 3: Any unvalidated leg
+
+    // Check if scanning partner matches outbound departure partner
+    if (partner_id === outboundPartnerId) {
+      if (!outboundAlreadyValidated) {
+        legToValidate = 'outbound';
+        legDeparture = outboundDeparture;
+      } else {
+        // Partner matches outbound but already validated - check if trying to scan again
+        if (!returnAlreadyValidated && returnDeparture) {
+          // Maybe they're trying to validate return even though they're outbound partner
+          // Only allow if return partner is the same
+          if (partner_id === returnPartnerId) {
+            legToValidate = 'return';
+            legDeparture = returnDeparture;
+          } else {
+            validationError = {
+              message: `Outbound already validated on ${new Date(ticket.outbound_validated_at).toLocaleString()}`,
+              reason: "already_used"
+            };
+          }
+        } else if (returnAlreadyValidated) {
+          validationError = {
+            message: `Both legs already validated. Outbound: ${new Date(ticket.outbound_validated_at).toLocaleString()}, Return: ${new Date(ticket.return_validated_at).toLocaleString()}`,
+            reason: "already_used"
+          };
+        } else {
+          validationError = {
+            message: `Outbound already validated on ${new Date(ticket.outbound_validated_at).toLocaleString()}`,
+            reason: "already_used"
+          };
+        }
+      }
+    }
+    // Check if scanning partner matches return departure partner
+    else if (returnDeparture && partner_id === returnPartnerId) {
+      if (!returnAlreadyValidated) {
+        legToValidate = 'return';
+        legDeparture = returnDeparture;
+      } else {
+        validationError = {
+          message: `Return already validated on ${new Date(ticket.return_validated_at).toLocaleString()}`,
+          reason: "already_used"
+        };
+      }
+    }
+    // Partner doesn't match any departure - check booking partner (fallback for same-company bookings)
+    else if (partner_id === booking?.partner_id) {
+      // Same company that created the booking - allow validation
+      if (!outboundAlreadyValidated) {
+        legToValidate = 'outbound';
+        legDeparture = outboundDeparture;
+      } else if (returnDeparture && !returnAlreadyValidated) {
+        legToValidate = 'return';
+        legDeparture = returnDeparture;
+      } else if (outboundAlreadyValidated && (!returnDeparture || returnAlreadyValidated)) {
+        const messages = [];
+        if (outboundAlreadyValidated) {
+          messages.push(`Outbound: ${new Date(ticket.outbound_validated_at).toLocaleString()}`);
+        }
+        if (returnAlreadyValidated) {
+          messages.push(`Return: ${new Date(ticket.return_validated_at).toLocaleString()}`);
+        }
+        validationError = {
+          message: `Already validated - ${messages.join(", ")}`,
+          reason: "already_used"
+        };
+      }
+    }
+    // Partner doesn't match at all
+    else {
+      console.log("Partner mismatch - scanning partner doesn't own any leg of this ticket");
+      validationError = {
+        message: "This ticket belongs to a different operator",
+        reason: "invalid"
+      };
     }
 
-    // Valid ticket - update status
+    // Handle validation error
+    if (validationError) {
+      console.log("Validation error:", validationError);
+      
+      await supabase.from("checkin_events").insert({
+        ticket_id: ticket.id,
+        partner_id: partner_id,
+        scanned_by_user_id: user_id,
+        result: validationError.reason === "already_used" ? "already_used" : "invalid",
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: validationError.message,
+          reason: validationError.reason,
+          ticket: { id: ticket.id, booking },
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!legToValidate) {
+      console.log("Could not determine which leg to validate");
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Could not determine which trip leg to validate",
+          reason: "invalid",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check ticket base status (for cancelled/refunded/expired)
+    if (ticket.status === "cancelled" || ticket.status === "refunded" || ticket.status === "expired") {
+      console.log("Ticket status invalid:", ticket.status);
+      
+      await supabase.from("checkin_events").insert({
+        ticket_id: ticket.id,
+        partner_id: partner_id,
+        scanned_by_user_id: user_id,
+        result: ticket.status,
+        leg_type: legToValidate,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `This ticket has been ${ticket.status}`,
+          reason: ticket.status,
+          ticket: { id: ticket.id, booking },
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate the leg
+    const now = new Date().toISOString();
+    const updateData: Record<string, any> = {};
+    
+    if (legToValidate === 'outbound') {
+      updateData.outbound_validated_at = now;
+      updateData.outbound_validated_by_user_id = user_id;
+      updateData.outbound_validated_by_partner_id = partner_id;
+    } else {
+      updateData.return_validated_at = now;
+      updateData.return_validated_by_user_id = user_id;
+      updateData.return_validated_by_partner_id = partner_id;
+    }
+
+    // Also update legacy fields if both legs are now validated or if no return
+    const willBothBeValidated = (legToValidate === 'outbound' && returnAlreadyValidated) ||
+                                 (legToValidate === 'return' && outboundAlreadyValidated) ||
+                                 !returnDeparture;
+    
+    if (willBothBeValidated || !returnDeparture) {
+      updateData.status = "validated";
+      updateData.validated_at = now;
+      updateData.validated_by_user_id = user_id;
+    }
+
     const { error: updateError } = await supabase
       .from("tickets")
-      .update({
-        status: "validated",
-        validated_at: new Date().toISOString(),
-        validated_by_user_id: user_id,
-      })
+      .update(updateData)
       .eq("id", ticket.id);
 
     if (updateError) {
@@ -191,22 +327,48 @@ serve(async (req) => {
       throw updateError;
     }
 
-    // Log successful check-in
+    // Log successful check-in with leg type
     await supabase.from("checkin_events").insert({
       ticket_id: ticket.id,
       partner_id: partner_id,
       scanned_by_user_id: user_id,
       result: "success",
+      leg_type: legToValidate,
     });
 
-    console.log("Ticket validated successfully:", ticket.id);
+    console.log("Ticket validated successfully:", ticket.id, "leg:", legToValidate);
+
+    // Check if departure date matches today
+    const departureDate = legDeparture?.departure_date;
+    const dateWarning = departureDate && departureDate !== today 
+      ? `Note: This ${legToValidate} ticket is for ${departureDate}, not today.`
+      : null;
+
+    // Build route info for response
+    const routeInfo = legDeparture?.route 
+      ? `${legDeparture.route.origin?.name || '?'} → ${legDeparture.route.destination?.name || '?'}`
+      : null;
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Ticket validated successfully",
-        ticket: { id: ticket.id, booking },
-        warning: departureDate !== today ? `Note: This ticket is for ${departureDate}, not today.` : null,
+        message: `${legToValidate === 'outbound' ? 'Outbound' : 'Return'} ticket validated successfully`,
+        leg: legToValidate,
+        ticket: { 
+          id: ticket.id, 
+          booking,
+          route: routeInfo,
+          departure_time: legDeparture?.departure_time,
+          departure_date: legDeparture?.departure_date,
+        },
+        warning: dateWarning,
+        // Info about remaining legs
+        remainingLegs: {
+          outbound: legToValidate === 'return' ? (outboundAlreadyValidated ? 'validated' : 'pending') : 'just_validated',
+          return: returnDeparture 
+            ? (legToValidate === 'outbound' ? (returnAlreadyValidated ? 'validated' : 'pending') : 'just_validated')
+            : null
+        }
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
