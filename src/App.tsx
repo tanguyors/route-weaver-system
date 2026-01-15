@@ -48,6 +48,7 @@ import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminActivityPayoutsPage from "./pages/admin/AdminActivityPayoutsPage";
 import AdminActivityInvoicesPage from "./pages/admin/AdminActivityInvoicesPage";
 import AdminActivityCommissionsPage from "./pages/admin/AdminActivityCommissionsPage";
+import AdminCommissionsPage from "./pages/admin/AdminCommissionsPage";
 import NotFound from "./pages/NotFound";
 import WidgetBooking from "./pages/WidgetBooking";
 import WidgetBookingNew from "./pages/WidgetBookingNew";
@@ -121,7 +122,7 @@ const App = () => (
             <Route path="/admin/partners" element={<ProtectedRoute><AdminPartnersPage /></ProtectedRoute>} />
             <Route path="/admin/bookings" element={<ProtectedRoute><BookingsPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-            <Route path="/admin/commissions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
+            <Route path="/admin/commissions" element={<ProtectedRoute><AdminCommissionsPage /></ProtectedRoute>} />
             <Route path="/admin/withdrawals" element={<ProtectedRoute><AdminWithdrawalsPage /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute><AdminUsersPage /></ProtectedRoute>} />
             <Route path="/admin/ports" element={<ProtectedRoute><AdminPortsPage /></ProtectedRoute>} />
