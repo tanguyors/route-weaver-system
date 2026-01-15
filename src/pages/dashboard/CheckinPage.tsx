@@ -101,7 +101,7 @@ const CheckinPage = () => {
               {scanResult ? (
                 <ScanResult result={scanResult} onContinue={handleContinue} />
               ) : (
-                <QRScanner onScan={handleScan} isProcessing={isProcessing} />
+                <QRScanner onScan={handleScan} isProcessing={isProcessing} key="qr-scanner" />
               )}
             </CardContent>
           </Card>
