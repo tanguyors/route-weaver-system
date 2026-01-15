@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
+import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import { Camera, CameraOff, Loader2 } from 'lucide-react';
 
@@ -8,58 +8,59 @@ interface QRScannerProps {
   isProcessing?: boolean;
 }
 
-const SCANNER_CONTAINER_ID = 'qr-scanner-container';
-
-const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
+const QRScanner = memo(function QRScanner({ onScan, isProcessing = false }: QRScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const isMountedRef = useRef(true);
-  const isStoppingRef = useRef(false);
-
-  const cleanupScanner = useCallback(async () => {
-    if (isStoppingRef.current) return;
-    isStoppingRef.current = true;
-    
-    const scanner = scannerRef.current;
-    scannerRef.current = null;
-    
-    if (scanner) {
-      try {
-        const state = scanner.getState();
-        if (state === 2) { // SCANNING state
-          await scanner.stop();
-        }
-        scanner.clear();
-      } catch (err) {
-        // Ignore cleanup errors
-        console.log('Scanner cleanup:', err);
-      }
-    }
-    
-    isStoppingRef.current = false;
-  }, []);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scannerIdRef = useRef(`qr-scanner-${Date.now()}`);
 
   const stopScanning = useCallback(async () => {
-    await cleanupScanner();
-    if (isMountedRef.current) {
+    const scanner = scannerRef.current;
+    if (!scanner) {
+      setIsScanning(false);
+      return;
+    }
+
+    try {
+      const state = scanner.getState();
+      if (state === Html5QrcodeScannerState.SCANNING) {
+        await scanner.stop();
+      }
+    } catch (err) {
+      console.log('Stop scanner error (ignored):', err);
+    } finally {
+      scannerRef.current = null;
       setIsScanning(false);
     }
-  }, [cleanupScanner]);
+  }, []);
 
   const startScanning = async () => {
+    if (isStarting) return;
+    
     try {
       setError(null);
+      setIsStarting(true);
       
-      // Ensure any previous scanner is stopped
-      await cleanupScanner();
+      // Stop any existing scanner
+      if (scannerRef.current) {
+        await stopScanning();
+      }
       
-      // Wait for DOM to settle
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Wait for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      if (!isMountedRef.current) return;
+      const containerId = scannerIdRef.current;
+      const container = document.getElementById(containerId);
+      if (!container) {
+        throw new Error('Scanner container not found');
+      }
       
-      const scanner = new Html5Qrcode(SCANNER_CONTAINER_ID, { verbose: false });
+      // Clear container
+      container.innerHTML = '';
+      
+      const scanner = new Html5Qrcode(containerId, { verbose: false });
       scannerRef.current = scanner;
 
       await scanner.start(
@@ -70,8 +71,7 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
           aspectRatio: 1,
         },
         (decodedText) => {
-          if (!isProcessing && isMountedRef.current) {
-            // Vibrate on successful scan if supported
+          if (!isProcessing) {
             if (navigator.vibrate) {
               navigator.vibrate(200);
             }
@@ -83,33 +83,26 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
         }
       );
 
-      if (isMountedRef.current) {
-        setIsScanning(true);
-      }
+      setIsScanning(true);
     } catch (err: any) {
       console.error('Error starting scanner:', err);
       scannerRef.current = null;
-      if (isMountedRef.current) {
-        setError(err.message || 'Failed to start camera');
-      }
+      setError(err.message || 'Failed to start camera');
+    } finally {
+      setIsStarting(false);
     }
   };
 
   // Cleanup on unmount
   useEffect(() => {
-    isMountedRef.current = true;
-    
     return () => {
-      isMountedRef.current = false;
       const scanner = scannerRef.current;
       if (scanner) {
         scannerRef.current = null;
         try {
           const state = scanner.getState();
-          if (state === 2) {
-            scanner.stop().then(() => scanner.clear()).catch(() => {});
-          } else {
-            scanner.clear();
+          if (state === Html5QrcodeScannerState.SCANNING) {
+            scanner.stop().catch(() => {});
           }
         } catch {
           // Ignore
@@ -121,19 +114,26 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
   return (
     <div className="space-y-4">
       <div
-        id={SCANNER_CONTAINER_ID}
+        ref={containerRef}
+        id={scannerIdRef.current}
         className={`relative overflow-hidden rounded-lg bg-black ${
           isScanning ? 'min-h-[300px]' : 'h-64'
         }`}
       >
-        {!isScanning && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50">
+        {!isScanning && !isStarting && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50 z-10">
             <Camera className="w-16 h-16 text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground text-lg mb-4">Camera Scanner</p>
             <Button onClick={startScanning} variant="hero">
               <Camera className="w-4 h-4 mr-2" />
               Start Scanning
             </Button>
+          </div>
+        )}
+        {isStarting && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50 z-10">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Starting camera...</p>
           </div>
         )}
       </div>
@@ -165,6 +165,6 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
       )}
     </div>
   );
-};
+});
 
 export default QRScanner;
