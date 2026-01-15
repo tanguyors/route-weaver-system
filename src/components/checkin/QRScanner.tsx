@@ -8,52 +8,58 @@ interface QRScannerProps {
   isProcessing?: boolean;
 }
 
+const SCANNER_CONTAINER_ID = 'qr-scanner-container';
+
 const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isMountedRef = useRef(true);
-  const scannerIdRef = useRef(`qr-reader-${Date.now()}`);
+  const isStoppingRef = useRef(false);
 
-  const stopScanning = useCallback(async () => {
-    if (scannerRef.current) {
+  const cleanupScanner = useCallback(async () => {
+    if (isStoppingRef.current) return;
+    isStoppingRef.current = true;
+    
+    const scanner = scannerRef.current;
+    scannerRef.current = null;
+    
+    if (scanner) {
       try {
-        const scanner = scannerRef.current;
-        scannerRef.current = null;
-        await scanner.stop();
-        // Clear the container manually to prevent React DOM conflicts
-        const container = document.getElementById(scannerIdRef.current);
-        if (container) {
-          container.innerHTML = '';
+        const state = scanner.getState();
+        if (state === 2) { // SCANNING state
+          await scanner.stop();
         }
+        scanner.clear();
       } catch (err) {
-        console.error('Error stopping scanner:', err);
+        // Ignore cleanup errors
+        console.log('Scanner cleanup:', err);
       }
     }
+    
+    isStoppingRef.current = false;
+  }, []);
+
+  const stopScanning = useCallback(async () => {
+    await cleanupScanner();
     if (isMountedRef.current) {
       setIsScanning(false);
     }
-  }, []);
+  }, [cleanupScanner]);
 
   const startScanning = async () => {
     try {
       setError(null);
       
       // Ensure any previous scanner is stopped
-      if (scannerRef.current) {
-        await stopScanning();
-      }
+      await cleanupScanner();
       
-      // Wait a bit for DOM to settle
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for DOM to settle
+      await new Promise(resolve => setTimeout(resolve, 150));
       
-      const container = document.getElementById(scannerIdRef.current);
-      if (!container || !isMountedRef.current) return;
+      if (!isMountedRef.current) return;
       
-      // Clear container before starting
-      container.innerHTML = '';
-      
-      const scanner = new Html5Qrcode(scannerIdRef.current);
+      const scanner = new Html5Qrcode(SCANNER_CONTAINER_ID, { verbose: false });
       scannerRef.current = scanner;
 
       await scanner.start(
@@ -82,6 +88,7 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
       }
     } catch (err: any) {
       console.error('Error starting scanner:', err);
+      scannerRef.current = null;
       if (isMountedRef.current) {
         setError(err.message || 'Failed to start camera');
       }
@@ -94,10 +101,19 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
     
     return () => {
       isMountedRef.current = false;
-      if (scannerRef.current) {
-        const scanner = scannerRef.current;
+      const scanner = scannerRef.current;
+      if (scanner) {
         scannerRef.current = null;
-        scanner.stop().catch(() => {});
+        try {
+          const state = scanner.getState();
+          if (state === 2) {
+            scanner.stop().then(() => scanner.clear()).catch(() => {});
+          } else {
+            scanner.clear();
+          }
+        } catch {
+          // Ignore
+        }
       }
     };
   }, []);
@@ -105,7 +121,7 @@ const QRScanner = ({ onScan, isProcessing = false }: QRScannerProps) => {
   return (
     <div className="space-y-4">
       <div
-        id={scannerIdRef.current}
+        id={SCANNER_CONTAINER_ID}
         className={`relative overflow-hidden rounded-lg bg-black ${
           isScanning ? 'min-h-[300px]' : 'h-64'
         }`}
