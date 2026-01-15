@@ -108,22 +108,36 @@ serve(async (req) => {
 
     const booking = ticket.booking as any;
 
-    // Check booking status first
-    if (booking?.status === "cancelled") {
-      console.log("Booking is cancelled");
+    // Check booking status first - must be confirmed (paid) to allow check-in
+    if (booking?.status !== "confirmed") {
+      console.log("Booking status is not confirmed:", booking?.status);
+      
+      let message = "This booking cannot be checked in";
+      let reason = "invalid";
+      
+      if (booking?.status === "cancelled") {
+        message = "This booking has been cancelled";
+        reason = "cancelled";
+      } else if (booking?.status === "pending") {
+        message = "Payment required. Please complete payment before check-in.";
+        reason = "unpaid";
+      } else if (booking?.status === "expired") {
+        message = "This booking has expired";
+        reason = "expired";
+      }
       
       await supabase.from("checkin_events").insert({
         ticket_id: ticket.id,
         partner_id: partner_id,
         scanned_by_user_id: user_id,
-        result: "cancelled",
+        result: reason,
       });
 
       return new Response(
         JSON.stringify({
           success: false,
-          message: "This booking has been cancelled",
-          reason: "cancelled",
+          message: message,
+          reason: reason,
           ticket: { id: ticket.id, booking },
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
