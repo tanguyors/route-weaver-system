@@ -1197,6 +1197,7 @@ export type Database = {
       checkin_events: {
         Row: {
           id: string
+          leg_type: string | null
           partner_id: string
           result: Database["public"]["Enums"]["checkin_result"]
           scanned_at: string
@@ -1205,6 +1206,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          leg_type?: string | null
           partner_id: string
           result: Database["public"]["Enums"]["checkin_result"]
           scanned_at?: string
@@ -1213,6 +1215,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          leg_type?: string | null
           partner_id?: string
           result?: Database["public"]["Enums"]["checkin_result"]
           scanned_at?: string
@@ -2551,8 +2554,14 @@ export type Database = {
           booking_id: string
           created_at: string
           id: string
+          outbound_validated_at: string | null
+          outbound_validated_by_partner_id: string | null
+          outbound_validated_by_user_id: string | null
           qr_image_url: string | null
           qr_token: string
+          return_validated_at: string | null
+          return_validated_by_partner_id: string | null
+          return_validated_by_user_id: string | null
           status: Database["public"]["Enums"]["ticket_status"]
           validated_at: string | null
           validated_by_user_id: string | null
@@ -2561,8 +2570,14 @@ export type Database = {
           booking_id: string
           created_at?: string
           id?: string
+          outbound_validated_at?: string | null
+          outbound_validated_by_partner_id?: string | null
+          outbound_validated_by_user_id?: string | null
           qr_image_url?: string | null
           qr_token?: string
+          return_validated_at?: string | null
+          return_validated_by_partner_id?: string | null
+          return_validated_by_user_id?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
           validated_at?: string | null
           validated_by_user_id?: string | null
@@ -2571,8 +2586,14 @@ export type Database = {
           booking_id?: string
           created_at?: string
           id?: string
+          outbound_validated_at?: string | null
+          outbound_validated_by_partner_id?: string | null
+          outbound_validated_by_user_id?: string | null
           qr_image_url?: string | null
           qr_token?: string
+          return_validated_at?: string | null
+          return_validated_by_partner_id?: string | null
+          return_validated_by_user_id?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
           validated_at?: string | null
           validated_by_user_id?: string | null
@@ -2583,6 +2604,20 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_outbound_validated_by_partner_id_fkey"
+            columns: ["outbound_validated_by_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_return_validated_by_partner_id_fkey"
+            columns: ["return_validated_by_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
