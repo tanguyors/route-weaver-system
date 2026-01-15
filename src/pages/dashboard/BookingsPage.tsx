@@ -207,7 +207,11 @@ const BookingsPage = () => {
                     {bookings.map((booking) => {
                       const paymentStatus = getPaymentStatus(booking);
                       return (
-                        <TableRow key={booking.id}>
+                        <TableRow 
+                          key={booking.id} 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSelectedBooking(booking)}
+                        >
                           <TableCell className="font-mono text-xs">
                             {booking.id.slice(0, 8).toUpperCase()}
                           </TableCell>
@@ -272,19 +276,16 @@ const BookingsPage = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setSelectedBooking(booking)}>
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedBooking(booking);
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
