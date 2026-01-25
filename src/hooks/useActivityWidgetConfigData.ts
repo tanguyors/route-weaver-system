@@ -278,14 +278,24 @@ export const useActivityWidgetConfigData = () => {
     if (!widget) return '';
 
     const baseUrl = window.location.origin;
+    const iframeId = `sribooking-activity-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
+  id="${iframeId}"
   src="${baseUrl}/activity-widget?key=${widget.public_widget_key}" 
   width="100%" 
   height="${height}" 
   frameborder="0" 
-  style="border: none; border-radius: 8px;"
+  style="border: none; border-radius: 8px; transition: height 0.2s ease;"
   allow="payment"
-></iframe>`;
+></iframe>
+<script>
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'sribooking-resize') {
+    var iframe = document.getElementById('${iframeId}');
+    if (iframe) iframe.style.height = e.data.height + 'px';
+  }
+});
+</script>`;
   };
 
   // Get embed code for bar widget (compact product list)
@@ -293,14 +303,24 @@ export const useActivityWidgetConfigData = () => {
     if (!widget) return '';
 
     const baseUrl = window.location.origin;
+    const iframeId = `sribooking-activity-bar-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
+  id="${iframeId}"
   src="${baseUrl}/activity-widget?key=${widget.public_widget_key}&style=bar" 
   width="100%" 
   height="200px" 
   frameborder="0" 
-  style="border: none;"
+  style="border: none; transition: height 0.2s ease;"
   allow="payment"
-></iframe>`;
+></iframe>
+<script>
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'sribooking-resize') {
+    var iframe = document.getElementById('${iframeId}');
+    if (iframe) iframe.style.height = e.data.height + 'px';
+  }
+});
+</script>`;
   };
 
   // Get direct link

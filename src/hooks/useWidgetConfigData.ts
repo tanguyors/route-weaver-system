@@ -282,14 +282,24 @@ export const useWidgetConfigData = () => {
     if (!widget) return '';
 
     const baseUrl = window.location.origin;
+    const iframeId = `sribooking-widget-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
+  id="${iframeId}"
   src="${baseUrl}/book?key=${widget.public_widget_key}" 
   width="100%" 
   height="${height}" 
   frameborder="0" 
-  style="border: none; border-radius: 8px;"
+  style="border: none; border-radius: 8px; transition: height 0.2s ease;"
   allow="payment"
-></iframe>`;
+></iframe>
+<script>
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'sribooking-resize') {
+    var iframe = document.getElementById('${iframeId}');
+    if (iframe) iframe.style.height = e.data.height + 'px';
+  }
+});
+</script>`;
   };
 
   // Get embed code for bar widget
@@ -297,14 +307,24 @@ export const useWidgetConfigData = () => {
     if (!widget) return '';
 
     const baseUrl = window.location.origin;
+    const iframeId = `sribooking-bar-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
+  id="${iframeId}"
   src="${baseUrl}/book?key=${widget.public_widget_key}&style=bar" 
   width="100%" 
   height="80px" 
   frameborder="0" 
-  style="border: none;"
+  style="border: none; transition: height 0.2s ease;"
   allow="payment"
-></iframe>`;
+></iframe>
+<script>
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'sribooking-resize') {
+    var iframe = document.getElementById('${iframeId}');
+    if (iframe) iframe.style.height = e.data.height + 'px';
+  }
+});
+</script>`;
   };
 
   // Get embed code for test (new) widget
@@ -312,14 +332,24 @@ export const useWidgetConfigData = () => {
     if (!widget) return '';
 
     const baseUrl = window.location.origin;
+    const iframeId = `sribooking-v2-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
+  id="${iframeId}"
   src="${baseUrl}/book-new?key=${widget.public_widget_key}" 
   width="100%" 
   height="800px" 
   frameborder="0" 
-  style="border: none; border-radius: 8px;"
+  style="border: none; border-radius: 8px; transition: height 0.2s ease;"
   allow="payment"
-></iframe>`;
+></iframe>
+<script>
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'sribooking-resize') {
+    var iframe = document.getElementById('${iframeId}');
+    if (iframe) iframe.style.height = e.data.height + 'px';
+  }
+});
+</script>`;
   };
 
   // Get direct link

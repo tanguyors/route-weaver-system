@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
 
 interface WidgetProduct {
   id: string;
@@ -47,6 +48,9 @@ const ActivityWidgetListPage = () => {
   const widgetKey = searchParams.get('key');
   const style = searchParams.get('style') || 'block';
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Enable iframe height communication
+  useIframeHeightMessenger();
 
   // Fetch widget data
   const { data: widgetData, isLoading, error } = useQuery({
