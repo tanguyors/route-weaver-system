@@ -89,49 +89,66 @@ export const useActivityWidgetConfigData = () => {
     }
   }, [partnerId]);
 
-  // Create or get existing widget (upsert pattern)
+  // Create or get existing widget (upsert pattern with conflict handling)
   const createWidget = async (): Promise<ActivityWidget | null> => {
     if (!partnerId) return null;
 
     try {
-      // First check if widget already exists
-      const { data: existing } = await supabase
-        .from('widgets')
-        .select('*')
-        .eq('partner_id', partnerId)
-        .eq('widget_type', 'activity')
-        .maybeSingle();
-
-      if (existing) {
-        setWidget(existing as ActivityWidget);
-        return existing as ActivityWidget;
-      }
-
-      // Create new widget only if none exists
+      // Use upsert with onConflict to handle race conditions
       const { data, error } = await supabase
         .from('widgets')
-        .insert({
-          partner_id: partnerId,
-          widget_type: 'activity',
-          status: 'active',
-          theme_config: {
-            primary_color: '#1B5E3B',
+        .upsert(
+          {
+            partner_id: partnerId,
+            widget_type: 'activity',
+            status: 'active',
+            theme_config: {
+              primary_color: '#1B5E3B',
+            },
           },
-        })
+          {
+            onConflict: 'partner_id,widget_type',
+            ignoreDuplicates: true,
+          }
+        )
         .select()
-        .single();
+        .maybeSingle();
+
+      // If upsert returned nothing (duplicate ignored), fetch existing
+      if (!data) {
+        const { data: existing } = await supabase
+          .from('widgets')
+          .select('*')
+          .eq('partner_id', partnerId)
+          .eq('widget_type', 'activity')
+          .maybeSingle();
+
+        if (existing) {
+          setWidget(existing as ActivityWidget);
+          return existing as ActivityWidget;
+        }
+      }
 
       if (error) throw error;
 
       setWidget(data as ActivityWidget);
-      toast({
-        title: 'Widget Created',
-        description: 'Your activity booking widget has been created',
-      });
-
       return data as ActivityWidget;
     } catch (error: any) {
       console.error('Error creating activity widget:', error);
+      // If it's a duplicate error, try to fetch existing
+      if (error.code === '23505') {
+        const { data: existing } = await supabase
+          .from('widgets')
+          .select('*')
+          .eq('partner_id', partnerId)
+          .eq('widget_type', 'activity')
+          .maybeSingle();
+
+        if (existing) {
+          setWidget(existing as ActivityWidget);
+          return existing as ActivityWidget;
+        }
+      }
       toast({
         title: 'Error',
         description: error.message || 'Failed to create widget',
