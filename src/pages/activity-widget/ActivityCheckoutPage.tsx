@@ -17,11 +17,15 @@ import {
   Timer,
 } from 'lucide-react';
 import { useActivityBookingData, LineItem } from '@/hooks/useActivityWidgetData';
+import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
 import { toast } from 'sonner';
 
 const ActivityCheckoutPage = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const { booking, isLoading, confirmBooking, isConfirming, refetch } = useActivityBookingData(bookingId);
+  
+  // Enable iframe height communication
+  useIframeHeightMessenger();
   
   const [timeLeft, setTimeLeft] = useState<number>(0);
   

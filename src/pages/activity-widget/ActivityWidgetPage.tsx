@@ -30,12 +30,16 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useActivityWidgetData, LineItem, CustomerInfo, WidgetAvailability } from '@/hooks/useActivityWidgetData';
+import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const ActivityWidgetPage = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  
+  // Enable iframe height communication
+  useIframeHeightMessenger();
   
   const { product, isLoadingProduct, productError, fetchAvailability, createBooking, isCreatingBooking } = useActivityWidgetData(productId);
   

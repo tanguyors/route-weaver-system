@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWidgetBooking, SelectedAddon, PrivateBoat } from '@/hooks/useWidgetBooking';
+import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
 import { WidgetStepIndicator, WidgetStep } from '@/components/widget/WidgetStepIndicator';
 import { WidgetSearchForm, PrivateBoatSelection } from '@/components/widget/WidgetSearchForm';
 import { WidgetTripResults } from '@/components/widget/WidgetTripResults';
@@ -31,6 +32,9 @@ interface SelectedTrip {
 const WidgetBookingNew = () => {
   const [searchParams] = useSearchParams();
   const widgetKey = searchParams.get('key');
+  
+  // Enable iframe height communication
+  useIframeHeightMessenger();
   
   const [step, setStep] = useState<WidgetStep>('search');
   const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');

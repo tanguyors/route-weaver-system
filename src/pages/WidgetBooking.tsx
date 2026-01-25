@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWidgetBooking, SelectedAddon } from '@/hooks/useWidgetBooking';
+import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
 import { BookingStepRoute, PrivateBoatSelection, ServiceType } from '@/components/widget/BookingStepRoute';
 import { BookingStepDeparture } from '@/components/widget/BookingStepDeparture';
 import { BookingStepPassengers } from '@/components/widget/BookingStepPassengers';
@@ -77,6 +78,9 @@ const WidgetBooking = () => {
   const widgetKey = searchParams.get('key');
   const styleParam = searchParams.get('style') as WidgetStyle | null;
   const widgetStyle: WidgetStyle = styleParam === 'bar' ? 'bar' : 'block';
+  
+  // Enable iframe height communication
+  useIframeHeightMessenger();
   
   const [barPaxAdult, setBarPaxAdult] = useState(1);
   const [barPaxChild, setBarPaxChild] = useState(0);
