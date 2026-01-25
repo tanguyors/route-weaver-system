@@ -89,11 +89,25 @@ export const useActivityWidgetConfigData = () => {
     }
   }, [partnerId]);
 
-  // Create widget if not exists
+  // Create or get existing widget (upsert pattern)
   const createWidget = async (): Promise<ActivityWidget | null> => {
     if (!partnerId) return null;
 
     try {
+      // First check if widget already exists
+      const { data: existing } = await supabase
+        .from('widgets')
+        .select('*')
+        .eq('partner_id', partnerId)
+        .eq('widget_type', 'activity')
+        .maybeSingle();
+
+      if (existing) {
+        setWidget(existing as ActivityWidget);
+        return existing as ActivityWidget;
+      }
+
+      // Create new widget only if none exists
       const { data, error } = await supabase
         .from('widgets')
         .insert({

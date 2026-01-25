@@ -73,6 +73,7 @@ export const useWidgetConfigData = () => {
         .from('widgets')
         .select('*')
         .eq('partner_id', partnerId)
+        .eq('widget_type', 'fastboat')
         .maybeSingle();
 
       if (error) throw error;
@@ -90,11 +91,25 @@ export const useWidgetConfigData = () => {
     }
   }, [partnerId]);
 
-  // Create widget if not exists
+  // Create or get existing widget (upsert pattern)
   const createWidget = async (): Promise<Widget | null> => {
     if (!partnerId) return null;
 
     try {
+      // First check if widget already exists
+      const { data: existing } = await supabase
+        .from('widgets')
+        .select('*')
+        .eq('partner_id', partnerId)
+        .eq('widget_type', 'fastboat')
+        .maybeSingle();
+
+      if (existing) {
+        setWidget(existing as Widget);
+        return existing as Widget;
+      }
+
+      // Create new widget only if none exists
       const { data, error } = await supabase
         .from('widgets')
         .insert({
