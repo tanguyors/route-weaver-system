@@ -250,6 +250,12 @@ export const WidgetBookingDetails = ({
       return;
     }
 
+    // Validate pickup address if pickup is enabled
+    if (isPrivateBoat && pickupEnabled && selectedPickupRuleId && !pickupDetails.trim()) {
+      setErrors({ pickupDetails: 'Please enter your hotel or pickup address' });
+      return;
+    }
+
     if (!termsAccepted) {
       setErrors({ terms: 'You must accept the terms and conditions' });
       return;
@@ -612,13 +618,17 @@ export const WidgetBookingDetails = ({
                   </div>
 
                   <div>
-                    <Label className="text-sm text-gray-600 mb-1">Hotel / Address</Label>
+                    <Label className="text-sm text-gray-600 mb-1">* Hotel / Address</Label>
                     <Input
                       placeholder="Enter your hotel or address"
                       value={pickupDetails}
                       onChange={(e) => setPickupDetails(e.target.value)}
                       disabled={!selectedPickupRuleId}
+                      className={errors.pickupDetails ? 'border-red-500' : ''}
                     />
+                    {errors.pickupDetails && (
+                      <p className="text-sm text-red-500 mt-1">{errors.pickupDetails}</p>
+                    )}
                   </div>
                 </div>
 
@@ -672,17 +682,6 @@ export const WidgetBookingDetails = ({
           </div>
         )}
 
-        {/* Payment Type */}
-        <div className="bg-white rounded-lg border p-6">
-          <div className="flex items-center gap-4">
-            <span className="font-semibold">Payment Type</span>
-            <select className="flex-1 p-2 border rounded-md">
-              <option>Payment</option>
-              <option>Full Payment</option>
-              <option>Deposit</option>
-            </select>
-          </div>
-        </div>
 
         {/* Terms & Actions */}
         <div className="space-y-4">
