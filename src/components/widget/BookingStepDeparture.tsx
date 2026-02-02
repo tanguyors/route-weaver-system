@@ -201,7 +201,7 @@ export const BookingStepDeparture = ({
       </Card>
 
       {/* Boat Info Modal */}
-      {boatInfoModal && (
+      {boatInfoModal && boatInfoModal.open && (
         <BoatInfoModal
           open={boatInfoModal.open}
           onClose={() => setBoatInfoModal(null)}

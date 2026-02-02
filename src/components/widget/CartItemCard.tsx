@@ -237,7 +237,7 @@ export const CartItemCard = ({
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
           <span className="text-xs sm:text-sm text-gray-500 flex items-center gap-1">
             <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-300 flex items-center justify-center text-[10px] sm:text-xs shrink-0">i</span>
-            <span className="truncate">{t('shuttleRates')}</span>
+            <span className="truncate">{t('privatePickup')}</span>
           </span>
           <Button
             type="button"
