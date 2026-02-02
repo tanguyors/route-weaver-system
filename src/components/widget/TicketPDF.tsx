@@ -26,6 +26,8 @@ interface PickupInfo {
   name: string;
   details?: string;
   price: number;
+  pickupTime?: string;
+  cityName?: string;
 }
 
 interface TicketPDFProps {
@@ -426,7 +428,10 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
       <div className="border-x border-b p-6 bg-gray-50">
         <h4 className="font-bold text-sm mb-3">Important Information</h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Please arrive at the port at least 30 minutes before departure</li>
+          {pickups.length > 0 && pickups[0]?.pickupTime && pickups[0]?.details && (
+            <li>• PICKUP {pickups[0].details} {pickups[0].cityName ? `(${pickups[0].cityName})` : ''} at {pickups[0].pickupTime}</li>
+          )}
+          <li>• Please arrive at the port at least 60 minutes before departure</li>
           <li>• Present this e-ticket (printed or on mobile) at check-in counter</li>
           <li>• Valid ID (Passport/KTP) required for all passengers</li>
           {paxInfant > 0 && (

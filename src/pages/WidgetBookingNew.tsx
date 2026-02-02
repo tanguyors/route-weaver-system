@@ -525,8 +525,28 @@ const WidgetBookingNew = () => {
             customer={customerData}
             totalAmount={bookingResult.total_amount}
             subtotalAmount={bookingResult.subtotal_amount}
-            pickups={selectedPickups.map(p => ({ name: p.cityName || '', details: p.hotelAddress || p.details || '', price: p.price || 0 }))}
+            pickups={selectedPickups.map(p => {
+              // Calculate pickup time: departure time - before_departure_minutes - 60 (arrive 1h before)
+              let pickupTime: string | undefined;
+              if (p.beforeDepartureMinutes && selectedOutbound?.departure.departure_time) {
+                const depTime = selectedOutbound.departure.departure_time;
+                const [hours, minutes] = depTime.split(':').map(Number);
+                const totalMins = hours * 60 + minutes - p.beforeDepartureMinutes - 60;
+                const pickupHours = Math.floor((totalMins + 1440) % 1440 / 60);
+                const pickupMins = (totalMins + 1440) % 60;
+                pickupTime = `${pickupHours.toString().padStart(2, '0')}:${pickupMins.toString().padStart(2, '0')}`;
+              }
+              return { 
+                name: p.cityName || '', 
+                details: p.hotelAddress || p.details || '', 
+                price: p.price || 0,
+                pickupTime,
+                cityName: p.cityName,
+              };
+            })}
             paymentMethod={selectedPaymentMethod}
+            partnerName={data?.theme_config?.partner_name}
+            partnerLogo={data?.theme_config?.logo_url}
             primaryColor={primaryColor}
           />
         )}
