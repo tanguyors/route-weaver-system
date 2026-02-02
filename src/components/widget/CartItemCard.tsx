@@ -324,7 +324,7 @@ export const CartItemCard = ({
                         <Car className="h-5 w-5" />
                         <span>{t('car')} ({t('maxPax', { count: 4 })})</span>
                         <span className="text-xs opacity-75">
-                          +IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()}
+                          IDR {Number(selectedPickupRule.car_price ?? 0).toLocaleString()} {t('forOneWay')}
                         </span>
                       </button>
                       <button
@@ -340,7 +340,7 @@ export const CartItemCard = ({
                         <Bus className="h-5 w-5" />
                         <span>{t('minibus')} ({t('maxPax', { count: 10 })})</span>
                         <span className="text-xs opacity-75">
-                          +IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()}
+                          IDR {Number(selectedPickupRule.bus_price ?? 0).toLocaleString()} {t('forOneWay')}
                         </span>
                       </button>
                     </div>
