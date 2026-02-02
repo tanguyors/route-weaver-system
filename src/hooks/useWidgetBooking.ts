@@ -156,6 +156,7 @@ export interface ThemeConfig {
   logo_url?: string;
   widget_style?: 'block' | 'bar';
   show_child_pax?: boolean;
+  partner_name?: string;
 }
 
 export interface WidgetData {
@@ -258,12 +259,26 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     );
     const routeIds = matchingRoutes.map(r => r.id);
     
-    // Filter by route and date client-side
+    // Calculate today and tomorrow dates
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    // Filter by route and limit to selected date + next day only
     return data.departures.filter(d => {
       const matchesRoute = routeIds.includes(d.route_id);
-      const matchesDate = !selectedDate || d.departure_date >= selectedDate;
+      const matchesDate = !selectedDate || (d.departure_date >= selectedDate && d.departure_date <= getNextDay(selectedDate));
       return matchesRoute && matchesDate;
     });
+  };
+
+  // Helper to get next day from a date string
+  const getNextDay = (dateStr: string) => {
+    const date = new Date(dateStr);
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().split('T')[0];
   };
 
   const getReturnDepartures = (returnDate: string) => {
@@ -275,10 +290,10 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     );
     const routeIds = matchingRoutes.map(r => r.id);
     
-    // Filter by route and return date
+    // Filter by route and limit to return date + next day only
     return data.departures.filter(d => {
       const matchesRoute = routeIds.includes(d.route_id);
-      const matchesDate = d.departure_date >= returnDate;
+      const matchesDate = d.departure_date >= returnDate && d.departure_date <= getNextDay(returnDate);
       return matchesRoute && matchesDate;
     });
   };

@@ -28,6 +28,8 @@ interface PickupInfo {
   name: string;
   details?: string;
   price: number;
+  pickupTime?: string;
+  cityName?: string;
 }
 
 interface BookingSuccessProps {

@@ -200,9 +200,9 @@ export const BookingStepPickupDropoff = ({
                       }`}
                     >
                       <Car className="h-5 w-5" />
-                      <span>Car (max 4 pax)</span>
+                      <span>PRIVATE Car (max 4 pax)</span>
                       <span className="text-xs opacity-75">
-                        +IDR {Number(selectedPickup.car_price ?? 0).toLocaleString()}
+                        +IDR {Number(selectedPickup.car_price ?? 0).toLocaleString()} for one way
                       </span>
                     </button>
                     <button
@@ -215,9 +215,9 @@ export const BookingStepPickupDropoff = ({
                       }`}
                     >
                       <Bus className="h-5 w-5" />
-                      <span>Minibus (max 10 pax)</span>
+                      <span>PRIVATE Minibus (max 10 pax)</span>
                       <span className="text-xs opacity-75">
-                        +IDR {Number(selectedPickup.bus_price ?? 0).toLocaleString()}
+                        +IDR {Number(selectedPickup.bus_price ?? 0).toLocaleString()} for one way
                       </span>
                     </button>
                   </div>
@@ -284,9 +284,9 @@ export const BookingStepPickupDropoff = ({
                       }`}
                     >
                       <Car className="h-5 w-5" />
-                      <span>Car (max 4 pax)</span>
+                      <span>PRIVATE Car (max 4 pax)</span>
                       <span className="text-xs opacity-75">
-                        +IDR {Number(selectedDropoff.car_price ?? 0).toLocaleString()}
+                        +IDR {Number(selectedDropoff.car_price ?? 0).toLocaleString()} for one way
                       </span>
                     </button>
                     <button
@@ -299,9 +299,9 @@ export const BookingStepPickupDropoff = ({
                       }`}
                     >
                       <Bus className="h-5 w-5" />
-                      <span>Minibus (max 10 pax)</span>
+                      <span>PRIVATE Minibus (max 10 pax)</span>
                       <span className="text-xs opacity-75">
-                        +IDR {Number(selectedDropoff.bus_price ?? 0).toLocaleString()}
+                        +IDR {Number(selectedDropoff.bus_price ?? 0).toLocaleString()} for one way
                       </span>
                     </button>
                   </div>

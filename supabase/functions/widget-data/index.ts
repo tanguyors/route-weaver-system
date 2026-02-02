@@ -47,6 +47,13 @@ serve(async (req) => {
     }
 
     const partnerId = widget.partner_id;
+    
+    // Fetch partner info for name and logo
+    const { data: partner } = await supabase
+      .from('partners')
+      .select('name, logo_url')
+      .eq('id', partnerId)
+      .single();
 
     // Get routes for this partner (Public Fast Ferry)
     const { data: routes } = await supabase
@@ -254,7 +261,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         partner_id: partnerId,
-        theme_config: widget.theme_config,
+        theme_config: {
+          ...(widget.theme_config || {}),
+          partner_name: partner?.name || null,
+          logo_url: (widget.theme_config as any)?.logo_url || partner?.logo_url || null,
+        },
         ports: Array.from(ports.values()),
         routes: routes || [],
         trips: trips || [],
