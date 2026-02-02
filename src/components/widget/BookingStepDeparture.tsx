@@ -77,6 +77,7 @@ export const BookingStepDeparture = ({
   };
 
   const handleOpenBoatInfo = (e: React.MouseEvent, dep: Departure, boat: Boat, trip: Trip | undefined, pricing: { adult: number; child: number }) => {
+    e.preventDefault();
     e.stopPropagation();
     setBoatInfoModal({
       open: true,
@@ -159,6 +160,7 @@ export const BookingStepDeparture = ({
                                   {boat.name}
                                 </span>
                                 <Button
+                                   type="button"
                                   variant="outline"
                                   size="sm"
                                   onClick={(e) => handleOpenBoatInfo(e, dep, boat, trip, pricing)}

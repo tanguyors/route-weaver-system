@@ -95,11 +95,10 @@ export const BoatInfoModal = ({
     : 0;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent 
-        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
+    <Dialog open={open} modal={false} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto z-[60] overscroll-contain [-webkit-overflow-scrolling:touch]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

@@ -190,6 +190,7 @@ export const WidgetTripResults = ({
     const totalPrice = (paxAdult * pricing.adult) + (paxChild * pricing.child);
 
     const handleOpenBoatInfo = (e: React.MouseEvent) => {
+      e.preventDefault();
       e.stopPropagation();
       if (boat) {
         setBoatInfoModal({
@@ -236,6 +237,7 @@ export const WidgetTripResults = ({
               {/* Boat Info Button - visible only on desktop */}
               {boat && (
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleOpenBoatInfo}
@@ -309,6 +311,7 @@ export const WidgetTripResults = ({
             {/* Mobile: Boat Info button */}
             {boat && isMobile && (
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={handleOpenBoatInfo}
