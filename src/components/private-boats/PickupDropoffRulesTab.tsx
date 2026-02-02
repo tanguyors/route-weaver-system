@@ -63,7 +63,7 @@ const PickupDropoffRulesTab = () => {
   const [selectedPortId, setSelectedPortId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<ServiceType>('pickup');
   
-  const { rules, ports, loading, isAdmin, createRule, updateRule, deleteRule, fetchRules } = usePickupDropoffRulesData();
+  const { rules, ports, loading, canManage, createRule, updateRule, deleteRule, fetchRules } = usePickupDropoffRulesData();
 
   const [showForm, setShowForm] = useState(false);
   const [formPortId, setFormPortId] = useState('');
@@ -275,7 +275,7 @@ const PickupDropoffRulesTab = () => {
           </div>
         </div>
 
-        {isAdmin && (
+        {canManage && (
           <Button onClick={() => handleOpenForm()} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Configure Port Rules
@@ -306,7 +306,7 @@ const PickupDropoffRulesTab = () => {
               <p className="text-muted-foreground">
                 No {activeTab} rules configured
               </p>
-              {isAdmin && (
+              {canManage && (
                 <Button className="mt-4" onClick={() => handleOpenForm()} size="sm">
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Rules
@@ -322,7 +322,7 @@ const PickupDropoffRulesTab = () => {
                       <MapPin className="h-4 w-4" />
                       {portName}
                     </h3>
-                    {isAdmin && (
+                    {canManage && (
                       <Button variant="ghost" size="sm" onClick={() => handleOpenForm(portId)}>
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit

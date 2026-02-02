@@ -7,6 +7,7 @@ export type ServiceType = 'pickup' | 'dropoff';
 
 export interface PickupDropoffRule {
   id: string;
+  partner_id: string;
   from_port_id: string;
   city_name: string;
   service_type: ServiceType;
@@ -28,15 +29,22 @@ export interface Port {
   area: string | null;
 }
 
-export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: ServiceType) => {
+export const usePickupDropoffRulesData = (partnerId?: string, fromPortId?: string, serviceType?: ServiceType) => {
   const [rules, setRules] = useState<PickupDropoffRule[]>([]);
   const [ports, setPorts] = useState<Port[]>([]);
   const [loading, setLoading] = useState(true);
-  const { role } = useUserRole();
+  const { role, partnerId: userPartnerId } = useUserRole();
 
   const isAdmin = role === 'admin';
+  const effectivePartnerId = partnerId || userPartnerId;
+  const canManage = isAdmin || (role === 'partner_owner' && !!effectivePartnerId);
 
   const fetchRules = useCallback(async () => {
+    if (!effectivePartnerId) {
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     
     let query = supabase
@@ -45,6 +53,7 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
         *,
         port:ports!private_pickup_dropoff_rules_from_port_id_fkey(id, name)
       `)
+      .eq('partner_id', effectivePartnerId)
       .order('sort_order')
       .order('city_name');
 
@@ -65,7 +74,7 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
       setRules((data || []) as PickupDropoffRule[]);
     }
     setLoading(false);
-  }, [fromPortId, serviceType]);
+  }, [effectivePartnerId, fromPortId, serviceType]);
 
   const fetchPorts = useCallback(async () => {
     const { data, error } = await supabase
@@ -94,8 +103,8 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
     status: 'active' | 'inactive';
     sort_order?: number;
   }): Promise<{ error: Error | null }> => {
-    if (!isAdmin) {
-      toast.error('Only admins can manage pickup/dropoff rules');
+    if (!canManage || !effectivePartnerId) {
+      toast.error('You do not have permission to manage pickup/dropoff rules');
       return { error: new Error('Unauthorized') };
     }
 
@@ -103,6 +112,7 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
       .from('private_pickup_dropoff_rules')
       .insert({
         ...data,
+        partner_id: effectivePartnerId,
         price: data.car_price, // Keep price field updated for backwards compatibility
         pickup_before_departure_minutes: data.service_type === 'pickup' ? data.pickup_before_departure_minutes : null,
         dropoff_after_arrival_minutes: data.service_type === 'dropoff' ? data.dropoff_after_arrival_minutes : null,
@@ -132,8 +142,8 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
       sort_order: number;
     }>
   ): Promise<{ error: Error | null }> => {
-    if (!isAdmin) {
-      toast.error('Only admins can manage pickup/dropoff rules');
+    if (!canManage) {
+      toast.error('You do not have permission to manage pickup/dropoff rules');
       return { error: new Error('Unauthorized') };
     }
 
@@ -160,8 +170,8 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
   };
 
   const deleteRule = async (id: string): Promise<{ error: Error | null }> => {
-    if (!isAdmin) {
-      toast.error('Only admins can manage pickup/dropoff rules');
+    if (!canManage) {
+      toast.error('You do not have permission to manage pickup/dropoff rules');
       return { error: new Error('Unauthorized') };
     }
 
@@ -184,6 +194,7 @@ export const usePickupDropoffRulesData = (fromPortId?: string, serviceType?: Ser
     rules,
     ports,
     loading,
+    canManage,
     isAdmin,
     fetchRules,
     createRule,

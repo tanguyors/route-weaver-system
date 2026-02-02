@@ -2414,6 +2414,7 @@ export type Database = {
           dropoff_after_arrival_minutes: number | null
           from_port_id: string
           id: string
+          partner_id: string | null
           pickup_before_departure_minutes: number | null
           price: number
           service_type: Database["public"]["Enums"]["pickup_dropoff_service_type"]
@@ -2429,6 +2430,7 @@ export type Database = {
           dropoff_after_arrival_minutes?: number | null
           from_port_id: string
           id?: string
+          partner_id?: string | null
           pickup_before_departure_minutes?: number | null
           price?: number
           service_type: Database["public"]["Enums"]["pickup_dropoff_service_type"]
@@ -2444,6 +2446,7 @@ export type Database = {
           dropoff_after_arrival_minutes?: number | null
           from_port_id?: string
           id?: string
+          partner_id?: string | null
           pickup_before_departure_minutes?: number | null
           price?: number
           service_type?: Database["public"]["Enums"]["pickup_dropoff_service_type"]
@@ -2457,6 +2460,13 @@ export type Database = {
             columns: ["from_port_id"]
             isOneToOne: false
             referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_pickup_dropoff_rules_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
