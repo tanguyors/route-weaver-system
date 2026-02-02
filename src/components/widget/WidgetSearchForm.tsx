@@ -352,13 +352,17 @@ export const WidgetSearchForm = ({
 
               {/* Depart Date */}
               <FieldWrapper label={t('departureDate')} icon={CalendarDays}>
-                <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen}>
+                <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen} modal={true}>
                   <PopoverTrigger asChild>
-                    <button className="w-full text-left text-gray-900 font-medium focus:outline-none">
+                    <button 
+                      type="button"
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full text-left text-gray-900 font-medium focus:outline-none"
+                    >
                       {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
                   </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[9999]" align="start" sideOffset={5}>
                     <Calendar
                       mode="single"
                       selected={parsedDepartureDate || undefined}
@@ -382,9 +386,11 @@ export const WidgetSearchForm = ({
 
               {/* Return Date */}
               <FieldWrapper label={t('returnDate')} icon={CalendarDays}>
-                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
+                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen} modal={true}>
                   <PopoverTrigger asChild>
                     <button 
+                      type="button"
+                      onClick={(e) => e.stopPropagation()}
                       className={cn(
                         "w-full text-left font-medium focus:outline-none",
                         tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900"
@@ -395,7 +401,7 @@ export const WidgetSearchForm = ({
                     </button>
                   </PopoverTrigger>
                   {tripType === 'round-trip' && (
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 z-[9999]" align="start" sideOffset={5}>
                       <Calendar
                         mode="single"
                         selected={parsedReturnDate || undefined}
