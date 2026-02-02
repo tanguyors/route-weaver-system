@@ -356,19 +356,26 @@ export const WidgetSearchForm = ({
                   <PopoverTrigger asChild>
                     <button 
                       type="button"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       className="w-full text-left text-gray-900 font-medium focus:outline-none"
                     >
                       {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[9999]" align="start" sideOffset={5}>
+                  <PopoverContent 
+                    className="w-auto p-0 z-[9999]" 
+                    align="start" 
+                    sideOffset={5}
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  >
                     <Calendar
                       mode="single"
                       selected={parsedDepartureDate || undefined}
                       onSelect={(date) => {
                         if (date) {
-                          // Use local date format to avoid timezone issues
                           const year = date.getFullYear();
                           const month = String(date.getMonth() + 1).padStart(2, '0');
                           const day = String(date.getDate()).padStart(2, '0');
@@ -377,7 +384,6 @@ export const WidgetSearchForm = ({
                         setDepartureDateOpen(false);
                       }}
                       disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      initialFocus
                       className="pointer-events-auto"
                     />
                   </PopoverContent>
@@ -390,7 +396,10 @@ export const WidgetSearchForm = ({
                   <PopoverTrigger asChild>
                     <button 
                       type="button"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       className={cn(
                         "w-full text-left font-medium focus:outline-none",
                         tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900"
@@ -401,13 +410,17 @@ export const WidgetSearchForm = ({
                     </button>
                   </PopoverTrigger>
                   {tripType === 'round-trip' && (
-                    <PopoverContent className="w-auto p-0 z-[9999]" align="start" sideOffset={5}>
+                    <PopoverContent 
+                      className="w-auto p-0 z-[9999]" 
+                      align="start" 
+                      sideOffset={5}
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                    >
                       <Calendar
                         mode="single"
                         selected={parsedReturnDate || undefined}
                         onSelect={(date) => {
                           if (date) {
-                            // Use local date format to avoid timezone issues
                             const year = date.getFullYear();
                             const month = String(date.getMonth() + 1).padStart(2, '0');
                             const day = String(date.getDate()).padStart(2, '0');
@@ -419,7 +432,6 @@ export const WidgetSearchForm = ({
                           const minDate = parsedDepartureDate || new Date(new Date().setHours(0, 0, 0, 0));
                           return date < minDate;
                         }}
-                        initialFocus
                         className="pointer-events-auto"
                       />
                     </PopoverContent>
