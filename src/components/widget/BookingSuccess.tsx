@@ -214,9 +214,9 @@ export const BookingSuccess = ({
           <h3 className="font-bold mb-3">What's Next?</h3>
           <ul className="text-sm text-gray-600 space-y-2">
             <li>✓ Save or print your ticket before your trip</li>
-            <li>✓ Arrive at the port at least 30 minutes before departure</li>
-            <li>✓ Present your QR code and valid ID at check-in</li>
+            <li>✓ Arrive at the port at least 60 minutes before departure</li>
             <li>✓ Keep your ticket safe until boarding is complete</li>
+            <li>✓ Enjoy your trip</li>
           </ul>
         </CardContent>
       </Card>
