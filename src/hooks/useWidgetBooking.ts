@@ -1,5 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+
+// Simple in-memory cache for widget data
+const widgetDataCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
 interface Port {
   id: string;
@@ -197,10 +201,18 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     new Date().toISOString().split('T')[0]
   );
 
-  // Fetch data only once on mount - filter client-side for better UX
+  // Fetch data with caching
   const fetchData = useCallback(async () => {
     if (!widgetKey) {
       setError('No widget key provided');
+      setLoading(false);
+      return;
+    }
+
+    // Check cache first
+    const cached = widgetDataCache.get(widgetKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      setData(cached.data);
       setLoading(false);
       return;
     }
@@ -230,6 +242,9 @@ export const useWidgetBooking = (widgetKey: string | null) => {
         widgetData.pickup_dropoff_rules = widgetData.private_boats[0]?.pickup_dropoff_rules || [];
       }
       
+      // Cache the data
+      widgetDataCache.set(widgetKey, { data: widgetData, timestamp: Date.now() });
+      
       setData(widgetData);
       setError(null);
     } catch (err: any) {
@@ -239,8 +254,13 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     }
   }, [widgetKey]);
 
+  // Only fetch if not already cached
+  const hasFetched = useRef(false);
   useEffect(() => {
-    fetchData();
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      fetchData();
+    }
   }, [fetchData]);
 
   const getAvailableDestinations = () => {

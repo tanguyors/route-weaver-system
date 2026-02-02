@@ -1,10 +1,17 @@
-// Widget Data Edge Function - v2 (pickup_dropoff_rules at root level)
+// Widget Data Edge Function - v3 (Optimized with parallel queries and caching)
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+};
+
+// Cache headers for browser/CDN caching (5 minutes)
+const cacheHeaders = {
+  'Cache-Control': 'public, max-age=300, s-maxage=300',
+  'Vary': 'Accept-Encoding',
 };
 
 serve(async (req) => {
@@ -16,8 +23,6 @@ serve(async (req) => {
     const url = new URL(req.url);
     const widgetKey = url.searchParams.get('widget_key');
     const date = url.searchParams.get('date');
-    const originPortId = url.searchParams.get('origin');
-    const destinationPortId = url.searchParams.get('destination');
 
     if (!widgetKey) {
       return new Response(
@@ -31,7 +36,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Validate widget
+    // Validate widget first (required before other queries)
     const { data: widget, error: widgetError } = await supabase
       .from('widgets')
       .select('id, partner_id, status, theme_config')
@@ -47,106 +52,152 @@ serve(async (req) => {
     }
 
     const partnerId = widget.partner_id;
+    const today = date || new Date().toISOString().split('T')[0];
     
-    // Fetch partner info for name and logo
-    const { data: partner } = await supabase
-      .from('partners')
-      .select('name, logo_url')
-      .eq('id', partnerId)
-      .single();
-
-    // Get routes for this partner (Public Fast Ferry)
-    const { data: routes } = await supabase
-      .from('routes')
-      .select(`
-        id, route_name, origin_port_id, destination_port_id, duration_minutes,
-        origin_port:ports!routes_origin_port_id_fkey(id, name, area),
-        destination_port:ports!routes_destination_port_id_fkey(id, name, area)
-      `)
-      .eq('partner_id', partnerId)
-      .eq('status', 'active');
-
-    // Get trips for this partner
-    const { data: trips } = await supabase
-      .from('trips')
-      .select('id, route_id, trip_name, description, capacity_default')
-      .eq('partner_id', partnerId)
-      .eq('status', 'active');
-
-    // Get boats for this partner (Public Fast Ferry fleet)
-    const { data: boats } = await supabase
-      .from('boats')
-      .select('id, name, description, capacity, image_url, images')
-      .eq('partner_id', partnerId)
-      .eq('status', 'active');
-
-    // Get price rules
-    const { data: priceRules } = await supabase
-      .from('price_rules')
-      .select('id, trip_id, adult_price, child_price, rule_type, start_date, end_date')
-      .eq('partner_id', partnerId)
-      .eq('status', 'active');
-
-    // Get add-ons for this partner
-    const { data: addons } = await supabase
-      .from('addons')
-      .select(`
-        id, name, description, type, pricing_model, price, 
-        is_mandatory, enable_pickup_zones, pickup_required_info,
-        applicability, applicable_route_ids, applicable_trip_ids, applicable_schedule_ids
-      `)
-      .eq('partner_id', partnerId)
-      .eq('status', 'active');
-
-    // Get pickup zones for add-ons with pickup zones enabled
-    const addonIds = (addons || [])
-      .filter(a => a.enable_pickup_zones)
-      .map(a => a.id);
-    
-    let pickupZones: any[] = [];
-    if (addonIds.length > 0) {
-      const { data: zones } = await supabase
-        .from('pickup_zones')
-        .select('id, addon_id, zone_name, price_override')
+    // OPTIMIZATION: Run all independent queries in parallel
+    const [
+      partnerResult,
+      routesResult,
+      tripsResult,
+      boatsResult,
+      priceRulesResult,
+      addonsResult,
+      privateBoatsResult,
+      pdRulesResult,
+      departureTemplatesResult,
+      departuresResult,
+    ] = await Promise.all([
+      // Partner info
+      supabase
+        .from('partners')
+        .select('name, logo_url')
+        .eq('id', partnerId)
+        .single(),
+      
+      // Routes
+      supabase
+        .from('routes')
+        .select(`
+          id, route_name, origin_port_id, destination_port_id, duration_minutes,
+          origin_port:ports!routes_origin_port_id_fkey(id, name, area),
+          destination_port:ports!routes_destination_port_id_fkey(id, name, area)
+        `)
+        .eq('partner_id', partnerId)
+        .eq('status', 'active'),
+      
+      // Trips
+      supabase
+        .from('trips')
+        .select('id, route_id, trip_name, description, capacity_default')
+        .eq('partner_id', partnerId)
+        .eq('status', 'active'),
+      
+      // Boats
+      supabase
+        .from('boats')
+        .select('id, name, description, capacity, image_url, images')
+        .eq('partner_id', partnerId)
+        .eq('status', 'active'),
+      
+      // Price rules
+      supabase
+        .from('price_rules')
+        .select('id, trip_id, adult_price, child_price, rule_type, start_date, end_date')
+        .eq('partner_id', partnerId)
+        .eq('status', 'active'),
+      
+      // Addons
+      supabase
+        .from('addons')
+        .select(`
+          id, name, description, type, pricing_model, price, 
+          is_mandatory, enable_pickup_zones, pickup_required_info,
+          applicability, applicable_route_ids, applicable_trip_ids, applicable_schedule_ids
+        `)
+        .eq('partner_id', partnerId)
+        .eq('status', 'active'),
+      
+      // Private boats
+      supabase
+        .from('private_boats')
+        .select('id, name, description, capacity, min_capacity, max_capacity, image_url, min_departure_time, max_departure_time')
+        .eq('partner_id', partnerId)
+        .eq('status', 'active'),
+      
+      // Pickup/dropoff rules (global)
+      supabase
+        .from('private_pickup_dropoff_rules')
+        .select('id, from_port_id, service_type, city_name, price, car_price, bus_price, pickup_before_departure_minutes, dropoff_after_arrival_minutes, status')
+        .eq('status', 'active'),
+      
+      // Departure templates
+      supabase
+        .from('departure_templates')
+        .select('trip_id, departure_time, boat_id')
         .eq('partner_id', partnerId)
         .eq('status', 'active')
-        .in('addon_id', addonIds);
-      pickupZones = zones || [];
-    }
+        .not('boat_id', 'is', null),
+      
+      // Departures (limited to 100 for faster initial load)
+      supabase
+        .from('departures')
+        .select('id, trip_id, route_id, departure_date, departure_time, capacity_total, capacity_reserved, status, boat_id')
+        .eq('partner_id', partnerId)
+        .eq('status', 'open')
+        .gte('departure_date', today)
+        .order('departure_date')
+        .order('departure_time')
+        .limit(100),
+    ]);
 
-    // Attach pickup zones to their addons
-    const addonsWithZones = (addons || []).map(addon => ({
-      ...addon,
-      pickup_zones: pickupZones.filter(z => z.addon_id === addon.id)
-    }));
+    const partner = partnerResult.data;
+    const routes = routesResult.data || [];
+    const trips = tripsResult.data || [];
+    const boats = boatsResult.data || [];
+    const priceRules = priceRulesResult.data || [];
+    const addons = addonsResult.data || [];
+    const privateBoats = privateBoatsResult.data || [];
+    const pdRules = pdRulesResult.data || [];
+    const departureTemplates = departureTemplatesResult.data || [];
+    const departures = departuresResult.data || [];
 
-    // ========== PRIVATE BOATS DATA ==========
-    // Get private boats for this partner
-    const { data: privateBoats } = await supabase
-      .from('private_boats')
-      .select('id, name, description, capacity, min_capacity, max_capacity, image_url, min_departure_time, max_departure_time')
-      .eq('partner_id', partnerId)
-      .eq('status', 'active');
+    // SECOND BATCH: Queries that depend on first batch results
+    const addonIds = addons
+      .filter((a: any) => a.enable_pickup_zones)
+      .map((a: any) => a.id);
+    
+    const privateBoatIds = privateBoats.map((pb: any) => pb.id);
 
-    // Get private boat routes with port details
-    const privateBoatIds = (privateBoats || []).map(pb => pb.id);
-    let privateBoatRoutes: any[] = [];
-    let routeIds: string[] = [];
-    if (privateBoatIds.length > 0) {
-      const { data: pbRoutes } = await supabase
-        .from('private_boat_routes')
-        .select(`
-          id, private_boat_id, from_port_id, to_port_id, price, duration_minutes,
-          from_port:ports!private_boat_routes_from_port_id_fkey(id, name, area),
-          to_port:ports!private_boat_routes_to_port_id_fkey(id, name, area)
-        `)
-        .in('private_boat_id', privateBoatIds)
-        .eq('status', 'active');
-      privateBoatRoutes = pbRoutes || [];
-      routeIds = privateBoatRoutes.map(r => r.id);
-    }
+    const [pickupZonesResult, privateBoatRoutesResult] = await Promise.all([
+      // Pickup zones (only if needed)
+      addonIds.length > 0
+        ? supabase
+            .from('pickup_zones')
+            .select('id, addon_id, zone_name, price_override')
+            .eq('partner_id', partnerId)
+            .eq('status', 'active')
+            .in('addon_id', addonIds)
+        : Promise.resolve({ data: [] }),
+      
+      // Private boat routes (only if needed)
+      privateBoatIds.length > 0
+        ? supabase
+            .from('private_boat_routes')
+            .select(`
+              id, private_boat_id, from_port_id, to_port_id, price, duration_minutes,
+              from_port:ports!private_boat_routes_from_port_id_fkey(id, name, area),
+              to_port:ports!private_boat_routes_to_port_id_fkey(id, name, area)
+            `)
+            .in('private_boat_id', privateBoatIds)
+            .eq('status', 'active')
+        : Promise.resolve({ data: [] }),
+    ]);
 
-    // Get activity addons for private boat routes
+    const pickupZones = pickupZonesResult.data || [];
+    const privateBoatRoutes = privateBoatRoutesResult.data || [];
+    const routeIds = privateBoatRoutes.map((r: any) => r.id);
+
+    // THIRD BATCH: Route activity addons (only if private boat routes exist)
     let routeActivityAddons: any[] = [];
     if (routeIds.length > 0) {
       const { data: raData } = await supabase
@@ -159,20 +210,18 @@ serve(async (req) => {
       routeActivityAddons = raData || [];
     }
 
-    // Attach activity addons to routes
-    const privateBoatRoutesWithAddons = privateBoatRoutes.map(route => ({
-      ...route,
-      activity_addons: routeActivityAddons.filter(ra => ra.route_id === route.id),
+    // Process data
+    const addonsWithZones = addons.map((addon: any) => ({
+      ...addon,
+      pickup_zones: pickupZones.filter((z: any) => z.addon_id === addon.id)
     }));
 
-    // Get pickup/dropoff rules for private boats (GLOBAL - from private_pickup_dropoff_rules)
-    const { data: pdRules } = await supabase
-      .from('private_pickup_dropoff_rules')
-      .select('id, from_port_id, service_type, city_name, price, car_price, bus_price, pickup_before_departure_minutes, dropoff_after_arrival_minutes, status')
-      .eq('status', 'active');
-    
-    // Transform the rules to match the expected format (mapping to all boats since rules are global)
-    const pickupDropoffRules = (pdRules || []).map(rule => ({
+    const privateBoatRoutesWithAddons = privateBoatRoutes.map((route: any) => ({
+      ...route,
+      activity_addons: routeActivityAddons.filter((ra: any) => ra.route_id === route.id),
+    }));
+
+    const pickupDropoffRules = pdRules.map((rule: any) => ({
       id: rule.id,
       from_port_id: rule.from_port_id,
       service_type: rule.service_type,
@@ -185,55 +234,27 @@ serve(async (req) => {
         : rule.dropoff_after_arrival_minutes,
     }));
 
-    // Attach routes and rules to private boats (rules are global, attach to all boats)
-    const privateBoatsWithData = (privateBoats || []).map(boat => ({
+    const privateBoatsWithData = privateBoats.map((boat: any) => ({
       ...boat,
-      routes: privateBoatRoutesWithAddons.filter(r => r.private_boat_id === boat.id),
+      routes: privateBoatRoutesWithAddons.filter((r: any) => r.private_boat_id === boat.id),
       pickup_dropoff_rules: pickupDropoffRules,
     }));
 
-    // Get schedule boat assignments (fallback for departures missing boat_id)
-    const { data: departureTemplates } = await supabase
-      .from('departure_templates')
-      .select('trip_id, departure_time, boat_id')
-      .eq('partner_id', partnerId)
-      .eq('status', 'active')
-      .not('boat_id', 'is', null);
-
+    // Process departures with template fallback
     const normalizeTime = (t: string) => (t || '').slice(0, 5);
     const templateBoatMap = new Map<string, string>();
 
-    for (const t of (departureTemplates || []) as any[]) {
+    for (const t of departureTemplates as any[]) {
       if (!t?.trip_id || !t?.departure_time || !t?.boat_id) continue;
       templateBoatMap.set(`${t.trip_id}__${normalizeTime(t.departure_time)}`, t.boat_id);
     }
 
-    // Build departures query - fetch all open departures for the partner
-    // Increased limit to accommodate round-trip bookings (both directions)
-    let departuresQuery = supabase
-      .from('departures')
-      .select('id, trip_id, route_id, departure_date, departure_time, capacity_total, capacity_reserved, status, boat_id')
-      .eq('partner_id', partnerId)
-      .eq('status', 'open')
-      .gte('departure_date', date || new Date().toISOString().split('T')[0])
-      .order('departure_date')
-      .order('departure_time')
-      .limit(200);
-
-    const { data: departures } = await departuresQuery;
-
-    // Note: Filtering by origin/destination is now done client-side to support round-trip bookings
-    let filteredDepartures = departures || [];
-
-    // Apply schedule fallback boat_id (do not override if departure already has boat_id)
-    // Also filter out past departures for today
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-    const currentTimeStr = now.toTimeString().slice(0, 5); // HH:MM format
+    const currentTimeStr = now.toTimeString().slice(0, 5);
     
-    filteredDepartures = filteredDepartures
+    const filteredDepartures = departures
       .filter((d: any) => {
-        // If departure is today, check if time has passed
         if (d.departure_date === todayStr) {
           const depTime = (d.departure_time || '').slice(0, 5);
           return depTime > currentTimeStr;
@@ -245,40 +266,44 @@ serve(async (req) => {
         const boatId = templateBoatMap.get(`${d.trip_id}__${normalizeTime(d.departure_time)}`);
         return boatId ? { ...d, boat_id: boatId } : d;
       });
+
     // Build unique ports list
     const ports = new Map();
-    for (const route of routes || []) {
+    for (const route of routes) {
       const originPort = route.origin_port as unknown as { id: string; name: string; area: string } | null;
       const destPort = route.destination_port as unknown as { id: string; name: string; area: string } | null;
-      if (originPort) {
-        ports.set(originPort.id, originPort);
-      }
-      if (destPort) {
-        ports.set(destPort.id, destPort);
-      }
+      if (originPort) ports.set(originPort.id, originPort);
+      if (destPort) ports.set(destPort.id, destPort);
     }
 
+    const responseData = {
+      partner_id: partnerId,
+      theme_config: {
+        ...(widget.theme_config || {}),
+        partner_name: partner?.name || null,
+        logo_url: (widget.theme_config as any)?.logo_url || partner?.logo_url || null,
+      },
+      ports: Array.from(ports.values()),
+      routes,
+      trips,
+      boats,
+      price_rules: priceRules,
+      departures: filteredDepartures,
+      addons: addonsWithZones,
+      private_boats: privateBoatsWithData,
+      pickup_dropoff_rules: pickupDropoffRules,
+    };
+
     return new Response(
-      JSON.stringify({
-        partner_id: partnerId,
-        theme_config: {
-          ...(widget.theme_config || {}),
-          partner_name: partner?.name || null,
-          logo_url: (widget.theme_config as any)?.logo_url || partner?.logo_url || null,
-        },
-        ports: Array.from(ports.values()),
-        routes: routes || [],
-        trips: trips || [],
-        boats: boats || [],
-        price_rules: priceRules || [],
-        departures: filteredDepartures,
-        addons: addonsWithZones,
-        // Private boats data
-        private_boats: privateBoatsWithData,
-        // Pickup/Dropoff rules (global - for both public ferry and private boats)
-        pickup_dropoff_rules: pickupDropoffRules,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(responseData),
+      { 
+        status: 200, 
+        headers: { 
+          ...corsHeaders, 
+          ...cacheHeaders,
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
 
   } catch (error) {
