@@ -429,7 +429,9 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
         <h4 className="font-bold text-sm mb-3">Important Information</h4>
         <ul className="text-sm text-gray-600 space-y-1">
           {pickups.length > 0 && pickups[0]?.pickupTime && pickups[0]?.details && (
-            <li>• PICKUP {pickups[0].details} {pickups[0].cityName ? `(${pickups[0].cityName})` : ''} at {pickups[0].pickupTime}</li>
+            <li className="font-bold text-gray-800">
+              • PICKUP at {pickups[0].pickupTime} - {pickups[0].details} {pickups[0].cityName ? `(${pickups[0].cityName})` : ''}
+            </li>
           )}
           <li>• Please arrive at the port at least 60 minutes before departure</li>
           <li>• Present this e-ticket (printed or on mobile) at check-in counter</li>
