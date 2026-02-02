@@ -352,15 +352,11 @@ export const WidgetSearchForm = ({
 
               {/* Depart Date */}
               <FieldWrapper label={t('departureDate')} icon={CalendarDays}>
-                <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen} modal={true}>
+                <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen}>
                   <PopoverTrigger asChild>
                     <button 
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      className="w-full text-left text-gray-900 font-medium focus:outline-none"
+                      className="w-full text-left text-gray-900 font-medium focus:outline-none cursor-pointer"
                     >
                       {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
@@ -384,7 +380,7 @@ export const WidgetSearchForm = ({
                         setDepartureDateOpen(false);
                       }}
                       disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      className="pointer-events-auto"
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -392,16 +388,12 @@ export const WidgetSearchForm = ({
 
               {/* Return Date */}
               <FieldWrapper label={t('returnDate')} icon={CalendarDays}>
-                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen} modal={true}>
+                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
                   <PopoverTrigger asChild>
                     <button 
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
                       className={cn(
-                        "w-full text-left font-medium focus:outline-none",
+                        "w-full text-left font-medium focus:outline-none cursor-pointer",
                         tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900"
                       )}
                       disabled={tripType === 'one-way'}
@@ -432,7 +424,7 @@ export const WidgetSearchForm = ({
                           const minDate = parsedDepartureDate || new Date(new Date().setHours(0, 0, 0, 0));
                           return date < minDate;
                         }}
-                        className="pointer-events-auto"
+                        className="p-3 pointer-events-auto"
                       />
                     </PopoverContent>
                   )}
