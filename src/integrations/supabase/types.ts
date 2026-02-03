@@ -1838,6 +1838,8 @@ export type Database = {
           legal_name: string | null
           logo_url: string | null
           name: string
+          pickup_reminder_12h_enabled: boolean | null
+          pickup_reminder_24h_enabled: boolean | null
           postal_code: string | null
           status: Database["public"]["Enums"]["partner_status"]
           tax_id: string | null
@@ -1863,6 +1865,8 @@ export type Database = {
           legal_name?: string | null
           logo_url?: string | null
           name: string
+          pickup_reminder_12h_enabled?: boolean | null
+          pickup_reminder_24h_enabled?: boolean | null
           postal_code?: string | null
           status?: Database["public"]["Enums"]["partner_status"]
           tax_id?: string | null
@@ -1888,6 +1892,8 @@ export type Database = {
           legal_name?: string | null
           logo_url?: string | null
           name?: string
+          pickup_reminder_12h_enabled?: boolean | null
+          pickup_reminder_24h_enabled?: boolean | null
           postal_code?: string | null
           status?: Database["public"]["Enums"]["partner_status"]
           tax_id?: string | null
@@ -2038,6 +2044,50 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pickup_reminder_logs: {
+        Row: {
+          booking_id: string
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient_type: string
+          reminder_type: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          booking_id: string
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_type: string
+          reminder_type: string
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          booking_id?: string
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_type?: string
+          reminder_type?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickup_reminder_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]

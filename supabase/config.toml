@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.validate-activity-ticket]
 verify_jwt = false
+
+[functions.send-pickup-reminders]
+verify_jwt = false
