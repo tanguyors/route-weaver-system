@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, RotateCcw, Save, Mail, MessageCircle } from 'lucide-react';
+import { Loader2, RotateCcw, Save, Mail, MessageCircle, Send } from 'lucide-react';
 import { 
   TemplateType, 
   DEFAULT_TEMPLATES, 
@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useNotificationTemplatesData';
 import TemplatePreview from './TemplatePreview';
 import VariablesList from './VariablesList';
+import TestNotificationDialog from './TestNotificationDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,9 @@ interface TemplateEditorProps {
   isCustomized: boolean;
   isEmail: boolean;
   saving: boolean;
+  partnerId: string;
+  partnerEmail?: string;
+  partnerPhone?: string;
   onSave: (content: string, subject?: string | null) => Promise<boolean>;
   onReset: () => Promise<boolean>;
 }
@@ -42,12 +46,16 @@ const TemplateEditor = ({
   isCustomized,
   isEmail,
   saving,
+  partnerId,
+  partnerEmail = '',
+  partnerPhone = '',
   onSave,
   onReset,
 }: TemplateEditorProps) => {
   const [subject, setSubject] = useState(initialSubject || '');
   const [content, setContent] = useState(initialContent);
   const [hasChanges, setHasChanges] = useState(false);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Update state when props change
@@ -193,29 +201,40 @@ const TemplateEditor = ({
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between border-t pt-4">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" disabled={saving || !isCustomized}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Réinitialiser par défaut
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Réinitialiser le template ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action va supprimer vos personnalisations et restaurer le template par défaut. 
-                Cette action est irréversible.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleReset}>
-                Réinitialiser
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" disabled={saving || !isCustomized}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Réinitialiser par défaut
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Réinitialiser le template ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action va supprimer vos personnalisations et restaurer le template par défaut. 
+                  Cette action est irréversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={handleReset}>
+                  Réinitialiser
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Button 
+            variant="secondary" 
+            onClick={() => setTestDialogOpen(true)}
+            disabled={saving}
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Envoyer un test
+          </Button>
+        </div>
 
         <Button onClick={handleSave} disabled={saving || !hasChanges}>
           {saving ? (
@@ -226,6 +245,18 @@ const TemplateEditor = ({
           Enregistrer
         </Button>
       </div>
+
+      {/* Test Notification Dialog */}
+      <TestNotificationDialog
+        open={testDialogOpen}
+        onOpenChange={setTestDialogOpen}
+        partnerId={partnerId}
+        channel={isEmail ? 'email' : 'whatsapp'}
+        subject={subject}
+        content={content}
+        defaultEmail={partnerEmail}
+        defaultPhone={partnerPhone}
+      />
     </div>
   );
 };
