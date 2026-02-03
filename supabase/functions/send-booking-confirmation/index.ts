@@ -285,8 +285,152 @@ function getTemplateContent(
   };
 }
 
-async function sendWhatsApp(token: string, phone: string, message: string) {
+// Generate a simple HTML ticket for PDF conversion
+function generateTicketHtml(booking: any, customer: any, departure: any, partner: any, ticket: any, returnDeparture: any): string {
+  const departureDate = new Date(departure.departure_date).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  let returnSection = '';
+  if (returnDeparture) {
+    const returnDate = new Date(returnDeparture.departure_date).toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    returnSection = `
+      <div style="margin-top: 20px; padding: 15px; background: #f0fdf4; border-radius: 8px;">
+        <h3 style="margin: 0 0 10px 0; color: #166534;">🔄 Return Trip</h3>
+        <p style="margin: 5px 0;"><strong>Route:</strong> ${returnDeparture.route.origin_port.name} → ${returnDeparture.route.destination_port.name}</p>
+        <p style="margin: 5px 0;"><strong>Date:</strong> ${returnDate}</p>
+        <p style="margin: 5px 0;"><strong>Time:</strong> ${returnDeparture.departure_time}</p>
+      </div>
+    `;
+  }
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: 0 auto; }
+    .header { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none; }
+    .qr-section { text-align: center; margin: 20px 0; padding: 20px; background: white; border-radius: 8px; }
+    .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .footer { background: #1e293b; color: #94a3b8; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin: 0; font-size: 24px;">🎫 E-TICKET</h1>
+    <p style="margin: 10px 0 0 0; opacity: 0.9;">${partner.name}</p>
+  </div>
+  
+  <div class="content">
+    <div class="qr-section">
+      <div style="width: 150px; height: 150px; background: #e5e7eb; margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+        <span style="font-size: 12px; color: #6b7280;">QR: ${ticket?.qr_token?.substring(0, 8) || booking.id.substring(0, 8)}</span>
+      </div>
+      <p style="margin: 10px 0 0 0; font-weight: bold; color: #1e293b;">Ref: ${booking.id.substring(0, 8).toUpperCase()}</p>
+    </div>
+    
+    <h3 style="margin: 0 0 15px 0; color: #1e293b;">Trip Details</h3>
+    
+    <div class="detail-row">
+      <span>📍 Route</span>
+      <strong>${departure.route.origin_port.name} → ${departure.route.destination_port.name}</strong>
+    </div>
+    <div class="detail-row">
+      <span>📅 Date</span>
+      <strong>${departureDate}</strong>
+    </div>
+    <div class="detail-row">
+      <span>⏰ Departure</span>
+      <strong>${departure.departure_time}</strong>
+    </div>
+    <div class="detail-row">
+      <span>👤 Passenger</span>
+      <strong>${customer.full_name}</strong>
+    </div>
+    <div class="detail-row">
+      <span>👥 Guests</span>
+      <strong>${booking.pax_adult} Adult, ${booking.pax_child} Child</strong>
+    </div>
+    <div class="detail-row" style="border-bottom: none;">
+      <span>💰 Total</span>
+      <strong style="color: #10b981; font-size: 18px;">${booking.currency} ${booking.total_amount.toLocaleString()}</strong>
+    </div>
+    
+    ${returnSection}
+    
+    <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 8px;">
+      <p style="margin: 0; color: #92400e; font-size: 13px;"><strong>⏰ Important:</strong> Please arrive at the port at least 60 minutes before departure.</p>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p style="margin: 0;">📞 Contact: ${partner.contact_phone || 'N/A'}</p>
+    <p style="margin: 5px 0 0 0;">Generated on ${new Date().toLocaleDateString("en-GB")}</p>
+  </div>
+</body>
+</html>`;
+}
+
+// Upload ticket to storage and get public URL
+async function uploadTicketPdf(supabase: any, bookingId: string, htmlContent: string): Promise<string | null> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    
+    // Convert HTML to a simple text-based ticket for WhatsApp
+    // Note: For actual PDF generation, you'd need a PDF library like puppeteer or pdfkit
+    // For now, we upload the HTML as a file that can be viewed
+    const fileName = `ticket-${bookingId}.html`;
+    const filePath = `${bookingId}/${fileName}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('tickets')
+      .upload(filePath, new Blob([htmlContent], { type: 'text/html' }), {
+        contentType: 'text/html',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Error uploading ticket:', uploadError);
+      return null;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('tickets')
+      .getPublicUrl(filePath);
+
+    return urlData?.publicUrl || null;
+  } catch (error) {
+    console.error('Error in uploadTicketPdf:', error);
+    return null;
+  }
+}
+
+// Send WhatsApp message
+async function sendWhatsApp(token: string, phone: string, message: string, fileUrl?: string) {
   const cleanPhone = phone.replace(/\D/g, "");
+
+  const body: any = {
+    target: cleanPhone,
+    message,
+    countryCode: "62",
+  };
+
+  // If file URL is provided, attach it (requires Fonnte Ultra)
+  if (fileUrl) {
+    body.url = fileUrl;
+    body.filename = "ticket.html";
+  }
 
   const response = await fetch("https://api.fonnte.com/send", {
     method: "POST",
@@ -294,11 +438,7 @@ async function sendWhatsApp(token: string, phone: string, message: string) {
       Authorization: token,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      target: cleanPhone,
-      message,
-      countryCode: "62",
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -413,12 +553,13 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch partner settings
     const { data: partnerSettings } = await supabase
       .from("partner_settings")
-      .select("email_booking_confirmation, whatsapp_booking_confirmation")
+      .select("email_booking_confirmation, whatsapp_booking_confirmation, whatsapp_attach_ticket")
       .eq("partner_id", booking.partner_id)
       .single();
 
     const emailEnabled = partnerSettings?.email_booking_confirmation ?? true;
     const whatsappEnabled = partnerSettings?.whatsapp_booking_confirmation ?? false;
+    const whatsappAttachTicket = partnerSettings?.whatsapp_attach_ticket ?? false;
 
     // Fetch custom templates
     const templates = await fetchPartnerTemplates(supabase, booking.partner_id);
@@ -433,6 +574,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Build ticket URL
     const ticketUrl = `${supabaseUrl.replace('.supabase.co', '')}/ticket/${ticket?.qr_token || booking.id}`;
+
+    // Generate and upload ticket for WhatsApp attachment if enabled
+    let ticketFileUrl: string | null = null;
+    if (whatsappAttachTicket && fonnteToken) {
+      const ticketHtml = generateTicketHtml(booking, customer, departure, partner, ticket, returnDeparture);
+      ticketFileUrl = await uploadTicketPdf(supabase, booking.id, ticketHtml);
+      console.log("Ticket uploaded for WhatsApp attachment:", ticketFileUrl);
+    }
 
     // Build return info
     let returnInfo = "";
@@ -496,7 +645,7 @@ ${returnDate} at ${returnDeparture.departure_time}`;
       partner_name: partner.name,
       partner_phone: partner.contact_phone || "",
       partner_email: partner.contact_email || "",
-      ticket_url: ticketUrl,
+      ticket_url: ticketFileUrl || ticketUrl,
       return_info: returnInfo,
     };
 
@@ -505,6 +654,7 @@ ${returnDate} at ${returnDeparture.departure_time}`;
     const results = {
       emailsSent: 0,
       whatsappSent: 0,
+      ticketAttached: false,
       errors: [] as string[],
     };
 
@@ -552,16 +702,17 @@ ${returnDate} at ${returnDeparture.departure_time}`;
       }
     }
 
-    // Send WhatsApp to customer
+    // Send WhatsApp to customer (with attachment if enabled)
     if (whatsappEnabled && customer.phone && fonnteToken) {
       try {
         const template = getTemplateContent(templates, 'booking_confirmation_whatsapp_customer');
         const message = replacePlaceholders(template.content, templateDataWhatsapp);
 
-        await sendWhatsApp(fonnteToken, customer.phone, message);
+        await sendWhatsApp(fonnteToken, customer.phone, message, ticketFileUrl || undefined);
 
-        console.log("Customer WhatsApp sent");
+        console.log("Customer WhatsApp sent", ticketFileUrl ? "with attachment" : "without attachment");
         results.whatsappSent++;
+        if (ticketFileUrl) results.ticketAttached = true;
       } catch (err) {
         console.error("Error sending customer WhatsApp:", err);
         results.errors.push(`Customer WhatsApp: ${String(err)}`);
