@@ -170,10 +170,10 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      const fonnteToken = Deno.env.get("FONNTE_TOKEN");
+      const fonnteToken = Deno.env.get("FONNTE_API_TOKEN");
       if (!fonnteToken) {
         return new Response(
-          JSON.stringify({ error: "WhatsApp service not configured (FONNTE_TOKEN missing)" }),
+          JSON.stringify({ error: "WhatsApp service not configured (FONNTE_API_TOKEN missing)" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
