@@ -1737,6 +1737,7 @@ export type Database = {
           terms_voucher: string | null
           ticket_validity_hours: number | null
           updated_at: string
+          whatsapp_attach_ticket: boolean | null
           whatsapp_booking_confirmation: boolean | null
           whatsapp_payment_link: boolean | null
         }
@@ -1774,6 +1775,7 @@ export type Database = {
           terms_voucher?: string | null
           ticket_validity_hours?: number | null
           updated_at?: string
+          whatsapp_attach_ticket?: boolean | null
           whatsapp_booking_confirmation?: boolean | null
           whatsapp_payment_link?: boolean | null
         }
@@ -1811,6 +1813,7 @@ export type Database = {
           terms_voucher?: string | null
           ticket_validity_hours?: number | null
           updated_at?: string
+          whatsapp_attach_ticket?: boolean | null
           whatsapp_booking_confirmation?: boolean | null
           whatsapp_payment_link?: boolean | null
         }
