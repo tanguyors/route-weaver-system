@@ -44,6 +44,7 @@ interface NotificationSettingsFormProps {
     whatsapp_country_code: string;
     whatsapp_number: string;
   };
+  whatsappAttachTicket?: boolean;
   onSave: (updates: Partial<PartnerSettings>, onboardingSection?: 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications') => Promise<boolean>;
   onSavePickupReminders?: (updates: { 
     pickup_reminder_24h_enabled: boolean; 
@@ -58,6 +59,7 @@ const NotificationSettingsForm = ({
   settings, 
   pickupReminderSettings,
   whatsappSettings,
+  whatsappAttachTicket = false,
   onSave, 
   onSavePickupReminders,
   saving 
@@ -68,6 +70,7 @@ const NotificationSettingsForm = ({
     email_cancellation: settings.email_cancellation ?? true,
     whatsapp_booking_confirmation: settings.whatsapp_booking_confirmation || false,
     whatsapp_payment_link: settings.whatsapp_payment_link || false,
+    whatsapp_attach_ticket: whatsappAttachTicket,
   });
 
   const [pickupReminders, setPickupReminders] = useState({
@@ -216,6 +219,22 @@ const NotificationSettingsForm = ({
                 id="waPaymentLink"
                 checked={formData.whatsapp_payment_link}
                 onCheckedChange={(checked) => setFormData({ ...formData, whatsapp_payment_link: checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between border-t pt-3 mt-3">
+              <div>
+                <Label htmlFor="waAttachTicket" className="cursor-pointer">
+                  📎 Joindre le ticket en pièce jointe
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Requiert l'abonnement <span className="font-semibold text-primary">Fonnte Ultra</span>
+                </p>
+              </div>
+              <Switch
+                id="waAttachTicket"
+                checked={formData.whatsapp_attach_ticket}
+                onCheckedChange={(checked) => setFormData({ ...formData, whatsapp_attach_ticket: checked })}
               />
             </div>
           </div>

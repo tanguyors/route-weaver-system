@@ -452,6 +452,7 @@ const SettingsPage = () => {
                   whatsapp_country_code: partnerInfo.whatsapp_country_code || '+62',
                   whatsapp_number: partnerInfo.whatsapp_number || '',
                 } : undefined}
+                whatsappAttachTicket={settings.whatsapp_attach_ticket ?? false}
                 onSave={updateSettings}
                 onSavePickupReminders={async (updates) => {
                   return await updatePartnerInfo(updates);

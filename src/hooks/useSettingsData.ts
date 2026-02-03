@@ -38,6 +38,7 @@ export interface PartnerSettings {
   email_cancellation: boolean;
   whatsapp_booking_confirmation: boolean;
   whatsapp_payment_link: boolean;
+  whatsapp_attach_ticket: boolean;
   // Pickup Reminders (from partners table but managed here for UI consistency)
   pickup_reminder_24h_enabled?: boolean;
   pickup_reminder_12h_enabled?: boolean;
