@@ -3,16 +3,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Bell, Mail, MessageCircle, Loader2 } from 'lucide-react';
+import { Bell, Mail, MessageCircle, Loader2, Clock } from 'lucide-react';
 import { PartnerSettings } from '@/hooks/useSettingsData';
 
 interface NotificationSettingsFormProps {
   settings: PartnerSettings;
+  pickupReminderSettings?: {
+    pickup_reminder_24h_enabled: boolean;
+    pickup_reminder_12h_enabled: boolean;
+  };
   onSave: (updates: Partial<PartnerSettings>, onboardingSection?: 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications') => Promise<boolean>;
+  onSavePickupReminders?: (updates: { pickup_reminder_24h_enabled: boolean; pickup_reminder_12h_enabled: boolean }) => Promise<boolean>;
   saving: boolean;
 }
 
-const NotificationSettingsForm = ({ settings, onSave, saving }: NotificationSettingsFormProps) => {
+const NotificationSettingsForm = ({ 
+  settings, 
+  pickupReminderSettings,
+  onSave, 
+  onSavePickupReminders,
+  saving 
+}: NotificationSettingsFormProps) => {
   const [formData, setFormData] = useState({
     email_booking_confirmation: settings.email_booking_confirmation ?? true,
     email_payment_received: settings.email_payment_received ?? true,
@@ -21,8 +32,16 @@ const NotificationSettingsForm = ({ settings, onSave, saving }: NotificationSett
     whatsapp_payment_link: settings.whatsapp_payment_link || false,
   });
 
-  const handleSave = () => {
-    onSave(formData, 'notifications');
+  const [pickupReminders, setPickupReminders] = useState({
+    pickup_reminder_24h_enabled: pickupReminderSettings?.pickup_reminder_24h_enabled ?? true,
+    pickup_reminder_12h_enabled: pickupReminderSettings?.pickup_reminder_12h_enabled ?? true,
+  });
+
+  const handleSave = async () => {
+    await onSave(formData, 'notifications');
+    if (onSavePickupReminders) {
+      await onSavePickupReminders(pickupReminders);
+    }
   };
 
   return (
@@ -111,6 +130,48 @@ const NotificationSettingsForm = ({ settings, onSave, saving }: NotificationSett
           <p className="text-xs text-muted-foreground ml-6">
             WhatsApp notifications require additional configuration
           </p>
+        </div>
+
+        {/* Pickup Reminders */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <Label className="font-medium">Pickup Reminders</Label>
+          </div>
+          
+          <p className="text-sm text-muted-foreground ml-6">
+            Automatically send reminders to customers and your team before scheduled pickups via email and WhatsApp.
+          </p>
+          
+          <div className="ml-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="reminder24h" className="cursor-pointer">
+                  24 hours before pickup
+                </Label>
+                <p className="text-xs text-muted-foreground">Send reminder 24h before scheduled pickup time</p>
+              </div>
+              <Switch
+                id="reminder24h"
+                checked={pickupReminders.pickup_reminder_24h_enabled}
+                onCheckedChange={(checked) => setPickupReminders({ ...pickupReminders, pickup_reminder_24h_enabled: checked })}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="reminder12h" className="cursor-pointer">
+                  12 hours before pickup
+                </Label>
+                <p className="text-xs text-muted-foreground">Send reminder 12h before scheduled pickup time</p>
+              </div>
+              <Switch
+                id="reminder12h"
+                checked={pickupReminders.pickup_reminder_12h_enabled}
+                onCheckedChange={(checked) => setPickupReminders({ ...pickupReminders, pickup_reminder_12h_enabled: checked })}
+              />
+            </div>
+          </div>
         </div>
 
         <Button onClick={handleSave} disabled={saving}>
