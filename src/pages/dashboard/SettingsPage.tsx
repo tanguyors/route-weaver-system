@@ -447,6 +447,10 @@ const SettingsPage = () => {
                   pickup_reminder_24h_enabled: partnerInfo.pickup_reminder_24h_enabled ?? true,
                   pickup_reminder_12h_enabled: partnerInfo.pickup_reminder_12h_enabled ?? true,
                 } : undefined}
+                whatsappSettings={partnerInfo ? {
+                  whatsapp_country_code: partnerInfo.whatsapp_country_code || '+62',
+                  whatsapp_number: partnerInfo.whatsapp_number || '',
+                } : undefined}
                 onSave={updateSettings}
                 onSavePickupReminders={async (updates) => {
                   return await updatePartnerInfo(updates);

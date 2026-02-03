@@ -73,6 +73,9 @@ export interface PartnerInfo {
   // Pickup reminder settings
   pickup_reminder_24h_enabled?: boolean;
   pickup_reminder_12h_enabled?: boolean;
+  // WhatsApp settings
+  whatsapp_country_code?: string;
+  whatsapp_number?: string;
 }
 
 export interface StaffMember {

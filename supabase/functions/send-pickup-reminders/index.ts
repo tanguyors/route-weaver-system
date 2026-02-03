@@ -45,6 +45,8 @@ interface Partner {
   name: string;
   contact_email: string | null;
   contact_phone: string | null;
+  whatsapp_country_code: string | null;
+  whatsapp_number: string | null;
   pickup_reminder_24h_enabled: boolean;
   pickup_reminder_12h_enabled: boolean;
 }
@@ -114,6 +116,8 @@ const handler = async (req: Request): Promise<Response> => {
           name,
           contact_email,
           contact_phone,
+          whatsapp_country_code,
+          whatsapp_number,
           pickup_reminder_24h_enabled,
           pickup_reminder_12h_enabled
         ),
@@ -310,12 +314,16 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Send WhatsApp to partner
-        if (partner.contact_phone && fonnteToken) {
+        // Send WhatsApp to partner (use dedicated WhatsApp number if configured)
+        const partnerWhatsAppNumber = partner.whatsapp_number 
+          ? `${partner.whatsapp_country_code || '+62'}${partner.whatsapp_number}`
+          : null;
+        
+        if (partnerWhatsAppNumber && fonnteToken) {
           try {
             await sendWhatsApp(
               fonnteToken,
-              partner.contact_phone,
+              partnerWhatsAppNumber,
               generatePartnerWhatsAppMessage({
                 customerName: customer.full_name,
                 customerPhone: customer.phone || "N/A",

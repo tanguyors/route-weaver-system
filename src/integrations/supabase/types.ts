@@ -1845,6 +1845,8 @@ export type Database = {
           tax_id: string | null
           updated_at: string
           website: string | null
+          whatsapp_country_code: string | null
+          whatsapp_number: string | null
         }
         Insert: {
           address?: string | null
@@ -1872,6 +1874,8 @@ export type Database = {
           tax_id?: string | null
           updated_at?: string
           website?: string | null
+          whatsapp_country_code?: string | null
+          whatsapp_number?: string | null
         }
         Update: {
           address?: string | null
@@ -1899,6 +1903,8 @@ export type Database = {
           tax_id?: string | null
           updated_at?: string
           website?: string | null
+          whatsapp_country_code?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
