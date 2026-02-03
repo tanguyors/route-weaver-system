@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, MessageCircle, Loader2, FileEdit } from 'lucide-react';
+import { Mail, MessageCircle, Loader2, FileEdit, Clock, CheckCircle } from 'lucide-react';
 import { 
   useNotificationTemplatesData, 
   TemplateType,
@@ -12,13 +13,15 @@ interface NotificationTemplatesEditorProps {
   partnerId: string | null;
 }
 
-const TEMPLATE_CONFIG: {
+interface TemplateConfig {
   type: TemplateType;
   label: string;
   shortLabel: string;
   isEmail: boolean;
   icon: typeof Mail;
-}[] = [
+}
+
+const PICKUP_REMINDER_TEMPLATES: TemplateConfig[] = [
   { 
     type: 'pickup_reminder_email_customer', 
     label: 'Email Client', 
@@ -49,7 +52,42 @@ const TEMPLATE_CONFIG: {
   },
 ];
 
+const BOOKING_CONFIRMATION_TEMPLATES: TemplateConfig[] = [
+  { 
+    type: 'booking_confirmation_email_customer', 
+    label: 'Email Client', 
+    shortLabel: 'Email Client',
+    isEmail: true,
+    icon: Mail,
+  },
+  { 
+    type: 'booking_confirmation_email_partner', 
+    label: 'Email Partenaire', 
+    shortLabel: 'Email Part.',
+    isEmail: true,
+    icon: Mail,
+  },
+  { 
+    type: 'booking_confirmation_whatsapp_customer', 
+    label: 'WhatsApp Client', 
+    shortLabel: 'WA Client',
+    isEmail: false,
+    icon: MessageCircle,
+  },
+  { 
+    type: 'booking_confirmation_whatsapp_partner', 
+    label: 'WhatsApp Partenaire', 
+    shortLabel: 'WA Part.',
+    isEmail: false,
+    icon: MessageCircle,
+  },
+];
+
+type TemplateCategoryKey = 'pickup_reminders' | 'booking_confirmations';
+
 const NotificationTemplatesEditor = ({ partnerId }: NotificationTemplatesEditorProps) => {
+  const [activeCategory, setActiveCategory] = useState<TemplateCategoryKey>('booking_confirmations');
+  
   const { 
     templates, 
     loading, 
@@ -69,22 +107,65 @@ const NotificationTemplatesEditor = ({ partnerId }: NotificationTemplatesEditorP
     );
   }
 
+  const templateConfigs = activeCategory === 'pickup_reminders' 
+    ? PICKUP_REMINDER_TEMPLATES 
+    : BOOKING_CONFIRMATION_TEMPLATES;
+
+  const categoryTitle = activeCategory === 'pickup_reminders'
+    ? 'Rappels de pickup'
+    : 'Confirmations de réservation';
+
+  const categoryDescription = activeCategory === 'pickup_reminders'
+    ? 'Personnalisez les messages envoyés 24h et 12h avant le pickup.'
+    : 'Personnalisez les messages envoyés lors de la confirmation d\'une réservation.';
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileEdit className="w-5 h-5" />
-          Personnalisation des messages de rappel
+          Personnalisation des messages
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Personnalisez les emails et messages WhatsApp envoyés aux clients et à votre équipe 
-          pour les rappels de pickup. Utilisez les variables pour insérer dynamiquement les informations.
+          Personnalisez les emails et messages WhatsApp envoyés aux clients et à votre équipe. 
+          Utilisez les variables pour insérer dynamiquement les informations.
         </p>
+        
+        {/* Category Selector */}
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => setActiveCategory('booking_confirmations')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeCategory === 'booking_confirmations'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            Confirmations de réservation
+          </button>
+          <button
+            onClick={() => setActiveCategory('pickup_reminders')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeCategory === 'pickup_reminders'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            Rappels de pickup
+          </button>
+        </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue={TEMPLATE_CONFIG[0].type} className="w-full">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">{categoryTitle}</h3>
+          <p className="text-sm text-muted-foreground">{categoryDescription}</p>
+        </div>
+        
+        <Tabs defaultValue={templateConfigs[0].type} key={activeCategory} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            {TEMPLATE_CONFIG.map((config) => {
+            {templateConfigs.map((config) => {
               const customTemplate = getTemplate(config.type);
               const isCustomized = !!customTemplate;
               
@@ -105,7 +186,7 @@ const NotificationTemplatesEditor = ({ partnerId }: NotificationTemplatesEditorP
             })}
           </TabsList>
 
-          {TEMPLATE_CONFIG.map((config) => {
+          {templateConfigs.map((config) => {
             const customTemplate = getTemplate(config.type);
             const defaultTemplate = DEFAULT_TEMPLATES[config.type];
             
