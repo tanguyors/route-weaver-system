@@ -140,10 +140,10 @@ const TemplateEditor = ({
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 {isEmail ? <Mail className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
-                Éditeur de template
+                Template Editor
                 {isCustomized && (
                   <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                    Personnalisé
+                    Customized
                   </span>
                 )}
               </CardTitle>
@@ -151,7 +151,7 @@ const TemplateEditor = ({
             <CardContent className="space-y-4">
               {isEmail && (
                 <div className="space-y-2">
-                  <Label htmlFor="subject">Sujet de l'email</Label>
+                  <Label htmlFor="subject">Email Subject</Label>
                   <Input
                     id="subject"
                     value={subject}
@@ -163,7 +163,7 @@ const TemplateEditor = ({
 
               <div className="space-y-2">
                 <Label htmlFor="content">
-                  Contenu {isEmail ? '(HTML)' : '(Texte)'}
+                  Content {isEmail ? '(HTML)' : '(Text)'}
                 </Label>
                 <Textarea
                   ref={textareaRef}
@@ -173,13 +173,13 @@ const TemplateEditor = ({
                   rows={isEmail ? 20 : 15}
                   className="font-mono text-sm"
                   placeholder={isEmail 
-                    ? "Contenu HTML de l'email..." 
-                    : "Contenu du message WhatsApp..."
+                    ? "HTML email content..." 
+                    : "WhatsApp message content..."
                   }
                 />
                 {!isEmail && (
                   <p className={`text-xs ${charCount > maxRecommended ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                    {charCount} caractères {charCount > maxRecommended && '(recommandé < 1000)'}
+                    {charCount} characters {charCount > maxRecommended && '(recommended < 1000)'}
                   </p>
                 )}
               </div>
@@ -206,21 +206,21 @@ const TemplateEditor = ({
             <AlertDialogTrigger asChild>
               <Button variant="outline" disabled={saving || !isCustomized}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Réinitialiser par défaut
+                Reset to Default
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Réinitialiser le template ?</AlertDialogTitle>
+                <AlertDialogTitle>Reset template?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Cette action va supprimer vos personnalisations et restaurer le template par défaut. 
-                  Cette action est irréversible.
+                  This will remove your customizations and restore the default template. 
+                  This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleReset}>
-                  Réinitialiser
+                  Reset
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -232,7 +232,7 @@ const TemplateEditor = ({
             disabled={saving}
           >
             <Send className="w-4 h-4 mr-2" />
-            Envoyer un test
+            Send Test
           </Button>
         </div>
 
@@ -242,7 +242,7 @@ const TemplateEditor = ({
           ) : (
             <Save className="w-4 h-4 mr-2" />
           )}
-          Enregistrer
+          Save
         </Button>
       </div>
 
