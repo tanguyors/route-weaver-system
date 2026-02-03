@@ -73,9 +73,9 @@ const PickupDropoffRulesTab = () => {
   const [formError, setFormError] = useState('');
   const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
 
-  // Filter rules based on selected port and service type
+  // Only show pickup rules - dropoff is auto-managed
   const filteredRules = rules.filter(r => {
-    const matchesType = r.service_type === activeTab;
+    const matchesType = r.service_type === 'pickup';
     const matchesPort = !selectedPortId || r.from_port_id === selectedPortId;
     return matchesType && matchesPort;
   });
@@ -95,14 +95,13 @@ const PickupDropoffRulesTab = () => {
 
   const handleOpenForm = (portId?: string) => {
     const targetPortId = portId || '';
-    const targetServiceType = activeTab;
     
     setFormPortId(targetPortId);
-    setFormServiceType(targetServiceType);
+    setFormServiceType('pickup'); // Always pickup, dropoff is auto-created
     
-    // Load existing rules for this port and service type
+    // Load existing pickup rules for this port
     const existingRules = rules.filter(
-      r => r.from_port_id === targetPortId && r.service_type === targetServiceType
+      r => r.from_port_id === targetPortId && r.service_type === 'pickup'
     );
     
     if (existingRules.length > 0) {
@@ -111,9 +110,7 @@ const PickupDropoffRulesTab = () => {
         city_name: r.city_name,
         car_price: r.car_price.toString(),
         bus_price: r.bus_price.toString(),
-        constraint_minutes: (r.service_type === 'pickup' 
-          ? r.pickup_before_departure_minutes 
-          : r.dropoff_after_arrival_minutes)?.toString() || '',
+        constraint_minutes: r.pickup_before_departure_minutes?.toString() || '',
         status: r.status,
         sort_order: r.sort_order,
       })));
@@ -205,35 +202,69 @@ const PickupDropoffRulesTab = () => {
     setSaving(true);
 
     try {
-      // Delete marked rows
+      // Delete marked rows (both pickup and corresponding dropoff)
       const toDelete = rows.filter(r => r.toDelete && r.id);
       for (const row of toDelete) {
         await deleteRule(row.id!);
+        // Find and delete corresponding dropoff rule
+        const correspondingDropoff = rules.find(
+          r => r.from_port_id === formPortId && 
+               r.service_type === 'dropoff' && 
+               r.city_name === row.city_name
+        );
+        if (correspondingDropoff) {
+          await deleteRule(correspondingDropoff.id);
+        }
       }
 
-      // Create or update rows
+      // Create or update pickup rows AND auto-create/update dropoff rows
       for (let i = 0; i < activeRows.length; i++) {
         const row = activeRows[i];
-        const data = {
+        
+        // Pickup data
+        const pickupData = {
           from_port_id: formPortId,
           city_name: row.city_name.trim(),
-          service_type: formServiceType,
+          service_type: 'pickup' as const,
           car_price: parseFloat(row.car_price) || 0,
           bus_price: parseFloat(row.bus_price) || 0,
-          pickup_before_departure_minutes: formServiceType === 'pickup' && row.constraint_minutes 
-            ? parseInt(row.constraint_minutes) 
-            : undefined,
-          dropoff_after_arrival_minutes: formServiceType === 'dropoff' && row.constraint_minutes 
+          pickup_before_departure_minutes: row.constraint_minutes 
             ? parseInt(row.constraint_minutes) 
             : undefined,
           status: row.status,
           sort_order: i,
         };
 
+        // Dropoff data (same prices, no timing constraint)
+        const dropoffData = {
+          from_port_id: formPortId,
+          city_name: row.city_name.trim(),
+          service_type: 'dropoff' as const,
+          car_price: parseFloat(row.car_price) || 0,
+          bus_price: parseFloat(row.bus_price) || 0,
+          status: row.status,
+          sort_order: i,
+        };
+
         if (row.id) {
-          await updateRule(row.id, data);
+          // Update existing pickup
+          await updateRule(row.id, pickupData);
+          
+          // Find and update corresponding dropoff, or create if doesn't exist
+          const existingDropoff = rules.find(
+            r => r.from_port_id === formPortId && 
+                 r.service_type === 'dropoff' && 
+                 r.city_name === row.city_name
+          );
+          if (existingDropoff) {
+            await updateRule(existingDropoff.id, dropoffData);
+          } else {
+            await createRule(dropoffData);
+          }
         } else {
-          await createRule(data);
+          // Create new pickup and dropoff
+          await createRule(pickupData);
+          await createRule(dropoffData);
         }
       }
 
@@ -283,19 +314,9 @@ const PickupDropoffRulesTab = () => {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ServiceType)}>
-        <TabsList>
-          <TabsTrigger value="pickup" className="gap-2">
-            <Car className="h-4 w-4" />
-            Pickup
-          </TabsTrigger>
-          <TabsTrigger value="dropoff" className="gap-2">
-            <ArrowDownToLine className="h-4 w-4" />
-            Dropoff
-          </TabsTrigger>
-        </TabsList>
+      {/* Display only pickup rules - dropoff is auto-created */}
+      <div className="mt-4">
 
-        <TabsContent value={activeTab} className="mt-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -335,9 +356,7 @@ const PickupDropoffRulesTab = () => {
                         <TableHead>City</TableHead>
                         <TableHead>Car Price</TableHead>
                         <TableHead>Bus Price</TableHead>
-                        <TableHead>
-                          {activeTab === 'pickup' ? 'Before Departure' : 'After Arrival'}
-                        </TableHead>
+                        <TableHead>Before Departure</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -348,13 +367,9 @@ const PickupDropoffRulesTab = () => {
                           <TableCell>{formatCurrency(rule.car_price)}</TableCell>
                           <TableCell>{formatCurrency(rule.bus_price)}</TableCell>
                           <TableCell>
-                            {activeTab === 'pickup'
-                              ? rule.pickup_before_departure_minutes
-                                ? `${rule.pickup_before_departure_minutes} min`
-                                : '-'
-                              : rule.dropoff_after_arrival_minutes
-                                ? `${rule.dropoff_after_arrival_minutes} min`
-                                : '-'}
+                            {rule.pickup_before_departure_minutes
+                              ? `${rule.pickup_before_departure_minutes} min`
+                              : '-'}
                           </TableCell>
                           <TableCell>
                             <Badge variant={rule.status === 'active' ? 'default' : 'secondary'}>
@@ -369,8 +384,7 @@ const PickupDropoffRulesTab = () => {
               ))}
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+      </div>
 
       {/* Configure Port Rules Dialog */}
       <Dialog open={showForm} onOpenChange={handleCloseForm}>
@@ -401,15 +415,10 @@ const PickupDropoffRulesTab = () => {
               
               <div className="space-y-2">
                 <Label>Service Type</Label>
-                <Select value={formServiceType} onValueChange={(v: ServiceType) => setFormServiceType(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pickup">Pickup</SelectItem>
-                    <SelectItem value="dropoff">Dropoff</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2 h-10 px-3 bg-muted rounded-md text-sm">
+                  <Car className="h-4 w-4" />
+                  Pickup (Dropoff auto-created)
+                </div>
               </div>
             </div>
 
@@ -421,9 +430,7 @@ const PickupDropoffRulesTab = () => {
                     <TableHead className="w-[180px]">City *</TableHead>
                     <TableHead className="w-[130px]">Car Price (IDR) *</TableHead>
                     <TableHead className="w-[130px]">Bus Price (IDR) *</TableHead>
-                    <TableHead className="w-[120px]">
-                      {formServiceType === 'pickup' ? 'Before Dep. (min)' : 'After Arr. (min)'}
-                    </TableHead>
+                    <TableHead className="w-[120px]">Before Dep. (min)</TableHead>
                     <TableHead className="w-[100px]">Status</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>

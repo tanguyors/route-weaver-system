@@ -76,6 +76,7 @@ interface CartItemCardProps {
   pickupRuleId: string;
   pickupVehicleType: VehicleType;
   pickupDetails: string;
+  isDropoff?: boolean;
   onRemoveItem: (id: string) => void;
   onOpenBoatInfo: (boat: Boat) => void;
   onTogglePickup: () => void;
@@ -96,6 +97,7 @@ export const CartItemCard = ({
   pickupRuleId,
   pickupVehicleType,
   pickupDetails,
+  isDropoff = false,
   onRemoveItem,
   onOpenBoatInfo,
   onTogglePickup,
@@ -237,7 +239,7 @@ export const CartItemCard = ({
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
           <span className="text-xs sm:text-sm text-gray-500 flex items-center gap-1">
             <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-300 flex items-center justify-center text-[10px] sm:text-xs shrink-0">i</span>
-            <span className="truncate">{t('privatePickup')}</span>
+            <span className="truncate">{isDropoff ? t('privateDropoff') : t('privatePickup')}</span>
           </span>
           <Button
             type="button"
@@ -259,23 +261,23 @@ export const CartItemCard = ({
                 <span className="text-white text-[8px] sm:text-[10px] leading-none">✓</span>
               )}
             </span>
-            {t('pickup')}
+            {isDropoff ? t('dropoff') : t('pickup')}
           </Button>
         </div>
 
-        {/* Pickup options (shown when enabled) */}
+        {/* Pickup/Dropoff options (shown when enabled) */}
         {pickupEnabled && (
           <div className="mt-4 rounded-lg border border-gray-200 p-4">
             <div className="text-sm font-semibold mb-2" style={{ color: primaryColor }}>
-              {t('pickupOptions')}
+              {isDropoff ? t('dropoffOptions') : t('pickupOptions')}
             </div>
             {availablePickups.length === 0 ? (
-              <p className="text-sm text-gray-500">{t('noPickupAvailable')}</p>
+              <p className="text-sm text-gray-500">{isDropoff ? t('noDropoffAvailable') : t('noPickupAvailable')}</p>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <div className="text-sm text-gray-600 mb-1">{t('pickupArea')}</div>
+                    <div className="text-sm text-gray-600 mb-1">{isDropoff ? t('dropoffArea') : t('pickupArea')}</div>
                     <Select
                       value={pickupRuleId}
                       onValueChange={(v) => {
@@ -283,13 +285,13 @@ export const CartItemCard = ({
                       }}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t('selectPickup')} />
+                        <SelectValue placeholder={isDropoff ? t('selectDropoff') : t('selectPickup')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NONE}>{t('selectPickup')}</SelectItem>
+                        <SelectItem value={NONE}>{isDropoff ? t('selectDropoff') : t('selectPickup')}</SelectItem>
                         {availablePickups.map(r => (
                           <SelectItem key={r.id} value={r.id}>
-                            {r.city_name} {r.before_departure_minutes ? `(${r.before_departure_minutes} min before)` : ''}
+                            {r.city_name} {!isDropoff && r.before_departure_minutes ? `(${r.before_departure_minutes} min before)` : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
