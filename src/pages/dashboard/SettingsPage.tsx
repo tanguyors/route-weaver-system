@@ -13,6 +13,7 @@ import TicketSettingsForm from '@/components/settings/TicketSettingsForm';
 import NotificationSettingsForm from '@/components/settings/NotificationSettingsForm';
 import TermsSettingsForm from '@/components/settings/TermsSettingsForm';
 import StaffList from '@/components/settings/StaffList';
+import NotificationTemplatesEditor from '@/components/settings/notification-templates/NotificationTemplatesEditor';
 import {
   Building2,
   CreditCard,
@@ -439,7 +440,7 @@ const SettingsPage = () => {
           </TabsContent>
 
           {/* Notification Settings */}
-          <TabsContent value="notifications">
+          <TabsContent value="notifications" className="space-y-6">
             {settings && (
               <NotificationSettingsForm
                 settings={settings}
@@ -457,6 +458,11 @@ const SettingsPage = () => {
                 }}
                 saving={saving}
               />
+            )}
+            
+            {/* Template Editor */}
+            {partnerInfo && (
+              <NotificationTemplatesEditor partnerId={partnerInfo.id} />
             )}
           </TabsContent>
 

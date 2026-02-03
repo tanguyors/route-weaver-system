@@ -1620,6 +1620,47 @@ export type Database = {
           },
         ]
       }
+      notification_templates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          partner_id: string
+          subject: string | null
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          partner_id: string
+          subject?: string | null
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          partner_id?: string
+          subject?: string | null
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_modules: {
         Row: {
           admin_note: string | null

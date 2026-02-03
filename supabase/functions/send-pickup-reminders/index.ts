@@ -60,6 +60,254 @@ interface BookingWithPickup {
   booking_addons: BookingAddon[];
 }
 
+interface NotificationTemplate {
+  id: string;
+  partner_id: string;
+  template_type: string;
+  subject: string | null;
+  content: string;
+  is_active: boolean;
+}
+
+interface TemplateData {
+  customer_name: string;
+  pickup_date: string;
+  pickup_time: string;
+  pickup_location: string;
+  pickup_area: string;
+  vehicle_type: string;
+  origin_port: string;
+  destination_port: string;
+  departure_time: string;
+  partner_name: string;
+  partner_phone: string;
+  customer_phone: string;
+  booking_ref: string;
+  hours_before: string;
+}
+
+// Default templates (fallback when no custom template exists)
+const DEFAULT_TEMPLATES = {
+  pickup_reminder_email_customer: {
+    subject: '🚗 Pickup Reminder - {{hours_before}} before your trip',
+    content: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickup Reminder</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">🚗 Pickup Reminder</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">{{hours_before}} before your trip!</p>
+  </div>
+  
+  <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0;">
+    <p style="font-size: 18px; margin-top: 0;">Hi <strong>{{customer_name}}</strong>!</p>
+    
+    <p>This is a friendly reminder about your upcoming pickup:</p>
+    
+    <div style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>📅 Date & Time</strong></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;"><strong style="color: #0ea5e9; font-size: 18px;">{{pickup_date}}<br>{{pickup_time}}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>📍 Pickup Location</strong></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">{{pickup_location}}<br><span style="color: #666;">{{pickup_area}}</span></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>🚗 Vehicle</strong></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">{{vehicle_type}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0;"><strong>🚢 Trip</strong></td>
+          <td style="padding: 10px 0; text-align: right;">{{origin_port}} → {{destination_port}}<br><span style="color: #666;">Departure: {{departure_time}}</span></td>
+        </tr>
+      </table>
+    </div>
+    
+    <div style="background: #fef3c7; border-radius: 10px; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0; color: #92400e;"><strong>⏰ Important:</strong> Please be ready at least 10 minutes before the scheduled pickup time.</p>
+    </div>
+    
+    <div style="background: #ecfdf5; border-radius: 10px; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0; color: #065f46;"><strong>📞 Questions?</strong> Contact {{partner_name}}: {{partner_phone}}</p>
+    </div>
+    
+    <p style="color: #666; font-size: 12px; margin-top: 30px;">Booking Reference: {{booking_ref}}</p>
+  </div>
+  
+  <div style="background: #1e293b; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;">
+    <p style="color: #94a3b8; margin: 0; font-size: 14px;">Have a safe trip! 🌴</p>
+  </div>
+</body>
+</html>`
+  },
+  
+  pickup_reminder_email_partner: {
+    subject: '🚗 Pickup Reminder - {{hours_before}} - {{customer_name}}',
+    content: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickup Reminder - Partner</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">🚗 Pickup Alert</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">{{hours_before}} - Customer Pickup Required</p>
+  </div>
+  
+  <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0;">
+    <h2 style="margin-top: 0; color: #1e293b;">Customer Details</h2>
+    
+    <div style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0; border-left: 4px solid #f97316;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>👤 Customer Name</strong></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;"><strong style="font-size: 18px;">{{customer_name}}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>📱 Phone</strong></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;"><a href="tel:{{customer_phone}}" style="color: #0ea5e9;">{{customer_phone}}</a></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>📅 Pickup Time</strong></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;"><strong style="color: #f97316; font-size: 18px;">{{pickup_date}}<br>{{pickup_time}}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>📍 Pickup Location</strong></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">{{pickup_location}}<br><span style="color: #666;">{{pickup_area}}</span></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>🚗 Vehicle Type</strong></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">{{vehicle_type}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0;"><strong>🚢 Trip</strong></td>
+          <td style="padding: 10px 0; text-align: right;">{{origin_port}} → {{destination_port}}<br><span style="color: #666;">Departure: {{departure_time}}</span></td>
+        </tr>
+      </table>
+    </div>
+    
+    <p style="color: #666; font-size: 12px; margin-top: 30px;">Booking Reference: {{booking_ref}}</p>
+  </div>
+  
+  <div style="background: #1e293b; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;">
+    <p style="color: #94a3b8; margin: 0; font-size: 14px;">SriBooking Partner Notification</p>
+  </div>
+</body>
+</html>`
+  },
+  
+  pickup_reminder_whatsapp_customer: {
+    content: `🚗 *PICKUP REMINDER*
+
+Hi {{customer_name}}!
+
+Your pickup is scheduled for:
+📅 *{{pickup_date}}*
+⏰ *{{pickup_time}}*
+
+📍 *Pickup Location:*
+{{pickup_location}}
+Area: {{pickup_area}}
+
+🚗 *Vehicle:* {{vehicle_type}}
+
+🚢 *Trip Details:*
+{{origin_port}} → {{destination_port}}
+Departure: {{departure_time}}
+
+⏰ Please be ready 10 minutes before pickup time.
+
+📞 Questions? Contact: {{partner_phone}}
+
+Booking ref: {{booking_ref}}`
+  },
+  
+  pickup_reminder_whatsapp_partner: {
+    content: `🚗 *PICKUP ALERT - {{hours_before}}*
+
+👤 *Customer:* {{customer_name}}
+📱 *Phone:* {{customer_phone}}
+
+📅 *Pickup Time:*
+{{pickup_date}}
+{{pickup_time}}
+
+📍 *Location:*
+{{pickup_location}}
+Area: {{pickup_area}}
+
+🚗 *Vehicle:* {{vehicle_type}}
+
+🚢 *Trip:* {{origin_port}} → {{destination_port}}
+Departure: {{departure_time}}
+
+Booking ref: {{booking_ref}}`
+  }
+};
+
+// Replace placeholders in template with actual data
+function replacePlaceholders(template: string, data: TemplateData): string {
+  let result = template;
+  Object.entries(data).forEach(([key, value]) => {
+    const placeholder = `{{${key}}}`;
+    result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value || '');
+  });
+  return result;
+}
+
+// Fetch custom templates for a partner
+async function fetchPartnerTemplates(supabase: any, partnerId: string): Promise<Map<string, NotificationTemplate>> {
+  const { data, error } = await supabase
+    .from('notification_templates')
+    .select('*')
+    .eq('partner_id', partnerId)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('Error fetching templates:', error);
+    return new Map();
+  }
+
+  const templateMap = new Map<string, NotificationTemplate>();
+  (data || []).forEach((template: NotificationTemplate) => {
+    templateMap.set(template.template_type, template);
+  });
+
+  return templateMap;
+}
+
+// Get template content (custom or default)
+function getTemplateContent(
+  templates: Map<string, NotificationTemplate>,
+  templateType: string
+): { subject?: string; content: string } {
+  const customTemplate = templates.get(templateType);
+  if (customTemplate) {
+    return {
+      subject: customTemplate.subject || undefined,
+      content: customTemplate.content,
+    };
+  }
+  
+  const defaultTemplate = DEFAULT_TEMPLATES[templateType as keyof typeof DEFAULT_TEMPLATES];
+  if (!defaultTemplate) {
+    return { content: '' };
+  }
+  
+  return {
+    subject: 'subject' in defaultTemplate ? defaultTemplate.subject : undefined,
+    content: defaultTemplate.content || '',
+  };
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -146,6 +394,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Found ${bookings.length} bookings with pickup addons`);
 
+    // Cache for partner templates
+    const partnerTemplatesCache = new Map<string, Map<string, NotificationTemplate>>();
+
     for (const booking of bookings as unknown as BookingWithPickup[]) {
       try {
         // Get the pickup addon with pickup_info
@@ -205,6 +456,13 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
+        // Fetch partner templates (with caching)
+        let partnerTemplates = partnerTemplatesCache.get(partner.id);
+        if (!partnerTemplates) {
+          partnerTemplates = await fetchPartnerTemplates(supabase, partner.id);
+          partnerTemplatesCache.set(partner.id, partnerTemplates);
+        }
+
         const pickupDate = pickupDateTime.toLocaleDateString("en-GB", {
           weekday: "long",
           day: "numeric",
@@ -217,30 +475,39 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         const hoursText = reminderType === "24h" ? "24 hours" : "12 hours";
+        const vehicleText = pickupInfo.vehicle_type === "bus" ? "Shuttle Bus" : "Private Car";
+        const pickupLocation = pickupInfo.pickup_hotel || pickupInfo.pickup_address || pickupInfo.pickup_area || "";
+
+        // Prepare template data
+        const templateData: TemplateData = {
+          customer_name: customer.full_name,
+          pickup_date: pickupDate,
+          pickup_time: pickupTime,
+          pickup_location: pickupLocation,
+          pickup_area: pickupInfo.pickup_area || "",
+          vehicle_type: vehicleText,
+          origin_port: departure.route.origin_port.name,
+          destination_port: departure.route.destination_port.name,
+          departure_time: departure.departure_time,
+          partner_name: partner.name,
+          partner_phone: partner.contact_phone || "",
+          customer_phone: customer.phone || "N/A",
+          booking_ref: booking.id.substring(0, 8).toUpperCase(),
+          hours_before: hoursText,
+        };
 
         // Send notifications to customer
         if (customer.email && resend) {
           try {
+            const template = getTemplateContent(partnerTemplates, 'pickup_reminder_email_customer');
+            const emailHtml = replacePlaceholders(template.content, templateData);
+            const emailSubject = replacePlaceholders(template.subject || '', templateData);
+
             await resend.emails.send({
               from: "SriBooking <noreply@sribooking.com>",
               to: [customer.email],
-              subject: `🚗 Pickup Reminder - ${hoursText} before your trip`,
-              html: generateCustomerEmailHtml({
-                customerName: customer.full_name,
-                pickupDate,
-                pickupTime,
-                pickupArea: pickupInfo.pickup_area || "",
-                pickupHotel: pickupInfo.pickup_hotel || "",
-                pickupAddress: pickupInfo.pickup_address || "",
-                vehicleType: pickupInfo.vehicle_type || "car",
-                originPort: departure.route.origin_port.name,
-                destinationPort: departure.route.destination_port.name,
-                departureTime: departure.departure_time,
-                partnerName: partner.name,
-                partnerPhone: partner.contact_phone || "",
-                bookingId: booking.id,
-                hoursText,
-              }),
+              subject: emailSubject,
+              html: emailHtml,
             });
 
             await logReminder(supabase, booking.id, reminderType, "email", "customer", "sent");
@@ -254,25 +521,10 @@ const handler = async (req: Request): Promise<Response> => {
         // Send WhatsApp to customer
         if (customer.phone && fonnteToken) {
           try {
-            await sendWhatsApp(
-              fonnteToken,
-              customer.phone,
-              generateCustomerWhatsAppMessage({
-                customerName: customer.full_name,
-                pickupDate,
-                pickupTime,
-                pickupArea: pickupInfo.pickup_area || "",
-                pickupHotel: pickupInfo.pickup_hotel || "",
-                pickupAddress: pickupInfo.pickup_address || "",
-                vehicleType: pickupInfo.vehicle_type || "car",
-                originPort: departure.route.origin_port.name,
-                destinationPort: departure.route.destination_port.name,
-                departureTime: departure.departure_time,
-                partnerPhone: partner.contact_phone || "",
-                bookingId: booking.id,
-                hoursText,
-              })
-            );
+            const template = getTemplateContent(partnerTemplates, 'pickup_reminder_whatsapp_customer');
+            const message = replacePlaceholders(template.content, templateData);
+
+            await sendWhatsApp(fonnteToken, customer.phone, message);
 
             await logReminder(supabase, booking.id, reminderType, "whatsapp", "customer", "sent");
             results.whatsappSent++;
@@ -285,25 +537,15 @@ const handler = async (req: Request): Promise<Response> => {
         // Send notifications to partner
         if (partner.contact_email && resend) {
           try {
+            const template = getTemplateContent(partnerTemplates, 'pickup_reminder_email_partner');
+            const emailHtml = replacePlaceholders(template.content, templateData);
+            const emailSubject = replacePlaceholders(template.subject || '', templateData);
+
             await resend.emails.send({
               from: "SriBooking <noreply@sribooking.com>",
               to: [partner.contact_email],
-              subject: `🚗 Pickup Reminder - ${hoursText} - ${customer.full_name}`,
-              html: generatePartnerEmailHtml({
-                customerName: customer.full_name,
-                customerPhone: customer.phone || "N/A",
-                pickupDate,
-                pickupTime,
-                pickupArea: pickupInfo.pickup_area || "",
-                pickupHotel: pickupInfo.pickup_hotel || "",
-                pickupAddress: pickupInfo.pickup_address || "",
-                vehicleType: pickupInfo.vehicle_type || "car",
-                originPort: departure.route.origin_port.name,
-                destinationPort: departure.route.destination_port.name,
-                departureTime: departure.departure_time,
-                bookingId: booking.id,
-                hoursText,
-              }),
+              subject: emailSubject,
+              html: emailHtml,
             });
 
             await logReminder(supabase, booking.id, reminderType, "email", "partner", "sent");
@@ -321,25 +563,10 @@ const handler = async (req: Request): Promise<Response> => {
         
         if (partnerWhatsAppNumber && fonnteToken) {
           try {
-            await sendWhatsApp(
-              fonnteToken,
-              partnerWhatsAppNumber,
-              generatePartnerWhatsAppMessage({
-                customerName: customer.full_name,
-                customerPhone: customer.phone || "N/A",
-                pickupDate,
-                pickupTime,
-                pickupArea: pickupInfo.pickup_area || "",
-                pickupHotel: pickupInfo.pickup_hotel || "",
-                pickupAddress: pickupInfo.pickup_address || "",
-                vehicleType: pickupInfo.vehicle_type || "car",
-                originPort: departure.route.origin_port.name,
-                destinationPort: departure.route.destination_port.name,
-                departureTime: departure.departure_time,
-                bookingId: booking.id,
-                hoursText,
-              })
-            );
+            const template = getTemplateContent(partnerTemplates, 'pickup_reminder_whatsapp_partner');
+            const message = replacePlaceholders(template.content, templateData);
+
+            await sendWhatsApp(fonnteToken, partnerWhatsAppNumber, message);
 
             await logReminder(supabase, booking.id, reminderType, "whatsapp", "partner", "sent");
             results.whatsappSent++;
@@ -415,258 +642,6 @@ async function sendWhatsApp(token: string, phone: string, message: string) {
   }
 
   return response.json();
-}
-
-interface EmailData {
-  customerName: string;
-  pickupDate: string;
-  pickupTime: string;
-  pickupArea: string;
-  pickupHotel: string;
-  pickupAddress: string;
-  vehicleType: string;
-  originPort: string;
-  destinationPort: string;
-  departureTime: string;
-  partnerName?: string;
-  partnerPhone?: string;
-  customerPhone?: string;
-  bookingId: string;
-  hoursText: string;
-}
-
-function generateCustomerEmailHtml(data: EmailData): string {
-  const vehicleEmoji = data.vehicleType === "bus" ? "🚌" : "🚗";
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pickup Reminder</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">${vehicleEmoji} Pickup Reminder</h1>
-    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">${data.hoursText} before your trip!</p>
-  </div>
-  
-  <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0;">
-    <p style="font-size: 18px; margin-top: 0;">Hi <strong>${data.customerName}</strong>!</p>
-    
-    <p>This is a friendly reminder about your upcoming pickup:</p>
-    
-    <div style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <strong>📅 Date & Time</strong>
-          </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
-            <strong style="color: #0ea5e9; font-size: 18px;">${data.pickupDate}<br>${data.pickupTime}</strong>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <strong>📍 Pickup Location</strong>
-          </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
-            ${data.pickupHotel || data.pickupAddress || data.pickupArea}
-            ${data.pickupArea ? `<br><span style="color: #666;">${data.pickupArea}</span>` : ""}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <strong>${vehicleEmoji} Vehicle</strong>
-          </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
-            ${data.vehicleType === "bus" ? "Shuttle Bus" : "Private Car"}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0;">
-            <strong>🚢 Trip</strong>
-          </td>
-          <td style="padding: 10px 0; text-align: right;">
-            ${data.originPort} → ${data.destinationPort}<br>
-            <span style="color: #666;">Departure: ${data.departureTime}</span>
-          </td>
-        </tr>
-      </table>
-    </div>
-    
-    <div style="background: #fef3c7; border-radius: 10px; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; color: #92400e;">
-        <strong>⏰ Important:</strong> Please be ready at least 10 minutes before the scheduled pickup time.
-      </p>
-    </div>
-    
-    ${data.partnerPhone ? `
-    <div style="background: #ecfdf5; border-radius: 10px; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; color: #065f46;">
-        <strong>📞 Questions?</strong> Contact ${data.partnerName}: ${data.partnerPhone}
-      </p>
-    </div>
-    ` : ""}
-    
-    <p style="color: #666; font-size: 12px; margin-top: 30px;">
-      Booking Reference: ${data.bookingId.substring(0, 8).toUpperCase()}
-    </p>
-  </div>
-  
-  <div style="background: #1e293b; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;">
-    <p style="color: #94a3b8; margin: 0; font-size: 14px;">
-      Have a safe trip! 🌴
-    </p>
-  </div>
-</body>
-</html>
-  `;
-}
-
-function generatePartnerEmailHtml(data: EmailData): string {
-  const vehicleEmoji = data.vehicleType === "bus" ? "🚌" : "🚗";
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pickup Reminder - Partner</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">${vehicleEmoji} Pickup Alert</h1>
-    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">${data.hoursText} - Customer Pickup Required</p>
-  </div>
-  
-  <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0;">
-    <h2 style="margin-top: 0; color: #1e293b;">Customer Details</h2>
-    
-    <div style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0; border-left: 4px solid #f97316;">
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <strong>👤 Customer Name</strong>
-          </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
-            <strong style="font-size: 18px;">${data.customerName}</strong>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <strong>📱 Phone</strong>
-          </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
-            <a href="tel:${data.customerPhone}" style="color: #0ea5e9;">${data.customerPhone}</a>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <strong>📅 Pickup Time</strong>
-          </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
-            <strong style="color: #f97316; font-size: 18px;">${data.pickupDate}<br>${data.pickupTime}</strong>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <strong>📍 Pickup Location</strong>
-          </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
-            ${data.pickupHotel || data.pickupAddress || data.pickupArea}
-            ${data.pickupArea ? `<br><span style="color: #666;">${data.pickupArea}</span>` : ""}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <strong>${vehicleEmoji} Vehicle Type</strong>
-          </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
-            ${data.vehicleType === "bus" ? "Shuttle Bus" : "Private Car"}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0;">
-            <strong>🚢 Trip</strong>
-          </td>
-          <td style="padding: 10px 0; text-align: right;">
-            ${data.originPort} → ${data.destinationPort}<br>
-            <span style="color: #666;">Departure: ${data.departureTime}</span>
-          </td>
-        </tr>
-      </table>
-    </div>
-    
-    <p style="color: #666; font-size: 12px; margin-top: 30px;">
-      Booking Reference: ${data.bookingId.substring(0, 8).toUpperCase()}
-    </p>
-  </div>
-  
-  <div style="background: #1e293b; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;">
-    <p style="color: #94a3b8; margin: 0; font-size: 14px;">
-      SriBooking Partner Notification
-    </p>
-  </div>
-</body>
-</html>
-  `;
-}
-
-function generateCustomerWhatsAppMessage(data: EmailData): string {
-  const vehicleEmoji = data.vehicleType === "bus" ? "🚌" : "🚗";
-  const vehicleText = data.vehicleType === "bus" ? "Shuttle Bus" : "Private Car";
-  
-  return `🚗 *PICKUP REMINDER*
-
-Hi ${data.customerName}!
-
-Your pickup is scheduled for:
-📅 *${data.pickupDate}*
-⏰ *${data.pickupTime}*
-
-📍 *Pickup Location:*
-${data.pickupHotel || data.pickupAddress || data.pickupArea}
-${data.pickupArea ? `Area: ${data.pickupArea}` : ""}
-
-${vehicleEmoji} *Vehicle:* ${vehicleText}
-
-🚢 *Trip Details:*
-${data.originPort} → ${data.destinationPort}
-Departure: ${data.departureTime}
-
-⏰ Please be ready 10 minutes before pickup time.
-
-${data.partnerPhone ? `📞 Questions? Contact: ${data.partnerPhone}` : ""}
-
-Booking ref: ${data.bookingId.substring(0, 8).toUpperCase()}`;
-}
-
-function generatePartnerWhatsAppMessage(data: EmailData): string {
-  const vehicleEmoji = data.vehicleType === "bus" ? "🚌" : "🚗";
-  const vehicleText = data.vehicleType === "bus" ? "Shuttle Bus" : "Private Car";
-  
-  return `🚗 *PICKUP ALERT - ${data.hoursText}*
-
-👤 *Customer:* ${data.customerName}
-📱 *Phone:* ${data.customerPhone}
-
-📅 *Pickup Time:*
-${data.pickupDate}
-${data.pickupTime}
-
-📍 *Location:*
-${data.pickupHotel || data.pickupAddress || data.pickupArea}
-${data.pickupArea ? `Area: ${data.pickupArea}` : ""}
-
-${vehicleEmoji} *Vehicle:* ${vehicleText}
-
-🚢 *Trip:* ${data.originPort} → ${data.destinationPort}
-Departure: ${data.departureTime}
-
-Booking ref: ${data.bookingId.substring(0, 8).toUpperCase()}`;
 }
 
 serve(handler);

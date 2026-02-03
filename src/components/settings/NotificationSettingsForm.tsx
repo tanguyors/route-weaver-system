@@ -269,10 +269,12 @@ const NotificationSettingsForm = ({
           </div>
         </div>
 
-        <Button onClick={handleSave} disabled={saving}>
-          {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Enregistrer les paramètres de notification
-        </Button>
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Enregistrer les paramètres de notification
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
