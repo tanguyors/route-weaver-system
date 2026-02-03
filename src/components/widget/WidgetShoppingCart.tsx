@@ -55,6 +55,7 @@ export interface SelectedPickupInfo {
   details?: string;
   hotelAddress?: string;
   beforeDepartureMinutes?: number;
+  serviceType: 'pickup' | 'dropoff';
 }
 
 interface WidgetShoppingCartProps {
@@ -104,10 +105,23 @@ export const WidgetShoppingCart = ({
 
   const getPort = (portId: string) => ports.find(p => p.id === portId);
 
+  // For outbound: pickup rules by origin port
+  // For return: dropoff rules by destination port (which is where they need to go after return)
   const pickupRulesByPort = useMemo(() => {
     const map = new Map<string, PickupDropoffRule[]>();
     for (const rule of pickupDropoffRules) {
       if (rule.service_type !== 'pickup') continue;
+      const list = map.get(rule.from_port_id) || [];
+      list.push(rule);
+      map.set(rule.from_port_id, list);
+    }
+    return map;
+  }, [pickupDropoffRules]);
+
+  const dropoffRulesByPort = useMemo(() => {
+    const map = new Map<string, PickupDropoffRule[]>();
+    for (const rule of pickupDropoffRules) {
+      if (rule.service_type !== 'dropoff') continue;
       const list = map.get(rule.from_port_id) || [];
       list.push(rule);
       map.set(rule.from_port_id, list);
@@ -175,16 +189,22 @@ export const WidgetShoppingCart = ({
     price: calculateItemTotal(returnItem),
   } : undefined;
 
-  // Collect selected pickups for order summary
+  // Collect selected pickups/dropoffs for order summary
   const selectedPickups = useMemo(() => {
     const result: SelectedPickupInfo[] = [];
     for (const item of items) {
       const enabled = pickupEnabledByItem[item.id];
       const ruleId = pickupRuleIdByItem[item.id];
       if (enabled && ruleId && ruleId !== NONE) {
-        const originPortId = item.route?.origin_port_id || item.originPortId;
-        const availablePickups = pickupRulesByPort.get(originPortId) || [];
-        const rule = availablePickups.find(r => r.id === ruleId);
+        // For outbound: pickup from origin port
+        // For return: dropoff at destination port (where they want to go after arriving back)
+        const isReturn = item.direction === 'return';
+        const portId = isReturn 
+          ? (item.route?.destination_port_id || item.destPortId)
+          : (item.route?.origin_port_id || item.originPortId);
+        const rulesMap = isReturn ? dropoffRulesByPort : pickupRulesByPort;
+        const availableRules = rulesMap.get(portId) || [];
+        const rule = availableRules.find(r => r.id === ruleId);
         if (rule) {
           const vehicleType = pickupVehicleTypeByItem[item.id] || 'car';
           const price = vehicleType === 'car' ? rule.car_price : rule.bus_price;
@@ -195,12 +215,13 @@ export const WidgetShoppingCart = ({
             details: pickupDetailsByItem[item.id] || undefined,
             hotelAddress: pickupDetailsByItem[item.id] || undefined,
             beforeDepartureMinutes: rule.before_departure_minutes,
+            serviceType: isReturn ? 'dropoff' : 'pickup',
           });
         }
       }
     }
     return result;
-  }, [items, pickupEnabledByItem, pickupRuleIdByItem, pickupVehicleTypeByItem, pickupDetailsByItem, pickupRulesByPort]);
+  }, [items, pickupEnabledByItem, pickupRuleIdByItem, pickupVehicleTypeByItem, pickupDetailsByItem, pickupRulesByPort, dropoffRulesByPort]);
 
   // Notify parent when pickups change
   useEffect(() => {
@@ -259,8 +280,14 @@ export const WidgetShoppingCart = ({
             </div>
           ) : (
             items.map(item => {
-              const originPortId = item.route?.origin_port_id || item.originPortId;
-              const availablePickups = pickupRulesByPort.get(originPortId) || [];
+              // For outbound: use pickup rules from origin port
+              // For return: use dropoff rules from destination port
+              const isReturn = item.direction === 'return';
+              const portId = isReturn 
+                ? (item.route?.destination_port_id || item.destPortId)
+                : (item.route?.origin_port_id || item.originPortId);
+              const rulesMap = isReturn ? dropoffRulesByPort : pickupRulesByPort;
+              const availableRules = rulesMap.get(portId) || [];
 
               return (
                 <CartItemCard
@@ -271,11 +298,12 @@ export const WidgetShoppingCart = ({
                   paxChild={paxChild}
                   paxInfant={paxInfant}
                   primaryColor={primaryColor}
-                  availablePickups={availablePickups}
+                  availablePickups={availableRules}
                   pickupEnabled={pickupEnabledByItem[item.id] ?? false}
                   pickupRuleId={pickupRuleIdByItem[item.id] ?? NONE}
                   pickupVehicleType={pickupVehicleTypeByItem[item.id] ?? 'car'}
                   pickupDetails={pickupDetailsByItem[item.id] ?? ''}
+                  isDropoff={isReturn}
                   onRemoveItem={onRemoveItem}
                   onOpenBoatInfo={(boat) => handleOpenBoatInfo(item, boat)}
                   onTogglePickup={() => handleTogglePickup(item.id)}
