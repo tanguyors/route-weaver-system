@@ -443,7 +443,14 @@ const SettingsPage = () => {
             {settings && (
               <NotificationSettingsForm
                 settings={settings}
+                pickupReminderSettings={partnerInfo ? {
+                  pickup_reminder_24h_enabled: partnerInfo.pickup_reminder_24h_enabled ?? true,
+                  pickup_reminder_12h_enabled: partnerInfo.pickup_reminder_12h_enabled ?? true,
+                } : undefined}
                 onSave={updateSettings}
+                onSavePickupReminders={async (updates) => {
+                  return await updatePartnerInfo(updates);
+                }}
                 saving={saving}
               />
             )}

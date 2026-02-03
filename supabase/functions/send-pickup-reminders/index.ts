@@ -94,22 +94,22 @@ const handler = async (req: Request): Promise<Response> => {
       .select(`
         id,
         partner_id,
-        customer:customers!inner (
+        customer:customers!bookings_customer_id_fkey (
           id,
           full_name,
           email,
           phone
         ),
-        departure:departures!inner (
+        departure:departures!bookings_departure_id_fkey (
           id,
           departure_date,
           departure_time,
-          route:routes!inner (
+          route:routes!departures_route_id_fkey (
             origin_port:ports!routes_origin_port_id_fkey (name),
             destination_port:ports!routes_destination_port_id_fkey (name)
           )
         ),
-        partner:partners!inner (
+        partner:partners!bookings_partner_id_fkey (
           id,
           name,
           contact_email,
@@ -117,7 +117,7 @@ const handler = async (req: Request): Promise<Response> => {
           pickup_reminder_24h_enabled,
           pickup_reminder_12h_enabled
         ),
-        booking_addons!inner (
+        booking_addons (
           id,
           booking_id,
           name,

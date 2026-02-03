@@ -38,6 +38,9 @@ export interface PartnerSettings {
   email_cancellation: boolean;
   whatsapp_booking_confirmation: boolean;
   whatsapp_payment_link: boolean;
+  // Pickup Reminders (from partners table but managed here for UI consistency)
+  pickup_reminder_24h_enabled?: boolean;
+  pickup_reminder_12h_enabled?: boolean;
   // Terms & Conditions
   terms_booking: string | null;
   terms_voucher: string | null;
@@ -67,6 +70,9 @@ export interface PartnerInfo {
   bank_branch: string | null;
   bank_swift_code: string | null;
   status: 'active' | 'pending' | 'suspended';
+  // Pickup reminder settings
+  pickup_reminder_24h_enabled?: boolean;
+  pickup_reminder_12h_enabled?: boolean;
 }
 
 export interface StaffMember {
