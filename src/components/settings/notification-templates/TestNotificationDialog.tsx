@@ -43,8 +43,8 @@ const TestNotificationDialog = ({
   const handleSend = async () => {
     if (channel === 'email' && !testEmail) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez entrer une adresse email',
+        title: 'Error',
+        description: 'Please enter an email address',
         variant: 'destructive',
       });
       return;
@@ -52,8 +52,8 @@ const TestNotificationDialog = ({
 
     if (channel === 'whatsapp' && !testPhone) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez entrer un numéro de téléphone',
+        title: 'Error',
+        description: 'Please enter a phone number',
         variant: 'destructive',
       });
       return;
@@ -76,18 +76,18 @@ const TestNotificationDialog = ({
       if (error) throw error;
 
       toast({
-        title: 'Envoi réussi ✅',
+        title: 'Sent successfully ✅',
         description: channel === 'email' 
-          ? `Email de test envoyé à ${testEmail}`
-          : `Message WhatsApp de test envoyé à ${testPhone}`,
+          ? `Test email sent to ${testEmail}`
+          : `Test WhatsApp message sent to ${testPhone}`,
       });
 
       onOpenChange(false);
     } catch (error: any) {
       console.error('Error sending test notification:', error);
       toast({
-        title: 'Erreur d\'envoi',
-        description: error.message || 'Impossible d\'envoyer la notification de test',
+        title: 'Send error',
+        description: error.message || 'Unable to send test notification',
         variant: 'destructive',
       });
     } finally {
@@ -105,28 +105,28 @@ const TestNotificationDialog = ({
             ) : (
               <MessageCircle className="w-5 h-5" />
             )}
-            Envoyer un test {channel === 'email' ? 'Email' : 'WhatsApp'}
+            Send Test {channel === 'email' ? 'Email' : 'WhatsApp'}
           </DialogTitle>
           <DialogDescription>
-            Envoyez une notification de test avec des données d'exemple pour vérifier votre template.
+            Send a test notification with sample data to verify your template.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {channel === 'email' ? (
             <div className="space-y-2">
-              <Label htmlFor="testEmail">Adresse email de destination</Label>
+              <Label htmlFor="testEmail">Destination email address</Label>
               <Input
                 id="testEmail"
                 type="email"
-                placeholder="votre@email.com"
+                placeholder="your@email.com"
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
               />
             </div>
           ) : (
             <div className="space-y-2">
-              <Label htmlFor="testPhone">Numéro WhatsApp de destination</Label>
+              <Label htmlFor="testPhone">Destination WhatsApp number</Label>
               <Input
                 id="testPhone"
                 type="tel"
@@ -135,22 +135,22 @@ const TestNotificationDialog = ({
                 onChange={(e) => setTestPhone(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Format international avec indicatif pays (ex: +62812345678)
+                International format with country code (e.g., +62812345678)
               </p>
             </div>
           )}
 
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-sm text-amber-800">
-              ⚠️ Ce test utilisera des <strong>données fictives</strong> (John Doe, Sanur → Nusa Penida, etc.) 
-              pour remplir les variables du template.
+              ⚠️ This test will use <strong>sample data</strong> (John Doe, Sanur → Nusa Penida, etc.) 
+              to fill in the template variables.
             </p>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
-            Annuler
+            Cancel
           </Button>
           <Button onClick={handleSend} disabled={sending}>
             {sending ? (
@@ -158,7 +158,7 @@ const TestNotificationDialog = ({
             ) : (
               <Send className="w-4 h-4 mr-2" />
             )}
-            Envoyer le test
+            Send Test
           </Button>
         </DialogFooter>
       </DialogContent>

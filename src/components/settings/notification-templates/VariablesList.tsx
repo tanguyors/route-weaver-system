@@ -14,10 +14,10 @@ const VariablesList = ({ onInsert }: VariablesListProps) => {
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Variable className="w-4 h-4" />
-          Variables disponibles
+          Available Variables
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Cliquez sur une variable pour l'insérer
+          Click on a variable to insert it
         </p>
       </CardHeader>
       <CardContent>

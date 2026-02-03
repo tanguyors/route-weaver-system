@@ -114,23 +114,23 @@ const NotificationTemplatesEditor = ({ partnerId, partnerEmail, partnerPhone }: 
     : BOOKING_CONFIRMATION_TEMPLATES;
 
   const categoryTitle = activeCategory === 'pickup_reminders'
-    ? 'Rappels de pickup'
-    : 'Confirmations de réservation';
+    ? 'Pickup Reminders'
+    : 'Booking Confirmations';
 
   const categoryDescription = activeCategory === 'pickup_reminders'
-    ? 'Personnalisez les messages envoyés 24h et 12h avant le pickup.'
-    : 'Personnalisez les messages envoyés lors de la confirmation d\'une réservation.';
+    ? 'Customize messages sent 24h and 12h before pickup.'
+    : 'Customize messages sent when a booking is confirmed.';
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileEdit className="w-5 h-5" />
-          Personnalisation des messages
+          Message Customization
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Personnalisez les emails et messages WhatsApp envoyés aux clients et à votre équipe. 
-          Utilisez les variables pour insérer dynamiquement les informations.
+          Customize emails and WhatsApp messages sent to customers and your team. 
+          Use variables to dynamically insert booking information.
         </p>
         
         {/* Category Selector */}
@@ -144,7 +144,7 @@ const NotificationTemplatesEditor = ({ partnerId, partnerEmail, partnerPhone }: 
             }`}
           >
             <CheckCircle className="w-4 h-4" />
-            Confirmations de réservation
+            Booking Confirmations
           </button>
           <button
             onClick={() => setActiveCategory('pickup_reminders')}
@@ -155,7 +155,7 @@ const NotificationTemplatesEditor = ({ partnerId, partnerEmail, partnerPhone }: 
             }`}
           >
             <Clock className="w-4 h-4" />
-            Rappels de pickup
+            Pickup Reminders
           </button>
         </div>
       </CardHeader>
