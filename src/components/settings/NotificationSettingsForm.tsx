@@ -223,14 +223,9 @@ const NotificationSettingsForm = ({
             </div>
 
             <div className="flex items-center justify-between border-t pt-3 mt-3">
-              <div>
-                <Label htmlFor="waAttachTicket" className="cursor-pointer">
-                  📎 Joindre le ticket en pièce jointe
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Requiert l'abonnement <span className="font-semibold text-primary">Fonnte Ultra</span>
-                </p>
-              </div>
+              <Label htmlFor="waAttachTicket" className="cursor-pointer">
+                📎 Joindre le ticket en pièce jointe
+              </Label>
               <Switch
                 id="waAttachTicket"
                 checked={formData.whatsapp_attach_ticket}
