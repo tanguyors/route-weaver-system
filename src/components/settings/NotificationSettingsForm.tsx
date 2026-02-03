@@ -3,8 +3,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Bell, Mail, MessageCircle, Loader2, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Bell, Mail, MessageCircle, Loader2, Clock, Phone } from 'lucide-react';
 import { PartnerSettings } from '@/hooks/useSettingsData';
+
+// Common phone country codes sorted by code
+const PHONE_COUNTRY_CODES = [
+  { code: '+1', country: 'US/CA' },
+  { code: '+7', country: 'RU' },
+  { code: '+31', country: 'NL' },
+  { code: '+33', country: 'FR' },
+  { code: '+34', country: 'ES' },
+  { code: '+39', country: 'IT' },
+  { code: '+44', country: 'UK' },
+  { code: '+49', country: 'DE' },
+  { code: '+60', country: 'MY' },
+  { code: '+61', country: 'AU' },
+  { code: '+62', country: 'ID' },
+  { code: '+63', country: 'PH' },
+  { code: '+65', country: 'SG' },
+  { code: '+66', country: 'TH' },
+  { code: '+81', country: 'JP' },
+  { code: '+82', country: 'KR' },
+  { code: '+84', country: 'VN' },
+  { code: '+86', country: 'CN' },
+  { code: '+91', country: 'IN' },
+  { code: '+852', country: 'HK' },
+  { code: '+886', country: 'TW' },
+  { code: '+971', country: 'AE' },
+].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
 
 interface NotificationSettingsFormProps {
   settings: PartnerSettings;
@@ -12,14 +40,24 @@ interface NotificationSettingsFormProps {
     pickup_reminder_24h_enabled: boolean;
     pickup_reminder_12h_enabled: boolean;
   };
+  whatsappSettings?: {
+    whatsapp_country_code: string;
+    whatsapp_number: string;
+  };
   onSave: (updates: Partial<PartnerSettings>, onboardingSection?: 'business' | 'payments' | 'cancellation' | 'tickets' | 'terms' | 'notifications') => Promise<boolean>;
-  onSavePickupReminders?: (updates: { pickup_reminder_24h_enabled: boolean; pickup_reminder_12h_enabled: boolean }) => Promise<boolean>;
+  onSavePickupReminders?: (updates: { 
+    pickup_reminder_24h_enabled: boolean; 
+    pickup_reminder_12h_enabled: boolean;
+    whatsapp_country_code: string;
+    whatsapp_number: string;
+  }) => Promise<boolean>;
   saving: boolean;
 }
 
 const NotificationSettingsForm = ({ 
   settings, 
   pickupReminderSettings,
+  whatsappSettings,
   onSave, 
   onSavePickupReminders,
   saving 
@@ -37,10 +75,18 @@ const NotificationSettingsForm = ({
     pickup_reminder_12h_enabled: pickupReminderSettings?.pickup_reminder_12h_enabled ?? true,
   });
 
+  const [whatsapp, setWhatsapp] = useState({
+    whatsapp_country_code: whatsappSettings?.whatsapp_country_code || '+62',
+    whatsapp_number: whatsappSettings?.whatsapp_number || '',
+  });
+
   const handleSave = async () => {
     await onSave(formData, 'notifications');
     if (onSavePickupReminders) {
-      await onSavePickupReminders(pickupReminders);
+      await onSavePickupReminders({
+        ...pickupReminders,
+        ...whatsapp,
+      });
     }
   };
 
@@ -53,6 +99,53 @@ const NotificationSettingsForm = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* WhatsApp Number Configuration */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-muted-foreground" />
+            <Label className="font-medium">WhatsApp Number for Notifications</Label>
+          </div>
+          
+          <p className="text-sm text-muted-foreground ml-6">
+            Entrez votre numéro WhatsApp pour recevoir les rappels de pickup et autres notifications.
+          </p>
+          
+          <div className="ml-6 flex gap-2">
+            <Select 
+              value={whatsapp.whatsapp_country_code} 
+              onValueChange={(value) => setWhatsapp({ ...whatsapp, whatsapp_country_code: value })}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Code" />
+              </SelectTrigger>
+              <SelectContent>
+                {PHONE_COUNTRY_CODES.map((item) => (
+                  <SelectItem key={item.code} value={item.code}>
+                    {item.code} ({item.country})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="tel"
+              placeholder="812345678"
+              value={whatsapp.whatsapp_number}
+              onChange={(e) => {
+                // Only allow digits
+                const value = e.target.value.replace(/\D/g, '');
+                setWhatsapp({ ...whatsapp, whatsapp_number: value });
+              }}
+              className="flex-1 max-w-[200px]"
+            />
+          </div>
+          
+          {whatsapp.whatsapp_number && (
+            <p className="text-xs text-muted-foreground ml-6">
+              Numéro complet : <span className="font-mono font-medium">{whatsapp.whatsapp_country_code}{whatsapp.whatsapp_number}</span>
+            </p>
+          )}
+        </div>
+
         {/* Email Notifications */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -127,9 +220,11 @@ const NotificationSettingsForm = ({
             </div>
           </div>
           
-          <p className="text-xs text-muted-foreground ml-6">
-            WhatsApp notifications require additional configuration
-          </p>
+          {!whatsapp.whatsapp_number && (
+            <p className="text-xs text-amber-600 ml-6">
+              ⚠️ Veuillez configurer votre numéro WhatsApp ci-dessus pour recevoir ces notifications
+            </p>
+          )}
         </div>
 
         {/* Pickup Reminders */}
@@ -140,16 +235,16 @@ const NotificationSettingsForm = ({
           </div>
           
           <p className="text-sm text-muted-foreground ml-6">
-            Automatically send reminders to customers and your team before scheduled pickups via email and WhatsApp.
+            Envoyez automatiquement des rappels aux clients et à votre équipe avant les pickups planifiés (email + WhatsApp).
           </p>
           
           <div className="ml-6 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="reminder24h" className="cursor-pointer">
-                  24 hours before pickup
+                  24 heures avant le pickup
                 </Label>
-                <p className="text-xs text-muted-foreground">Send reminder 24h before scheduled pickup time</p>
+                <p className="text-xs text-muted-foreground">Envoyer un rappel 24h avant l'heure de pickup prévue</p>
               </div>
               <Switch
                 id="reminder24h"
@@ -161,9 +256,9 @@ const NotificationSettingsForm = ({
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="reminder12h" className="cursor-pointer">
-                  12 hours before pickup
+                  12 heures avant le pickup
                 </Label>
-                <p className="text-xs text-muted-foreground">Send reminder 12h before scheduled pickup time</p>
+                <p className="text-xs text-muted-foreground">Envoyer un rappel 12h avant l'heure de pickup prévue</p>
               </div>
               <Switch
                 id="reminder12h"
@@ -176,7 +271,7 @@ const NotificationSettingsForm = ({
 
         <Button onClick={handleSave} disabled={saving}>
           {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Save Notification Settings
+          Enregistrer les paramètres de notification
         </Button>
       </CardContent>
     </Card>
