@@ -11,6 +11,8 @@ import TemplateEditor from './TemplateEditor';
 
 interface NotificationTemplatesEditorProps {
   partnerId: string | null;
+  partnerEmail?: string;
+  partnerPhone?: string;
 }
 
 interface TemplateConfig {
@@ -85,7 +87,7 @@ const BOOKING_CONFIRMATION_TEMPLATES: TemplateConfig[] = [
 
 type TemplateCategoryKey = 'pickup_reminders' | 'booking_confirmations';
 
-const NotificationTemplatesEditor = ({ partnerId }: NotificationTemplatesEditorProps) => {
+const NotificationTemplatesEditor = ({ partnerId, partnerEmail, partnerPhone }: NotificationTemplatesEditorProps) => {
   const [activeCategory, setActiveCategory] = useState<TemplateCategoryKey>('booking_confirmations');
   
   const { 
@@ -203,6 +205,9 @@ const NotificationTemplatesEditor = ({ partnerId }: NotificationTemplatesEditorP
                   isCustomized={isCustomized}
                   isEmail={config.isEmail}
                   saving={saving}
+                  partnerId={partnerId || ''}
+                  partnerEmail={partnerEmail}
+                  partnerPhone={partnerPhone}
                   onSave={(content, subject) => saveTemplate(config.type, content, subject)}
                   onReset={() => resetTemplate(config.type)}
                 />

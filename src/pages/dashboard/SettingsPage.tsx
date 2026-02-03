@@ -463,7 +463,11 @@ const SettingsPage = () => {
             
             {/* Template Editor */}
             {partnerInfo && (
-              <NotificationTemplatesEditor partnerId={partnerInfo.id} />
+              <NotificationTemplatesEditor 
+                partnerId={partnerInfo.id} 
+                partnerEmail={partnerInfo.contact_email || ''}
+                partnerPhone={`${partnerInfo.whatsapp_country_code || '+62'}${partnerInfo.whatsapp_number || ''}`}
+              />
             )}
           </TabsContent>
 
