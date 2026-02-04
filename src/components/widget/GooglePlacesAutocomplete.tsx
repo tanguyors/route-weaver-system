@@ -146,15 +146,26 @@ export const GooglePlacesAutocomplete = ({
       autocompleteServiceRef.current.getPlacePredictions(request, (predictions, status) => {
         setIsLoading(false);
         if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setLoadError(null);
           setSuggestions(predictions);
           setShowSuggestions(true);
         } else {
+          // Surface actionable errors (otherwise the UI just shows no suggestions)
+          if (
+            status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED ||
+            status === window.google.maps.places.PlacesServiceStatus.INVALID_REQUEST ||
+            status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT
+          ) {
+            console.error('Google Places getPlacePredictions error:', status);
+            setLoadError(`Google Places error: ${status}`);
+          }
           setSuggestions([]);
         }
       });
     } catch (error) {
       console.error('Error fetching predictions:', error);
       setIsLoading(false);
+      setLoadError('Google Places request failed');
     }
   }, [onChange, country]);
 
@@ -171,6 +182,7 @@ export const GooglePlacesAutocomplete = ({
       (place, status) => {
         setIsLoading(false);
         if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+          setLoadError(null);
           const placeData: PlaceResult = {
             formatted_address: place.formatted_address || prediction.description,
             place_id: prediction.place_id,
@@ -188,6 +200,15 @@ export const GooglePlacesAutocomplete = ({
             : place.formatted_address || prediction.description;
           
           onChange(displayValue, placeData);
+        } else {
+          if (
+            status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED ||
+            status === window.google.maps.places.PlacesServiceStatus.INVALID_REQUEST ||
+            status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT
+          ) {
+            console.error('Google Places getDetails error:', status);
+            setLoadError(`Google Places error: ${status}`);
+          }
         }
         setSuggestions([]);
         setShowSuggestions(false);
