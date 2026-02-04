@@ -193,29 +193,149 @@ export const WidgetSearchForm = ({
     return (isIOSDevice || isAndroid || isTouchDevice) && isIframe;
   })();
 
-  const DAY_STR_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const normalizeDayStr = (raw: string): string | null => {
+    const s = raw.trim();
+    if (!s) return null;
+
+    // Accept timestamps like "2026-02-04T00:00:00.000Z"
+    const base = s.includes('T') ? s.split('T')[0] : s;
+
+    // Accept both "YYYY-MM-DD" and "YYYY-M-D"
+    const m = base.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!m) return null;
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    if (!year || month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+    const normalized = `${m[1]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    // Validate the normalized date (avoid impossible dates like 2026-02-31)
+    if (!parseDateOnly(normalized)) return null;
+    return normalized;
+  };
+
+  const normalizeText = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // strip accents (février -> fevrier)
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+
+  // Some environments (notably French) produce aria-label like "5 février 2026".
+  // `new Date("5 février 2026")` is not reliably parseable across browsers.
+  const parseAriaLabelToDayStr = (ariaLabel: string): string | null => {
+    const normalized = normalizeText(ariaLabel);
+    if (!normalized) return null;
+
+    const tokens = normalized.split(/\s+/).filter(Boolean);
+    const nums = tokens
+      .map((t) => (t.match(/^\d+$/) ? Number(t) : null))
+      .filter((n): n is number => n !== null);
+
+    const year = nums.find((n) => n >= 1900 && n <= 2100);
+    const day = nums.find((n) => n >= 1 && n <= 31 && n !== year);
+    if (!year || !day) return null;
+
+    const monthTokenMap: Record<string, number> = {
+      // English
+      january: 1,
+      jan: 1,
+      february: 2,
+      feb: 2,
+      march: 3,
+      april: 4,
+      apr: 4,
+      may: 5,
+      june: 6,
+      jun: 6,
+      july: 7,
+      jul: 7,
+      august: 8,
+      aug: 8,
+      september: 9,
+      sep: 9,
+      sept: 9,
+      october: 10,
+      oct: 10,
+      november: 11,
+      nov: 11,
+      december: 12,
+      dec: 12,
+      // French (no accents due to normalizeText)
+      janvier: 1,
+      janv: 1,
+      fevrier: 2,
+      fev: 2,
+      fevr: 2,
+      mars: 3,
+      avril: 4,
+      avr: 4,
+      mai: 5,
+      juin: 6,
+      juillet: 7,
+      juil: 7,
+      aout: 8,
+      septembre: 9,
+      octobre: 10,
+      novembre: 11,
+      decembre: 12,
+      // Indonesian
+      januari: 1,
+      februari: 2,
+      maret: 3,
+      mei: 5,
+      juni: 6,
+      juli: 7,
+      agustus: 8,
+      oktober: 10,
+      desember: 12,
+    };
+
+    const month = tokens.map((t) => monthTokenMap[t]).find(Boolean);
+    if (!month) return null;
+
+    const d = new Date(year, month - 1, day);
+    if (!isValid(d)) return null;
+    return formatDateOnly(d);
+  };
+
   const getDateStrFromTapTarget = (target: EventTarget | null): string | null => {
     if (!target || !(target instanceof Element)) return null;
-    const btn = target.closest('button') as HTMLButtonElement | null;
-    if (!btn || btn.disabled) return null;
 
-    const candidates = [
-      btn.getAttribute('data-day'),
-      btn.getAttribute('data-date'),
-      btn.getAttribute('data-value'),
-      btn.getAttribute('value'),
-      typeof btn.value === 'string' ? btn.value : null,
-    ].filter(Boolean) as string[];
+    // Look for any ancestor that may carry the date attributes (button OR td OR div)
+    const withAttr = target.closest(
+      '[data-day],[data-date],[data-value],[data-rdp-day],button,td,div',
+    ) as HTMLElement | null;
+
+    const btn = (target.closest('button') as HTMLButtonElement | null) ?? null;
+    if (btn && btn.disabled) return null;
+
+    const attrSources: (HTMLElement | null)[] = [btn, withAttr];
+    const candidates: string[] = [];
+
+    for (const el of attrSources) {
+      if (!el) continue;
+      candidates.push(
+        el.getAttribute('data-day') || '',
+        el.getAttribute('data-date') || '',
+        el.getAttribute('data-value') || '',
+        el.getAttribute('data-rdp-day') || '',
+        el.getAttribute('value') || '',
+      );
+    }
+    if (btn && typeof btn.value === 'string') candidates.push(btn.value);
 
     for (const c of candidates) {
-      if (DAY_STR_RE.test(c)) return c;
+      const normalized = normalizeDayStr(c);
+      if (normalized) return normalized;
     }
 
-    // Fallback: DayPicker usually sets an English aria-label (e.g. "February 4, 2026").
-    const ariaLabel = btn.getAttribute('aria-label');
+    // Last-resort fallback: parse localized aria-label safely.
+    const ariaLabel = btn?.getAttribute('aria-label') || withAttr?.getAttribute('aria-label');
     if (ariaLabel) {
-      const parsed = new Date(ariaLabel);
-      if (isValid(parsed)) return formatDateOnly(parsed);
+      const parsed = parseAriaLabelToDayStr(ariaLabel);
+      if (parsed) return parsed;
     }
 
     return null;
