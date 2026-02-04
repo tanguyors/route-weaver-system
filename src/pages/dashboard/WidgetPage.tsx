@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,35 @@ const WidgetPage = () => {
 
   const [creating, setCreating] = useState(false);
   const [widgetStyle, setWidgetStyle] = useState<'block' | 'bar' | 'test'>('test');
+
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const defaultPreviewHeight = useMemo(() => {
+    if (widgetStyle === 'block') return 500;
+    if (widgetStyle === 'bar') return 350;
+    return 700;
+  }, [widgetStyle]);
+  const [previewHeight, setPreviewHeight] = useState<number>(defaultPreviewHeight);
+
+  useEffect(() => {
+    // Reset height when switching style; it will be updated by postMessage shortly after.
+    setPreviewHeight(defaultPreviewHeight);
+  }, [defaultPreviewHeight]);
+
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (!e?.data || e.data.type !== 'sribooking-resize') return;
+      if (!iframeRef.current?.contentWindow) return;
+      if (e.source !== iframeRef.current.contentWindow) return;
+
+      const h = Number(e.data.height);
+      if (!Number.isFinite(h) || h <= 0) return;
+      setPreviewHeight(Math.max(200, Math.round(h)));
+    };
+
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   const handleCreateWidget = async () => {
     setCreating(true);
     await createWidget();
@@ -176,8 +205,10 @@ const WidgetPage = () => {
                 <CardContent>
                   <div className="border rounded-lg overflow-hidden bg-muted/50">
                     <iframe
+                      ref={iframeRef}
                       src={getDirectLink(widgetStyle)}
-                      className={widgetStyle === 'block' ? 'w-full h-[500px] border-0' : widgetStyle === 'bar' ? 'w-full h-[350px] border-0' : 'w-full h-[700px] border-0'}
+                      className="w-full border-0"
+                      style={{ height: previewHeight }}
                       title="Widget Preview"
                     />
                   </div>
