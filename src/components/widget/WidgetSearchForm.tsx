@@ -390,16 +390,29 @@ export const WidgetSearchForm = ({
   const getDateStrFromTapTarget = (target: EventTarget | null): string | null => {
     if (!target || !(target instanceof Element)) return null;
 
-    // Look for any ancestor that may carry the date attributes (button OR td OR div)
-    const withAttr = target.closest(
-      '[data-day],[data-date],[data-value],[data-rdp-day],button,td,div',
+    // IMPORTANT: in react-day-picker the tap target can be the <td> cell (not the inner <button>).
+    // In that case, `closest('button')` returns null because the button is a descendant, not an ancestor.
+    // So we:
+    //  1) try closest(button)
+    //  2) try any closest element that actually carries a date-ish attribute or aria-label
+    //  3) if the target is a TD (or we found a carrier), try to find a nested button to read aria-label/value.
+
+    const carrier = target.closest(
+      '[data-day],[data-date],[data-value],[data-rdp-day],[aria-label]',
     ) as HTMLElement | null;
 
-    const btn = (target.closest('button') as HTMLButtonElement | null) ?? null;
+    let btn = (target.closest('button') as HTMLButtonElement | null) ?? null;
+    if (!btn && (target as HTMLElement).tagName === 'TD') {
+      btn = (target as HTMLElement).querySelector('button') as HTMLButtonElement | null;
+    }
+    if (!btn && carrier) {
+      btn = carrier.querySelector('button') as HTMLButtonElement | null;
+    }
+
     // react-day-picker marks disabled days with aria-disabled="true" (not always the HTML disabled attr)
     if (btn && (btn.disabled || btn.getAttribute('aria-disabled') === 'true')) return null;
 
-    const attrSources: (HTMLElement | null)[] = [btn, withAttr];
+    const attrSources: (HTMLElement | null)[] = [btn, carrier];
     const candidates: string[] = [];
 
     for (const el of attrSources) {
@@ -420,7 +433,7 @@ export const WidgetSearchForm = ({
     }
 
     // Last-resort fallback: parse localized aria-label safely.
-    const ariaLabel = btn?.getAttribute('aria-label') || withAttr?.getAttribute('aria-label');
+    const ariaLabel = btn?.getAttribute('aria-label') || carrier?.getAttribute('aria-label');
     if (ariaLabel) {
       const parsed = parseAriaLabelToDayStr(ariaLabel);
       if (parsed) return parsed;
@@ -798,7 +811,12 @@ export const WidgetSearchForm = ({
                           }}
                         />
                         {/* Calendar dropdown */}
-                        <div className="absolute left-0 top-full mt-1 z-[9999] bg-white rounded-md border shadow-lg">
+                        <div
+                          className="absolute left-0 top-full mt-1 z-[9999] bg-white rounded-md border shadow-lg"
+                          style={{ touchAction: 'manipulation' }}
+                          onPointerUpCapture={handleMobileIframeTripDatesTap}
+                          onTouchEndCapture={handleMobileIframeTripDatesTap}
+                        >
                           {tripType === 'round-trip' ? (
                             <Calendar
                               mode="range"
