@@ -256,11 +256,11 @@ const WidgetBookingNew = () => {
 
   return (
     <WidgetLanguageProvider>
-      <div className="min-h-screen">
+      <div className="min-h-screen pb-6">
         {/* Step Indicator */}
         <WidgetStepIndicator currentStep={step} primaryColor={primaryColor} />
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 overflow-visible">
         {/* Search Form */}
         {step === 'search' && (
           <WidgetSearchForm

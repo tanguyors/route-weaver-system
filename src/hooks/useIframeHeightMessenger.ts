@@ -7,13 +7,19 @@ import { useEffect, useRef, useCallback } from 'react';
 export const useIframeHeightMessenger = () => {
   const lastHeightRef = useRef<number>(0);
   const observerRef = useRef<ResizeObserver | null>(null);
+  const throttleRef = useRef<number | null>(null);
 
   const sendHeightMessage = useCallback(() => {
-    // Get the height of the body content
-    const height = document.body.scrollHeight;
+    // Get the maximum height from various sources to ensure we capture everything
+    const bodyHeight = document.body.scrollHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    const bodyOffsetHeight = document.body.offsetHeight;
     
-    // Only send if height actually changed
-    if (height !== lastHeightRef.current && height > 0) {
+    // Use the maximum to ensure all content is visible
+    const height = Math.max(bodyHeight, documentHeight, bodyOffsetHeight);
+    
+    // Only send if height actually changed (with small tolerance for rounding)
+    if (Math.abs(height - lastHeightRef.current) > 5 && height > 0) {
       lastHeightRef.current = height;
       
       // Send in both standard format and iframe-resizer compatible format
@@ -23,6 +29,16 @@ export const useIframeHeightMessenger = () => {
       );
     }
   }, []);
+
+  // Throttled version to prevent too many updates
+  const throttledSendHeight = useCallback(() => {
+    if (throttleRef.current) return;
+    
+    throttleRef.current = window.setTimeout(() => {
+      throttleRef.current = null;
+      sendHeightMessage();
+    }, 50);
+  }, [sendHeightMessage]);
 
   useEffect(() => {
     // Check if we're in an iframe
@@ -35,41 +51,56 @@ export const useIframeHeightMessenger = () => {
     
     // Also send after images and fonts are loaded
     const loadTimeout = setTimeout(sendHeightMessage, 500);
+    
+    // And again after a longer delay for dynamic content
+    const extendedTimeout = setTimeout(sendHeightMessage, 1500);
 
     // Set up ResizeObserver to watch for content changes
     observerRef.current = new ResizeObserver(() => {
-      // Debounce resize events
-      requestAnimationFrame(sendHeightMessage);
+      throttledSendHeight();
     });
 
     observerRef.current.observe(document.body);
+    observerRef.current.observe(document.documentElement);
 
     // Also watch for DOM mutations (e.g., dynamic content)
     const mutationObserver = new MutationObserver(() => {
-      requestAnimationFrame(sendHeightMessage);
+      throttledSendHeight();
     });
 
     mutationObserver.observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
+      characterData: true,
     });
 
     // Send height on window resize
     const handleResize = () => {
-      requestAnimationFrame(sendHeightMessage);
+      throttledSendHeight();
     };
     window.addEventListener('resize', handleResize);
+    
+    // Also listen for scroll events that might indicate content change
+    const handleScroll = () => {
+      throttledSendHeight();
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Cleanup
     return () => {
       clearTimeout(initialTimeout);
       clearTimeout(loadTimeout);
+      clearTimeout(extendedTimeout);
+      if (throttleRef.current) {
+        clearTimeout(throttleRef.current);
+      }
       observerRef.current?.disconnect();
       mutationObserver.disconnect();
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
     };
-  }, [sendHeightMessage]);
+  }, [sendHeightMessage, throttledSendHeight]);
 
   // Return a function to manually trigger height update
   return { sendHeightMessage };

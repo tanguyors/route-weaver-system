@@ -421,8 +421,14 @@ export const WidgetSearchForm = ({
                           setReturnDateOpen(false);
                         }}
                         disabled={(date) => {
-                          const minDate = parsedDepartureDate || new Date(new Date().setHours(0, 0, 0, 0));
-                          return date < minDate;
+                          // Return date must be >= departure date (same day allowed)
+                          const today = new Date(new Date().setHours(0, 0, 0, 0));
+                          const minDate = parsedDepartureDate 
+                            ? new Date(parsedDepartureDate.setHours(0, 0, 0, 0))
+                            : today;
+                          // Compare dates without time component
+                          const dateOnly = new Date(date.setHours(0, 0, 0, 0));
+                          return dateOnly < minDate;
                         }}
                         className="p-3 pointer-events-auto"
                       />
