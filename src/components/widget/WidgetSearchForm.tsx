@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MapPin, CalendarDays, Users, Baby, Search, Ship, Anchor, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -133,6 +133,11 @@ export const WidgetSearchForm = ({
   const { t } = useWidgetLanguage();
   const [departureDateOpen, setDepartureDateOpen] = useState(false);
   const [returnDateOpen, setReturnDateOpen] = useState(false);
+
+  // Guard against duplicate touch/pointer synthesized events on real mobile devices.
+  // (Common in iframes: one gesture can fire both pointer+touch/click chains.)
+  const lastMobileSelectionTsRef = useRef(0);
+  const lastMobileTriggerTsRef = useRef(0);
   
   // Service type toggle
   const hasPrivateBoats = privateBoats.length > 0;
@@ -193,6 +198,19 @@ export const WidgetSearchForm = ({
     return (isIOSDevice || isAndroid || isTouchDevice) && isIframe;
   })();
 
+  const useTouchFallback = (() => {
+    if (!isMobileInIframe) return false;
+    if (typeof window === 'undefined') return false;
+    return !("PointerEvent" in window);
+  })();
+
+  const shouldProcessMobileGesture = (ref: React.MutableRefObject<number>) => {
+    const now = Date.now();
+    if (now - ref.current < 350) return false;
+    ref.current = now;
+    return true;
+  };
+
   const normalizeDayStr = (raw: string): string | null => {
     const s = raw.trim();
     if (!s) return null;
@@ -225,13 +243,65 @@ export const WidgetSearchForm = ({
   // Some environments (notably French) produce aria-label like "5 février 2026".
   // `new Date("5 février 2026")` is not reliably parseable across browsers.
   const parseAriaLabelToDayStr = (ariaLabel: string): string | null => {
+    // Fast path: sometimes aria-label contains a raw date substring.
+    const iso = ariaLabel.match(/\b(\d{4}-\d{1,2}-\d{1,2})\b/);
+    if (iso) {
+      const normalized = normalizeDayStr(iso[1]);
+      if (normalized) return normalized;
+    }
+
+    // Numeric formats: 05/02/2026 or 05-02-2026 (locale-dependent)
+    const numeric = ariaLabel.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+    if (numeric) {
+      const a = Number(numeric[1]);
+      const b = Number(numeric[2]);
+      const y = Number(numeric[3]);
+      if (y >= 1900 && y <= 2100 && a >= 1 && a <= 31 && b >= 1 && b <= 31) {
+        // Heuristic: if ambiguous, prefer D/M/Y for most non-US locales.
+        const lang = (typeof navigator !== 'undefined' ? navigator.language : '').toLowerCase();
+        const preferDMY =
+          lang.startsWith('fr') ||
+          lang.startsWith('id') ||
+          lang.startsWith('de') ||
+          lang.startsWith('nl') ||
+          lang.startsWith('es') ||
+          lang.startsWith('ru') ||
+          lang.startsWith('zh') ||
+          lang.startsWith('ko');
+
+        let day = a;
+        let month = b;
+        if (a <= 12 && b <= 12) {
+          if (!preferDMY) {
+            month = a;
+            day = b;
+          }
+        } else if (a <= 12 && b > 12) {
+          // Likely M/D/Y
+          month = a;
+          day = b;
+        } else {
+          // Likely D/M/Y
+          day = a;
+          month = b;
+        }
+
+        const normalized = normalizeDayStr(`${y}-${month}-${day}`);
+        if (normalized) return normalized;
+      }
+    }
+
     const normalized = normalizeText(ariaLabel);
     if (!normalized) return null;
 
     const tokens = normalized.split(/\s+/).filter(Boolean);
+    // Accept ordinal tokens like "1er" (FR) by extracting the leading number.
     const nums = tokens
-      .map((t) => (t.match(/^\d+$/) ? Number(t) : null))
-      .filter((n): n is number => n !== null);
+      .flatMap((t) => {
+        const matches = t.match(/\d{1,4}/g);
+        return matches ? matches.map(Number) : [];
+      })
+      .filter((n) => Number.isFinite(n));
 
     const year = nums.find((n) => n >= 1900 && n <= 2100);
     const day = nums.find((n) => n >= 1 && n <= 31 && n !== year);
@@ -309,7 +379,8 @@ export const WidgetSearchForm = ({
     ) as HTMLElement | null;
 
     const btn = (target.closest('button') as HTMLButtonElement | null) ?? null;
-    if (btn && btn.disabled) return null;
+    // react-day-picker marks disabled days with aria-disabled="true" (not always the HTML disabled attr)
+    if (btn && (btn.disabled || btn.getAttribute('aria-disabled') === 'true')) return null;
 
     const attrSources: (HTMLElement | null)[] = [btn, withAttr];
     const candidates: string[] = [];
@@ -360,11 +431,28 @@ export const WidgetSearchForm = ({
       }
     }
 
+    // Prevent duplicate processing for the same gesture.
+    if (!shouldProcessMobileGesture(lastMobileSelectionTsRef)) return;
+
     // We explicitly manage selection + closing for mobile/iframe.
     onDate(dateStr);
     e.preventDefault();
     e.stopPropagation();
     closePopoverSoon(close);
+  };
+
+  const handleMobileTriggerToggle = (
+    e: React.PointerEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>,
+    disabled: boolean,
+    toggle: () => void,
+  ) => {
+    if (!isMobileInIframe) return;
+    if (disabled) return;
+    if (!shouldProcessMobileGesture(lastMobileTriggerTsRef)) return;
+    // Prevent the synthetic click chain from toggling the popover twice.
+    e.preventDefault();
+    e.stopPropagation();
+    toggle();
   };
 
   const parsedDepartureDate = departureDate ? parseDateOnly(departureDate) : null;
@@ -576,6 +664,14 @@ export const WidgetSearchForm = ({
                     <button 
                       type="button"
                       className="w-full text-left text-gray-900 font-medium focus:outline-none cursor-pointer"
+                      onPointerDownCapture={(e) =>
+                        !useTouchFallback &&
+                        handleMobileTriggerToggle(e, false, () => setDepartureDateOpen((v) => !v))
+                      }
+                      onTouchStartCapture={(e) =>
+                        useTouchFallback &&
+                        handleMobileTriggerToggle(e, false, () => setDepartureDateOpen((v) => !v))
+                      }
                     >
                       {parsedDepartureDate ? format(parsedDepartureDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
@@ -585,12 +681,28 @@ export const WidgetSearchForm = ({
                     align="start" 
                     sideOffset={5}
                     onOpenAutoFocus={(e) => e.preventDefault()}
-                    onPointerUpCapture={(e) =>
-                      handleMobileIframeDateTap(e, onDepartureDateChange, () => setDepartureDateOpen(false), formatDateOnly(new Date()))
-                    }
-                    onTouchEndCapture={(e) =>
-                      handleMobileIframeDateTap(e, onDepartureDateChange, () => setDepartureDateOpen(false), formatDateOnly(new Date()))
-                    }
+                    {...(!useTouchFallback
+                      ? {
+                          onPointerUpCapture: (e: React.PointerEvent<HTMLDivElement>) =>
+                            handleMobileIframeDateTap(
+                              e,
+                              onDepartureDateChange,
+                              () => setDepartureDateOpen(false),
+                              formatDateOnly(new Date()),
+                            ),
+                        }
+                      : {})}
+                    {...(useTouchFallback
+                      ? {
+                          onTouchEndCapture: (e: React.TouchEvent<HTMLDivElement>) =>
+                            handleMobileIframeDateTap(
+                              e,
+                              onDepartureDateChange,
+                              () => setDepartureDateOpen(false),
+                              formatDateOnly(new Date()),
+                            ),
+                        }
+                      : {})}
                   >
                     <Calendar
                       mode="single"
@@ -632,6 +744,22 @@ export const WidgetSearchForm = ({
                         tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900 cursor-pointer"
                       )}
                       disabled={tripType === 'one-way'}
+                      onPointerDownCapture={(e) =>
+                        !useTouchFallback &&
+                        handleMobileTriggerToggle(
+                          e,
+                          tripType === 'one-way',
+                          () => setReturnDateOpen((v) => !v),
+                        )
+                      }
+                      onTouchStartCapture={(e) =>
+                        useTouchFallback &&
+                        handleMobileTriggerToggle(
+                          e,
+                          tripType === 'one-way',
+                          () => setReturnDateOpen((v) => !v),
+                        )
+                      }
                     >
                       {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
@@ -642,19 +770,38 @@ export const WidgetSearchForm = ({
                     side="bottom"
                     sideOffset={5}
                     onOpenAutoFocus={(e) => e.preventDefault()}
-                    onPointerUpCapture={(e) => {
-                      const minDateStr = departureDate || formatDateOnly(new Date());
-                      handleMobileIframeDateTap(e, onReturnDateChange, () => setReturnDateOpen(false), minDateStr);
-                    }}
-                    onTouchEndCapture={(e) => {
-                      const minDateStr = departureDate || formatDateOnly(new Date());
-                      handleMobileIframeDateTap(e, onReturnDateChange, () => setReturnDateOpen(false), minDateStr);
-                    }}
+                    {...(!useTouchFallback
+                      ? {
+                          onPointerUpCapture: (e: React.PointerEvent<HTMLDivElement>) => {
+                            const minDateStr = departureDate || formatDateOnly(new Date());
+                            handleMobileIframeDateTap(
+                              e,
+                              onReturnDateChange,
+                              () => setReturnDateOpen(false),
+                              minDateStr,
+                            );
+                          },
+                        }
+                      : {})}
+                    {...(useTouchFallback
+                      ? {
+                          onTouchEndCapture: (e: React.TouchEvent<HTMLDivElement>) => {
+                            const minDateStr = departureDate || formatDateOnly(new Date());
+                            handleMobileIframeDateTap(
+                              e,
+                              onReturnDateChange,
+                              () => setReturnDateOpen(false),
+                              minDateStr,
+                            );
+                          },
+                        }
+                      : {})}
                   >
                     <Calendar
                       mode="single"
                       selected={parsedReturnDate || undefined}
-                      defaultMonth={parsedDepartureDate || new Date()}
+                      // Re-open on the last selected month when possible (prevents "stuck in current month" feeling)
+                      defaultMonth={parsedReturnDate || parsedDepartureDate || new Date()}
                       onSelect={(date) => {
                         try {
                           if (date) onReturnDateChange(formatDateOnly(date));
