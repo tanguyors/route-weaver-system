@@ -33,6 +33,8 @@ const WidgetPage = () => {
     getBarEmbedCode,
     getTestEmbedCode,
     getDirectLink,
+    getPreWidgetCode,
+    getFullWidgetCode,
   } = useWidgetConfigData();
 
   const [creating, setCreating] = useState(false);
@@ -191,6 +193,8 @@ const WidgetPage = () => {
                     selectedStyle={widgetStyle}
                     onStyleChange={setWidgetStyle}
                     onCopyKey={copyWidgetKey}
+                    preWidgetCode={getPreWidgetCode()}
+                    fullWidgetCode={getFullWidgetCode()}
                   />
                 </CardContent>
               </Card>

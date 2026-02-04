@@ -37,13 +37,25 @@ const WidgetBookingNew = () => {
   // Enable iframe height communication
   useIframeHeightMessenger();
   
+  // Read prefill params from URL (from pre-widget redirect)
+  const prefillFrom = searchParams.get('from') || '';
+  const prefillTo = searchParams.get('to') || '';
+  const prefillDepart = searchParams.get('depart') || '';
+  const prefillReturn = searchParams.get('return') || '';
+  const prefillAdults = parseInt(searchParams.get('ad') || '1', 10) || 1;
+  const prefillChildren = parseInt(searchParams.get('ch') || '0', 10) || 0;
+  const prefillInfants = parseInt(searchParams.get('inf') || '0', 10) || 0;
+  const prefillTrip = searchParams.get('trip'); // 'round' or 'oneway'
+  
   const [step, setStep] = useState<WidgetStep>('search');
-  const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');
-  const [departureDate, setDepartureDate] = useState('');
-  const [returnDate, setReturnDate] = useState('');
-  const [paxAdult, setPaxAdult] = useState(1);
-  const [paxChild, setPaxChild] = useState(0);
-  const [paxInfant, setPaxInfant] = useState(0);
+  const [tripType, setTripType] = useState<'one-way' | 'round-trip'>(
+    prefillTrip === 'round' ? 'round-trip' : 'one-way'
+  );
+  const [departureDate, setDepartureDate] = useState(prefillDepart);
+  const [returnDate, setReturnDate] = useState(prefillReturn);
+  const [paxAdult, setPaxAdult] = useState(prefillAdults);
+  const [paxChild, setPaxChild] = useState(prefillChildren);
+  const [paxInfant, setPaxInfant] = useState(prefillInfants);
   const [promoCode, setPromoCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
@@ -64,6 +76,9 @@ const WidgetBookingNew = () => {
   
   // Private boat state
   const [privateBoatSelection, setPrivateBoatSelection] = useState<PrivateBoatSelection | null>(null);
+  
+  // Track if we've done auto-prefill
+  const [hasPrefilled, setHasPrefilled] = useState(false);
 
   const {
     data,
@@ -81,6 +96,36 @@ const WidgetBookingNew = () => {
     getPricing,
     createBooking,
   } = useWidgetBooking(widgetKey);
+
+  // Auto-prefill origin/destination from URL params after data loads
+  useEffect(() => {
+    if (!data || hasPrefilled) return;
+    
+    // Set origin if valid
+    if (prefillFrom && data.ports.some(p => p.id === prefillFrom)) {
+      setSelectedOrigin(prefillFrom);
+    }
+    
+    // Set destination if valid (will be validated against available destinations)
+    if (prefillTo && data.ports.some(p => p.id === prefillTo)) {
+      setSelectedDestination(prefillTo);
+    }
+    
+    // Set departure date for search
+    if (prefillDepart) {
+      setSelectedDate(prefillDepart);
+    }
+    
+    // If we have complete search params, auto-search
+    if (prefillFrom && prefillTo && prefillDepart) {
+      // Give a tiny delay for state to propagate
+      setTimeout(() => {
+        setStep('select-trip');
+      }, 100);
+    }
+    
+    setHasPrefilled(true);
+  }, [data, hasPrefilled, prefillFrom, prefillTo, prefillDepart, setSelectedOrigin, setSelectedDestination, setSelectedDate]);
 
   const primaryColor = data?.theme_config?.primary_color || '#1B5E3B';
 

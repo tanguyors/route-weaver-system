@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Check, Copy, ExternalLink, LayoutGrid, GripHorizontal, Sparkles } from 'lucide-react';
+import { Check, Copy, ExternalLink, Home, Layout } from 'lucide-react';
 
 interface WidgetEmbedCodeProps {
   embedCode: string;
@@ -17,6 +17,8 @@ interface WidgetEmbedCodeProps {
   selectedStyle: 'block' | 'bar' | 'test';
   onStyleChange: (style: 'block' | 'bar' | 'test') => void;
   onCopyKey: () => void;
+  preWidgetCode?: string;
+  fullWidgetCode?: string;
 }
 
 const WidgetEmbedCode = ({
@@ -30,8 +32,11 @@ const WidgetEmbedCode = ({
   selectedStyle,
   onStyleChange,
   onCopyKey,
+  preWidgetCode = '',
+  fullWidgetCode = '',
 }: WidgetEmbedCodeProps) => {
   const [copied, setCopied] = useState<string | null>(null);
+  const [embedType, setEmbedType] = useState<'prewidget' | 'fullwidget'>('prewidget');
 
   const handleCopy = async (text: string, type: string) => {
     try {
@@ -40,20 +45,6 @@ const WidgetEmbedCode = ({
       setTimeout(() => setCopied(null), 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
-    }
-  };
-
-  const currentEmbedCode = selectedStyle === 'block' ? embedCode : selectedStyle === 'bar' ? barEmbedCode : testEmbedCode;
-  const currentDirectLink = selectedStyle === 'block' ? directLink : selectedStyle === 'bar' ? barDirectLink : testDirectLink;
-
-  const getStyleDescription = () => {
-    switch (selectedStyle) {
-      case 'block':
-        return 'Full booking form widget (coming soon)';
-      case 'bar':
-        return 'Compact horizontal search bar (coming soon)';
-      case 'test':
-        return 'Step-by-step booking flow with shopping cart';
     }
   };
 
@@ -82,40 +73,145 @@ const WidgetEmbedCode = ({
         </div>
       </div>
 
-      {/* Widget Style Selector */}
+      {/* Integration Type Selector */}
       <div className="space-y-2">
-        <Label>Widget Style</Label>
-        <div className="grid grid-cols-3 gap-2">
+        <Label>Integration Type</Label>
+        <div className="grid grid-cols-2 gap-2">
           <Button
-            variant="outline"
-            disabled
-            className="flex items-center gap-2 opacity-50 cursor-not-allowed"
-          >
-            <LayoutGrid className="w-4 h-4" />
-            Block
-          </Button>
-          <Button
-            variant="outline"
-            disabled
-            className="flex items-center gap-2 opacity-50 cursor-not-allowed"
-          >
-            <GripHorizontal className="w-4 h-4" />
-            Bar
-          </Button>
-          <Button
-            variant={selectedStyle === 'test' ? 'default' : 'outline'}
-            onClick={() => onStyleChange('test')}
+            variant={embedType === 'prewidget' ? 'default' : 'outline'}
+            onClick={() => setEmbedType('prewidget')}
             className="flex items-center gap-2"
           >
-            <Sparkles className="w-4 h-4" />
-            Widget v2
+            <Home className="w-4 h-4" />
+            Pre-Widget (Home)
+          </Button>
+          <Button
+            variant={embedType === 'fullwidget' ? 'default' : 'outline'}
+            onClick={() => setEmbedType('fullwidget')}
+            className="flex items-center gap-2"
+          >
+            <Layout className="w-4 h-4" />
+            Full Widget (Page)
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {getStyleDescription()}
-        </p>
       </div>
 
+      {embedType === 'prewidget' && (
+        <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+          <div className="space-y-2">
+            <h3 className="font-semibold">Pre-Widget Search Bar</h3>
+            <p className="text-sm text-muted-foreground">
+              Embed this native search form on your <strong>homepage</strong>. It loads without iframe and redirects users to your booking page with search parameters.
+            </p>
+          </div>
+
+          <div className="relative">
+            <Textarea
+              value={preWidgetCode}
+              readOnly
+              className="font-mono text-xs h-40 bg-background resize-none"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-2 right-2"
+              onClick={() => handleCopy(preWidgetCode, 'prewidget')}
+            >
+              {copied === 'prewidget' ? (
+                <>
+                  <Check className="w-4 h-4 mr-1 text-green-600" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copy
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p><strong>Instructions:</strong></p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Paste this code on your homepage where you want the search bar</li>
+              <li>Change <code className="bg-muted px-1 rounded">data-redirect="/booking"</code> to match your booking page path</li>
+              <li>Optionally set <code className="bg-muted px-1 rounded">data-lang</code> to "en", "fr", or "id"</li>
+              <li>Set <code className="bg-muted px-1 rounded">data-theme</code> to "light" or "dark"</li>
+            </ol>
+          </div>
+        </div>
+      )}
+
+      {embedType === 'fullwidget' && (
+        <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+          <div className="space-y-2">
+            <h3 className="font-semibold">Full Widget (Dedicated Page)</h3>
+            <p className="text-sm text-muted-foreground">
+              Embed this iframe on a <strong>dedicated booking page</strong> (e.g., /booking). It will auto-fill search parameters from the URL.
+            </p>
+          </div>
+
+          <div className="relative">
+            <Textarea
+              value={fullWidgetCode}
+              readOnly
+              className="font-mono text-xs h-56 bg-background resize-none"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-2 right-2"
+              onClick={() => handleCopy(fullWidgetCode, 'fullwidget')}
+            >
+              {copied === 'fullwidget' ? (
+                <>
+                  <Check className="w-4 h-4 mr-1 text-green-600" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copy
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p><strong>Instructions:</strong></p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Create a dedicated page on your website (e.g., /booking)</li>
+              <li>Paste this code as the main content of that page</li>
+              <li>The iframe takes full viewport height (100dvh)</li>
+              <li>If you have a fixed header, adjust the height: <code className="bg-muted px-1 rounded">calc(100dvh - 72px)</code></li>
+            </ol>
+          </div>
+
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(testDirectLink, '_blank')}
+            >
+              <ExternalLink className="w-4 h-4 mr-1" />
+              Preview Widget
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Separator with divider */}
+      <div className="relative py-2">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">Or use legacy embed</span>
+        </div>
+      </div>
+
+      {/* Legacy Tabs */}
       <Tabs defaultValue="iframe" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="iframe">iFrame Embed</TabsTrigger>
@@ -125,7 +221,7 @@ const WidgetEmbedCode = ({
         <TabsContent value="iframe" className="space-y-3">
           <div className="relative">
             <Textarea
-              value={currentEmbedCode}
+              value={testEmbedCode}
               readOnly
               className="font-mono text-xs h-32 bg-muted resize-none"
             />
@@ -133,7 +229,7 @@ const WidgetEmbedCode = ({
               variant="secondary"
               size="sm"
               className="absolute top-2 right-2"
-              onClick={() => handleCopy(currentEmbedCode, 'embed')}
+              onClick={() => handleCopy(testEmbedCode, 'embed')}
             >
               {copied === 'embed' ? (
                 <>
@@ -149,21 +245,21 @@ const WidgetEmbedCode = ({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Paste this code on your website where you want the booking widget to appear.
+            Legacy embed with auto-resize. May have touch issues on iOS when embedded in long pages.
           </p>
         </TabsContent>
 
         <TabsContent value="link" className="space-y-3">
           <div className="flex gap-2">
             <Input
-              value={currentDirectLink}
+              value={testDirectLink}
               readOnly
               className="font-mono text-sm bg-muted"
             />
             <Button
               variant="outline"
               size="icon"
-              onClick={() => handleCopy(currentDirectLink, 'link')}
+              onClick={() => handleCopy(testDirectLink, 'link')}
             >
               {copied === 'link' ? (
                 <Check className="w-4 h-4 text-green-600" />
@@ -174,7 +270,7 @@ const WidgetEmbedCode = ({
             <Button
               variant="outline"
               size="icon"
-              onClick={() => window.open(currentDirectLink, '_blank')}
+              onClick={() => window.open(testDirectLink, '_blank')}
             >
               <ExternalLink className="w-4 h-4" />
             </Button>

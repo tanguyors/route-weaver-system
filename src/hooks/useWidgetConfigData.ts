@@ -476,6 +476,51 @@ export const useWidgetConfigData = () => {
     return `${baseUrl}/book?key=${widget.public_widget_key}${styleParam}`;
   };
 
+  // Get Pre-Widget embed code (native search bar for homepage)
+  const getPreWidgetCode = () => {
+    if (!widget) return '';
+    const baseUrl = window.location.origin;
+    return `<div
+  id="sribooking-prewidget"
+  data-key="${widget.public_widget_key}"
+  data-redirect="/booking"
+  data-lang="en"
+  data-theme="light"
+  data-primary-color="${widget.theme_config?.primary_color || '#1B5E3B'}"
+></div>
+<script async src="${baseUrl}/embed/prewidget.js"></script>`;
+  };
+
+  // Get Full Widget embed code (iframe for dedicated booking page)
+  const getFullWidgetCode = () => {
+    if (!widget) return '';
+    const baseUrl = window.location.origin;
+    return `<iframe
+  id="sribooking-widget"
+  src="${baseUrl}/book-new"
+  style="width:100%;height:100dvh;border:0;display:block;"
+  allow="payment"
+  title="SriBooking"
+></iframe>
+<script>
+(function(){
+  var iframe = document.getElementById('sribooking-widget');
+  if(!iframe) return;
+  var p = new URLSearchParams(window.location.search);
+  var base = "${baseUrl}/book-new";
+  var url = new URL(base);
+  // Pass all search params to widget
+  ["key","from","to","depart","return","ad","ch","inf","trip","currency","lang"].forEach(function(k){
+    var v = p.get(k);
+    if(v) url.searchParams.set(k, v);
+  });
+  // Fallback key if not in URL
+  if(!url.searchParams.get("key")) url.searchParams.set("key", "${widget.public_widget_key}");
+  iframe.src = url.toString();
+})();
+</script>`;
+  };
+
   return {
     widget,
     loading,
@@ -491,6 +536,8 @@ export const useWidgetConfigData = () => {
     getBarEmbedCode,
     getTestEmbedCode,
     getDirectLink,
+    getPreWidgetCode,
+    getFullWidgetCode,
     refetch: fetchWidget,
   };
 };
