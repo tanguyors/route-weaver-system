@@ -3,6 +3,10 @@ import { useEffect, useRef, useCallback } from 'react';
 /**
  * Hook that sends postMessage events to parent window when content height changes.
  * This enables iframe auto-resize for embedded widgets.
+ * 
+ * CRITICAL FIX: On iOS, touch events do NOT fire on elements that are in the
+ * overflow area of an iframe. This hook now also applies CSS fixes to ensure
+ * the iframe content is never clipped, and sends height updates more aggressively.
  */
 export const useIframeHeightMessenger = () => {
   const lastHeightRef = useRef<number>(0);
@@ -46,6 +50,33 @@ export const useIframeHeightMessenger = () => {
     
     if (!isInIframe) return;
 
+    // =====================================================================
+    // CRITICAL iOS FIX: Prevent touch event clipping in iframe overflow
+    // =====================================================================
+    // On iOS Safari/Chrome, touch events do NOT fire on elements that are
+    // positioned in the overflow/clipped area of an iframe. The parent page
+    // may set a fixed height on the iframe, causing the bottom to be clipped.
+    // 
+    // We apply CSS to:
+    // 1. Ensure the html/body have no overflow:hidden that could clip events
+    // 2. Set min-height to ensure content is not collapsed
+    // 3. Use overflow:visible to allow content to extend
+    // =====================================================================
+    const styleEl = document.createElement('style');
+    styleEl.id = 'sribooking-iframe-fix';
+    styleEl.textContent = `
+      html, body {
+        overflow: visible !important;
+        overflow-x: hidden !important;
+        min-height: 100% !important;
+      }
+      /* Ensure no ancestor clips pointer events */
+      html *, body * {
+        pointer-events: auto;
+      }
+    `;
+    document.head.appendChild(styleEl);
+
     // Send initial height after a small delay to ensure content is rendered
     const initialTimeout = setTimeout(sendHeightMessage, 100);
     
@@ -54,6 +85,9 @@ export const useIframeHeightMessenger = () => {
     
     // And again after a longer delay for dynamic content
     const extendedTimeout = setTimeout(sendHeightMessage, 1500);
+    
+    // Aggressive height updates every 2 seconds to catch any missed changes
+    const intervalId = setInterval(sendHeightMessage, 2000);
 
     // Set up ResizeObserver to watch for content changes
     observerRef.current = new ResizeObserver(() => {
@@ -92,6 +126,7 @@ export const useIframeHeightMessenger = () => {
       clearTimeout(initialTimeout);
       clearTimeout(loadTimeout);
       clearTimeout(extendedTimeout);
+      clearInterval(intervalId);
       if (throttleRef.current) {
         clearTimeout(throttleRef.current);
       }
@@ -99,6 +134,7 @@ export const useIframeHeightMessenger = () => {
       mutationObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
+      document.getElementById('sribooking-iframe-fix')?.remove();
     };
   }, [sendHeightMessage, throttledSendHeight]);
 
