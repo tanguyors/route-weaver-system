@@ -327,12 +327,15 @@ export const useWidgetConfigData = () => {
   }
 
   window.addEventListener('resize', throttledRequest);
+   window.addEventListener('orientationchange', throttledRequest);
   window.addEventListener('scroll', throttledRequest, { passive: true });
+   window.addEventListener('pageshow', function(){ requestResize(); });
 
   iframe.addEventListener('load', function(){
     requestResize();
     setTimeout(requestResize, 300);
     setTimeout(requestResize, 1200);
+     setTimeout(requestResize, 2500);
   });
 
   requestResize();
