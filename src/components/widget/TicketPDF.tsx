@@ -28,6 +28,10 @@ interface PickupInfo {
   price: number;
   pickupTime?: string;
   cityName?: string;
+  coords?: {
+    lat: number;
+    lng: number;
+  } | null;
 }
 
 interface TicketPDFProps {
@@ -345,15 +349,39 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
             <MapPin className="h-4 w-4" />
             Pickup Services
           </h3>
-          {pickups.map((pickup, index) => (
-            <div key={index} className="flex justify-between items-center">
-              <span>
-                {pickup.name}
-                {pickup.details && <span className="text-gray-500"> - {pickup.details}</span>}
-              </span>
-              <span className="font-medium">{formatPrice(pickup.price)}</span>
-            </div>
-          ))}
+          {pickups.map((pickup, index) => {
+            const mapsUrl = pickup.coords?.lat && pickup.coords?.lng
+              ? `https://www.google.com/maps?q=${pickup.coords.lat},${pickup.coords.lng}`
+              : pickup.details
+                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup.details)}`
+                : null;
+
+            return (
+              <div key={index} className="flex justify-between items-center">
+                <span>
+                  {pickup.name}
+                  {pickup.details && (
+                    <>
+                      {' - '}
+                      {mapsUrl ? (
+                        <a 
+                          href={mapsUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline hover:text-blue-800"
+                        >
+                          {pickup.details} 📍
+                        </a>
+                      ) : (
+                        <span className="text-gray-500">{pickup.details}</span>
+                      )}
+                    </>
+                  )}
+                </span>
+                <span className="font-medium">{formatPrice(pickup.price)}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -430,7 +458,24 @@ export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
         <ul className="text-sm text-gray-600 space-y-1">
           {pickups.length > 0 && pickups[0]?.pickupTime && pickups[0]?.details && (
             <li className="font-bold text-gray-800">
-              • PICKUP at {pickups[0].pickupTime} - {pickups[0].details} {pickups[0].cityName ? `(${pickups[0].cityName})` : ''}
+              • PICKUP at {pickups[0].pickupTime} -{' '}
+              {(() => {
+                const pickup = pickups[0];
+                const mapsUrl = pickup.coords?.lat && pickup.coords?.lng
+                  ? `https://www.google.com/maps?q=${pickup.coords.lat},${pickup.coords.lng}`
+                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup.details || '')}`;
+                return (
+                  <a 
+                    href={mapsUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline hover:text-blue-800"
+                  >
+                    {pickup.details} 📍
+                  </a>
+                );
+              })()}
+              {pickups[0].cityName ? ` (${pickups[0].cityName})` : ''}
             </li>
           )}
           <li>• Please arrive at the port at least 60 minutes before departure</li>

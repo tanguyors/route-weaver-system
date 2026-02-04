@@ -15,6 +15,10 @@ export interface BookingAddon {
     hotel_name?: string;
     address?: string;
     pickup_note?: string;
+    coords?: {
+      lat: number;
+      lng: number;
+    } | null;
   } | null;
   created_at: string;
 }

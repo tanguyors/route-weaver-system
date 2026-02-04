@@ -375,12 +375,25 @@ export const BookingDetailModal = ({
                               {addon.pickup_info.hotel_name && (
                                 <p>Hotel: {addon.pickup_info.hotel_name}</p>
                               )}
-                              {addon.pickup_info.address && (
-                                <p className="flex items-start gap-1">
-                                  <MapPin className="h-3 w-3 mt-1 shrink-0" />
-                                  {addon.pickup_info.address}
-                                </p>
-                              )}
+                              {addon.pickup_info.address && (() => {
+                                const coords = addon.pickup_info.coords;
+                                const mapsUrl = coords?.lat && coords?.lng
+                                  ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
+                                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addon.pickup_info.address)}`;
+                                return (
+                                  <p className="flex items-start gap-1">
+                                    <MapPin className="h-3 w-3 mt-1 shrink-0" />
+                                    <a 
+                                      href={mapsUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-primary underline hover:text-primary/80"
+                                    >
+                                      {addon.pickup_info.address} 📍
+                                    </a>
+                                  </p>
+                                );
+                              })()}
                               {addon.pickup_info.pickup_note && (
                                 <p className="italic">Note: {addon.pickup_info.pickup_note}</p>
                               )}
