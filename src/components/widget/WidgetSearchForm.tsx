@@ -411,39 +411,37 @@ export const WidgetSearchForm = ({
                       {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
                   </PopoverTrigger>
-                  {tripType === 'round-trip' && (
-                    <PopoverContent 
-                      className="w-auto p-0 z-[9999]" 
-                      align="start" 
-                      side="bottom"
-                      sideOffset={5}
-                      onOpenAutoFocus={(e) => e.preventDefault()}
-                    >
-                      <Calendar
-                        mode="single"
-                        selected={parsedReturnDate || undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            const year = date.getFullYear();
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                            const day = String(date.getDate()).padStart(2, '0');
-                            onReturnDateChange(`${year}-${month}-${day}`);
-                          }
-                          setReturnDateOpen(false);
-                        }}
-                        disabled={(date) => {
-                          const today = startOfDay(new Date());
-                          let minDate = today;
-                          if (parsedDepartureDate) {
-                            minDate = startOfDay(parsedDepartureDate);
-                          }
-                          const dateToCheck = startOfDay(date);
-                          return isBefore(dateToCheck, minDate);
-                        }}
-                        className="p-3 pointer-events-auto touch-auto"
-                      />
-                    </PopoverContent>
-                  )}
+                  <PopoverContent 
+                    className="w-auto p-0 z-[9999]" 
+                    align="start" 
+                    side="bottom"
+                    sideOffset={5}
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  >
+                    <Calendar
+                      mode="single"
+                      selected={parsedReturnDate || undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
+                          onReturnDateChange(`${year}-${month}-${day}`);
+                        }
+                        setReturnDateOpen(false);
+                      }}
+                      disabled={(date) => {
+                        const today = startOfDay(new Date());
+                        let minDate = today;
+                        if (parsedDepartureDate) {
+                          minDate = startOfDay(parsedDepartureDate);
+                        }
+                        const dateToCheck = startOfDay(date);
+                        return isBefore(dateToCheck, minDate);
+                      }}
+                      className="p-3 pointer-events-auto touch-auto"
+                    />
+                  </PopoverContent>
                 </Popover>
               </FieldWrapper>
             </div>
