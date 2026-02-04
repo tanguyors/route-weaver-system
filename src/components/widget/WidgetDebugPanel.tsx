@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { widgetLogger, type LogEntry } from '@/lib/widgetLogger';
 import { cn } from '@/lib/utils';
 
@@ -58,8 +59,15 @@ export default function WidgetDebugPanel() {
     }
   };
 
-  return (
-    <div className="fixed bottom-3 right-3 z-[10000] pointer-events-auto">
+  const ui = (
+    <div
+      className="fixed bottom-3 right-3 z-[2147483647] pointer-events-auto"
+      style={{ touchAction: 'manipulation' }}
+      onPointerDownCapture={(e) => e.stopPropagation()}
+      onPointerUpCapture={(e) => e.stopPropagation()}
+      onTouchStartCapture={(e) => e.stopPropagation()}
+      onTouchEndCapture={(e) => e.stopPropagation()}
+    >
       {!open ? (
         <button
           type="button"
@@ -146,4 +154,11 @@ export default function WidgetDebugPanel() {
       )}
     </div>
   );
+
+  // Render in a portal to escape any stacking-context / overlay issues in iframes.
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(ui, document.body);
+  }
+
+  return ui;
 }
