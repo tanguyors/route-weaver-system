@@ -846,7 +846,7 @@
     positionCalendar();
   }
 
-  // Position calendar dropdown relative to trigger button
+  // Position calendar dropdown - center vertically on trigger button
   function positionCalendar() {
     var calendar = container.querySelector('.srb-pw-calendar-dropdown');
     if (!calendar) return;
@@ -861,6 +861,7 @@
     var btnRect = btn.getBoundingClientRect();
     var bodyRect = body.getBoundingClientRect();
     var calWidth = 300;
+    var calHeight = calendar.offsetHeight || 320;
     
     // Calculate left position - center on button, but keep within body bounds
     var btnCenterX = btnRect.left + btnRect.width / 2 - bodyRect.left;
@@ -871,26 +872,17 @@
     var maxLeft = bodyRect.width - calWidth - padding;
     left = Math.max(padding, Math.min(left, maxLeft));
     
-    // Calculate if we should open upward or downward
-    var spaceBelow = bodyRect.bottom - btnRect.bottom;
-    var spaceAbove = btnRect.top - bodyRect.top;
-    var calHeight = calendar.offsetHeight || 320;
+    // Calculate top position - center vertically on button
+    var btnCenterY = btnRect.top + btnRect.height / 2 - bodyRect.top;
+    var top = btnCenterY - calHeight / 2;
     
-    var openUp = spaceBelow < calHeight && spaceAbove > spaceBelow;
+    // Clamp to stay within body bounds (with some padding)
+    var maxTop = bodyRect.height - calHeight - padding;
+    top = Math.max(padding, Math.min(top, maxTop));
     
     calendar.style.left = left + 'px';
-    
-    if (openUp) {
-      // Position above the button
-      var bottom = bodyRect.bottom - btnRect.top + 8;
-      calendar.style.bottom = bottom + 'px';
-      calendar.style.top = 'auto';
-    } else {
-      // Position below the button
-      var top = btnRect.bottom - bodyRect.top + 8;
-      calendar.style.top = top + 'px';
-      calendar.style.bottom = 'auto';
-    }
+    calendar.style.top = top + 'px';
+    calendar.style.bottom = 'auto';
   }
 
   // Bind events
