@@ -339,20 +339,17 @@
         color: ${mutedColor};
       }
       
-      /* Calendar Dropdown - centered horizontally */
+      /* Calendar Dropdown - opens upward, centered on trigger */
       .srb-pw-calendar-dropdown {
         position: absolute;
         z-index: 1000;
         background: ${bgColor};
         border: 1px solid ${borderColor};
         border-radius: 8px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        box-shadow: 0 -10px 25px rgba(0,0,0,0.15), 0 10px 25px rgba(0,0,0,0.15);
         padding: 12px;
-        width: calc(100% - 32px);
-        max-width: 300px;
-        left: 50%;
-        transform: translateX(-50%);
-        margin-top: 4px;
+        width: 300px;
+        max-width: calc(100% - 32px);
       }
       
       .srb-pw-calendar-header {
@@ -777,8 +774,8 @@
               '</div>' +
             '</div>' +
           '</div>' +
-          // Calendar dropdown for departure (outside field, inside body)
-          (state.calendarOpen === 'depart' ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar">' + buildCalendarHTML('depart') + '</div>' : '') +
+          // Calendar dropdown for departure - rendered via JS positioning
+          (state.calendarOpen === 'depart' ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar" data-for="depart">' + buildCalendarHTML('depart') + '</div>' : '') +
           // Row 2 (only for round trip): Return Date
           (isRoundTrip ?
             '<div class="srb-pw-fields-row" style="grid-template-columns: 1fr;">' +
@@ -794,8 +791,8 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Calendar dropdown for return (outside field, inside body)
-            (state.calendarOpen === 'return' ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar">' + buildCalendarHTML('return') + '</div>' : '') : '') +
+            // Calendar dropdown for return - rendered via JS positioning
+            (state.calendarOpen === 'return' ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar" data-for="return">' + buildCalendarHTML('return') + '</div>' : '') : '') +
           // Passengers row
           '<div class="srb-pw-pax-row">' +
             // Adult
@@ -846,6 +843,54 @@
 
     container.innerHTML = html;
     bindEvents();
+    positionCalendar();
+  }
+
+  // Position calendar dropdown relative to trigger button
+  function positionCalendar() {
+    var calendar = container.querySelector('.srb-pw-calendar-dropdown');
+    if (!calendar) return;
+
+    var forType = calendar.getAttribute('data-for');
+    var btnId = forType === 'depart' ? 'srb-depart-btn' : 'srb-return-btn';
+    var btn = document.getElementById(btnId);
+    var body = container.querySelector('.srb-pw-body');
+    
+    if (!btn || !body) return;
+
+    var btnRect = btn.getBoundingClientRect();
+    var bodyRect = body.getBoundingClientRect();
+    var calWidth = 300;
+    
+    // Calculate left position - center on button, but keep within body bounds
+    var btnCenterX = btnRect.left + btnRect.width / 2 - bodyRect.left;
+    var left = btnCenterX - calWidth / 2;
+    
+    // Clamp to body bounds with padding
+    var padding = 16;
+    var maxLeft = bodyRect.width - calWidth - padding;
+    left = Math.max(padding, Math.min(left, maxLeft));
+    
+    // Calculate if we should open upward or downward
+    var spaceBelow = bodyRect.bottom - btnRect.bottom;
+    var spaceAbove = btnRect.top - bodyRect.top;
+    var calHeight = calendar.offsetHeight || 320;
+    
+    var openUp = spaceBelow < calHeight && spaceAbove > spaceBelow;
+    
+    calendar.style.left = left + 'px';
+    
+    if (openUp) {
+      // Position above the button
+      var bottom = bodyRect.bottom - btnRect.top + 8;
+      calendar.style.bottom = bottom + 'px';
+      calendar.style.top = 'auto';
+    } else {
+      // Position below the button
+      var top = btnRect.bottom - bodyRect.top + 8;
+      calendar.style.top = top + 'px';
+      calendar.style.bottom = 'auto';
+    }
   }
 
   // Bind events
