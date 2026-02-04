@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MapPin, CalendarDays, Users, Baby, Search, Ship, Anchor, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, isValid, parseISO } from 'date-fns';
+import { format, isValid, parseISO, startOfDay, isAfter, isBefore, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -149,8 +149,13 @@ export const WidgetSearchForm = ({
   const [privateDateOpen, setPrivateDateOpen] = useState(false);
 
   const parseDateOnly = (value: string) => {
-    const d = parseISO(value);
-    return isValid(d) ? d : null;
+    // CRITICAL: always use startOfDay on local time to avoid timezone bugs on mobile
+    const parts = value.split('-');
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (!year || !month || !day) return null;
+    const d = new Date(year, month - 1, day); // month is 0-indexed
+    return isValid(d) ? startOfDay(d) : null;
   };
 
   const parsedDepartureDate = departureDate ? parseDateOnly(departureDate) : null;
@@ -384,7 +389,7 @@ export const WidgetSearchForm = ({
                         }
                         setDepartureDateOpen(false);
                       }}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
                       className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
@@ -427,18 +432,13 @@ export const WidgetSearchForm = ({
                           setReturnDateOpen(false);
                         }}
                         disabled={(date) => {
-                          // Return date must be >= departure date (same day allowed)
-                          // Create new Date objects to avoid mutating originals
-                          const todayStart = new Date();
-                          todayStart.setHours(0, 0, 0, 0);
-                          
-                          let minDate = todayStart;
+                          const today = startOfDay(new Date());
+                          let minDate = today;
                           if (parsedDepartureDate) {
-                            minDate = new Date(parsedDepartureDate.getFullYear(), parsedDepartureDate.getMonth(), parsedDepartureDate.getDate());
+                            minDate = startOfDay(parsedDepartureDate);
                           }
-                          
-                          const dateToCheck = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                          return dateToCheck < minDate;
+                          const dateToCheck = startOfDay(date);
+                          return isBefore(dateToCheck, minDate);
                         }}
                         className="p-3 pointer-events-auto touch-auto"
                       />
@@ -603,10 +603,15 @@ export const WidgetSearchForm = ({
                           mode="single"
                           selected={parsedPrivateDate || undefined}
                           onSelect={(date) => {
-                            if (date) setPrivateDate(date.toISOString().split('T')[0]);
+                            if (date) {
+                              const year = date.getFullYear();
+                              const month = String(date.getMonth() + 1).padStart(2, '0');
+                              const day = String(date.getDate()).padStart(2, '0');
+                              setPrivateDate(`${year}-${month}-${day}`);
+                            }
                             setPrivateDateOpen(false);
                           }}
-                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
                           initialFocus
                         />
                       </PopoverContent>
