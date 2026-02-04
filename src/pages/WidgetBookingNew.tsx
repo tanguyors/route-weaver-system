@@ -256,7 +256,7 @@ const WidgetBookingNew = () => {
 
   return (
     <WidgetLanguageProvider>
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen">
         {/* Step Indicator */}
         <WidgetStepIndicator currentStep={step} primaryColor={primaryColor} />
 
@@ -551,13 +551,6 @@ const WidgetBookingNew = () => {
           />
         )}
       </div>
-
-        {/* Powered by tag */}
-        <div className="fixed bottom-2 right-4">
-          <span className="text-xs text-gray-400">
-            By <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: primaryColor }}>SriBooking.com</a>
-          </span>
-        </div>
       </div>
     </WidgetLanguageProvider>
   );
