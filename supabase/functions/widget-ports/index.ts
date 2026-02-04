@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     // Get port details
     const { data: ports } = await supabase
       .from("ports")
-      .select("id, name, code")
+      .select("id, name")
       .in("id", Array.from(portIds));
 
     // Build route pairs for the prewidget
