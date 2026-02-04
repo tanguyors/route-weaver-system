@@ -483,6 +483,13 @@ export const WidgetSearchForm = ({
                 {isLoading ? t('loading') : t('searchTrips')}
               </button>
             </div>
+            
+            {/* Branding */}
+            <div className="text-center pt-2">
+              <span className="text-xs text-gray-400">
+                By <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: primaryColor }}>SriBooking.com</a>
+              </span>
+            </div>
           </>
         )}
 
