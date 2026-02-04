@@ -437,18 +437,6 @@ export const WidgetBookingDetails = ({
             ))}
           </div>
 
-          {trips.length > 1 && (
-            <div className="flex items-center gap-2 mt-4 justify-end">
-              <Checkbox
-                id="sameInfo"
-                checked={useCustomerAsFirstPassenger}
-                onCheckedChange={(checked) => setUseCustomerAsFirstPassenger(!!checked)}
-              />
-              <Label htmlFor="sameInfo" className="text-sm cursor-pointer">
-                Same As Above Information
-              </Label>
-            </div>
-          )}
 
           {/* Passenger selector: 3 per row */}
           {passengers.length > 0 && (
