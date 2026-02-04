@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, isValid, startOfDay, isBefore } from 'date-fns';
 import { Search, MapPin, CalendarDays, Users, Loader2, Baby, Ship, Anchor, Clock } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import type { DateRange } from 'react-day-picker';
 
 interface Port {
   id: string;
@@ -117,7 +118,6 @@ const WidgetBarView = ({
   onPrivateBoatSearch,
 }: WidgetBarViewProps) => {
   const [departureDateOpen, setDepartureDateOpen] = useState(false);
-  const [returnDateOpen, setReturnDateOpen] = useState(false);
   
   // Service type toggle
   const hasPrivateBoats = privateBoats.length > 0;
@@ -144,8 +144,24 @@ const WidgetBarView = ({
   const returnDate = barSelection?.returnDate || null;
   const paxInfant = barSelection?.paxInfant || 0;
 
+  const parseDateOnly = (value: string) => {
+    const parts = value.split('-');
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (!year || !month || !day) return null;
+    const d = new Date(year, month - 1, day);
+    return isValid(d) ? startOfDay(d) : null;
+  };
+
+  const formatDateOnly = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const setTripType = (type: 'one-way' | 'round-trip') => {
-    onBarSelectionChange?.({ tripType: type, returnDate, paxInfant });
+    onBarSelectionChange?.({ tripType: type, returnDate: type === 'one-way' ? null : returnDate, paxInfant });
   };
   const setReturnDate = (date: string | null) => {
     onBarSelectionChange?.({ tripType, returnDate: date, paxInfant });
@@ -162,9 +178,9 @@ const WidgetBarView = ({
 
   const selectedOriginPort = ports.find(p => p.id === selectedOrigin);
   const selectedDestPort = availableDestinations.find(p => p.id === selectedDestination);
-  const parsedDate = selectedDate ? new Date(selectedDate) : null;
-  const parsedReturnDate = returnDate ? new Date(returnDate) : null;
-  const parsedPrivateDate = privateDate ? new Date(privateDate) : null;
+  const parsedDate = selectedDate ? parseDateOnly(selectedDate) : null;
+  const parsedReturnDate = returnDate ? parseDateOnly(returnDate) : null;
+  const parsedPrivateDate = privateDate ? parseDateOnly(privateDate) : null;
 
   const canSearch = selectedOrigin && selectedDestination && selectedDate && (tripType === 'one-way' || returnDate);
 
@@ -246,7 +262,19 @@ const WidgetBarView = ({
     onPrivateBoatSearch(selection);
   };
 
-  const minDate = new Date().toISOString().split('T')[0];
+  const canCloseDepartureCalendar = tripType !== 'round-trip' || !selectedDate || !!returnDate;
+  const handleDepartureCalendarOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && !canCloseDepartureCalendar) return;
+    setDepartureDateOpen(nextOpen);
+  };
+
+  const formatTripDatesLabel = () => {
+    if (!parsedDate) return 'Select Date';
+    if (tripType === 'one-way') return format(parsedDate, 'd MMM yyyy');
+    const fromLabel = format(parsedDate, 'd MMM yyyy');
+    const toLabel = parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : 'Select Date';
+    return `${fromLabel} → ${toLabel}`;
+  };
 
   return (
     <div 
@@ -324,8 +352,8 @@ const WidgetBarView = ({
             </button>
           </div>
 
-          {/* Row 1: Departure + Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+           {/* Row 1: Departure + Dates */}
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Departure Field */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: primaryColor }}>
@@ -353,63 +381,48 @@ const WidgetBarView = ({
               <label className="block text-sm font-semibold mb-2" style={{ color: primaryColor }}>
                 Departure Date
               </label>
-              <Popover open={departureDateOpen} onOpenChange={setDepartureDateOpen}>
+              <Popover open={departureDateOpen} onOpenChange={handleDepartureCalendarOpenChange}>
                 <PopoverTrigger asChild>
                   <button className="w-full h-12 bg-white rounded-lg border flex items-center gap-2 px-3 text-left" style={{ borderColor }}>
                     <CalendarDays className="w-5 h-5" style={{ color: primaryColor }} />
-                    <span style={{ color: parsedDate ? textColor : '#94a3b8' }}>
-                      {parsedDate ? format(parsedDate, 'd MMM yyyy') : 'Select Date'}
-                    </span>
+                    <span style={{ color: parsedDate ? textColor : '#94a3b8' }}>{formatTripDatesLabel()}</span>
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={parsedDate || undefined}
-                    onSelect={(date) => {
-                      if (date) onDateChange(date.toISOString().split('T')[0]);
-                      setDepartureDateOpen(false);
-                    }}
-                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Return Date */}
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: primaryColor }}>
-                Return Date
-              </label>
-              <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
-                <PopoverTrigger asChild>
-                  <button 
-                    className={`w-full h-12 bg-white rounded-lg border flex items-center gap-2 px-3 text-left ${tripType === 'one-way' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    style={{ borderColor }}
-                    disabled={tripType === 'one-way'}
-                  >
-                    <CalendarDays className="w-5 h-5" style={{ color: primaryColor }} />
-                    <span style={{ color: parsedReturnDate ? textColor : '#94a3b8' }}>
-                      {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : 'Select Date'}
-                    </span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={parsedReturnDate || undefined}
-                    onSelect={(date) => {
-                      if (date) setReturnDate(date.toISOString().split('T')[0]);
-                      setReturnDateOpen(false);
-                    }}
-                    disabled={(date) => {
-                      const today = new Date(new Date().setHours(0, 0, 0, 0));
-                      const departureMin = parsedDate || today;
-                      return date < departureMin;
-                    }}
-                    initialFocus
-                  />
+                  {tripType === 'round-trip' ? (
+                    <Calendar
+                      mode="range"
+                      selected={{ from: parsedDate ?? undefined, to: parsedReturnDate ?? undefined }}
+                      defaultMonth={parsedReturnDate || parsedDate || new Date()}
+                      onSelect={(range: DateRange | undefined) => {
+                        if (!range?.from) return;
+                        onDateChange(formatDateOnly(range.from));
+                        if (range.to) {
+                          setReturnDate(formatDateOnly(range.to));
+                          setDepartureDateOpen(false);
+                        } else {
+                          setReturnDate(null);
+                        }
+                      }}
+                      disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                      initialFocus
+                      className="p-3 pointer-events-auto touch-auto"
+                    />
+                  ) : (
+                    <Calendar
+                      mode="single"
+                      selected={parsedDate || undefined}
+                      defaultMonth={parsedDate || new Date()}
+                      onSelect={(date) => {
+                        if (!date) return;
+                        onDateChange(formatDateOnly(date));
+                        setDepartureDateOpen(false);
+                      }}
+                      disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                      initialFocus
+                      className="p-3 pointer-events-auto touch-auto"
+                    />
+                  )}
                 </PopoverContent>
               </Popover>
             </div>
