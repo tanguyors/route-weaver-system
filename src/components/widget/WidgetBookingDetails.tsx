@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Plus, Minus, Car, Bus, Gift } from 'lucide-react';
+import { Car, Bus, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -141,7 +141,8 @@ export const WidgetBookingDetails = ({
       idNumber: '',
     }))
   );
-  const [expandedPassenger, setExpandedPassenger] = useState<number | null>(0);
+  // Passenger selector (single form shown at a time)
+  const [expandedPassenger, setExpandedPassenger] = useState<number>(0);
   const [useCustomerAsFirstPassenger, setUseCustomerAsFirstPassenger] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -399,75 +400,102 @@ export const WidgetBookingDetails = ({
           </div>
         </div>
 
-        {/* Passengers Section - Per Trip */}
-        {trips.map((trip, tripIndex) => (
-          <div key={tripIndex} className="bg-white rounded-lg border p-6">
-            <h2 className="text-xl font-bold mb-2">Passenger(s)</h2>
-            
-            {/* Trip Header */}
-            <div className="flex items-center gap-2 mb-4">
-              <div 
-                className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
-                style={{ borderTopColor: primaryColor }}
-              />
-              <span style={{ color: primaryColor }} className="font-medium">
-                {trip.originName}
-              </span>
-              <span className="text-gray-400">—</span>
-              <span style={{ color: primaryColor }} className="font-medium">
-                {trip.destName}
-              </span>
-            </div>
-            
-            <div className="text-sm text-gray-500 mb-4">
-              📅 {format(new Date(trip.date), 'EEE, dd MMM yyyy')} 
-              {trip.time && <span className="ml-2">🕐 {trip.time}</span>}
-              {trip.arrivalTime && <span className="text-gray-400"> → {trip.arrivalTime}</span>}
-              <span className="ml-2">(Adult x {trip.paxAdult}, Child x {trip.paxChild}, Infants x {trip.paxInfant})</span>
-            </div>
+        {/* Passengers Section (single, shared for outbound + return) */}
+        <div className="bg-white rounded-lg border p-6">
+          <h2 className="text-xl font-bold mb-2">Passenger(s)</h2>
 
-            {tripIndex === 0 && trips.length > 1 && (
-              <div className="flex items-center gap-2 mb-4 justify-end">
-                <Checkbox
-                  id="sameInfo"
-                  checked={useCustomerAsFirstPassenger}
-                  onCheckedChange={(checked) => setUseCustomerAsFirstPassenger(!!checked)}
-                />
-                <Label htmlFor="sameInfo" className="text-sm cursor-pointer">
-                  Same As Above Information
-                </Label>
+          {/* Trip summaries */}
+          <div className="space-y-4">
+            {trips.map((trip, idx) => (
+              <div
+                key={`${trip.isReturn ? 'return' : 'outbound'}-${idx}`}
+                className={cn(idx > 0 && 'pt-4 border-t')}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
+                    style={{ borderTopColor: primaryColor }}
+                  />
+                  <span style={{ color: primaryColor }} className="font-medium">
+                    {trip.originName}
+                  </span>
+                  <span className="text-gray-400">—</span>
+                  <span style={{ color: primaryColor }} className="font-medium">
+                    {trip.destName}
+                  </span>
+                </div>
+
+                <div className="text-sm text-gray-500">
+                  📅 {format(new Date(trip.date), 'EEE, dd MMM yyyy')}
+                  {trip.time && <span className="ml-2">🕐 {trip.time}</span>}
+                  {trip.arrivalTime && <span className="text-gray-400"> → {trip.arrivalTime}</span>}
+                  <span className="ml-2">
+                    (Adult x {trip.paxAdult}, Child x {trip.paxChild}, Infants x {trip.paxInfant})
+                  </span>
+                </div>
               </div>
-            )}
+            ))}
+          </div>
 
-            {/* Passenger Accordions */}
-            <div className="space-y-2">
-              {passengers.map((passenger, index) => (
-                <div key={index} className="border rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setExpandedPassenger(expandedPassenger === index ? null : index)}
-                    className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span 
-                        className="w-6 h-6 rounded flex items-center justify-center text-white text-sm"
-                        style={{ backgroundColor: primaryColor }}
-                      >
-                        {expandedPassenger === index ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                      </span>
-                      <span className="font-medium">
-                        Passenger {index + 1}
-                        {passenger.name && ` - ${passenger.name}`}
-                      </span>
-                    </div>
-                    {expandedPassenger === index ? (
-                      <ChevronUp className="w-5 h-5 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
-                    )}
-                  </button>
-                  
-                  {expandedPassenger === index && (
-                    <div className="p-4 border-t space-y-4">
+          {trips.length > 1 && (
+            <div className="flex items-center gap-2 mt-4 justify-end">
+              <Checkbox
+                id="sameInfo"
+                checked={useCustomerAsFirstPassenger}
+                onCheckedChange={(checked) => setUseCustomerAsFirstPassenger(!!checked)}
+              />
+              <Label htmlFor="sameInfo" className="text-sm cursor-pointer">
+                Same As Above Information
+              </Label>
+            </div>
+          )}
+
+          {/* Passenger selector: 3 per row */}
+          {passengers.length > 0 && (
+            <div className="mt-4">
+              <div className="grid grid-cols-3 gap-2">
+                {passengers.map((passenger, index) => {
+                  const isActive = expandedPassenger === index;
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => setExpandedPassenger(index)}
+                      className={cn(
+                        'rounded-lg border px-3 py-3 text-left transition-colors min-w-0',
+                        isActive
+                          ? 'bg-gray-50'
+                          : 'bg-white hover:bg-gray-50'
+                      )}
+                      style={isActive ? { borderColor: primaryColor } : undefined}
+                      aria-pressed={isActive}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium truncate">Passenger {index + 1}</span>
+                        {passenger.name ? (
+                          <span className="text-xs font-semibold" style={{ color: primaryColor }}>
+                            ✓
+                          </span>
+                        ) : null}
+                      </div>
+                      {passenger.name ? (
+                        <div className="text-xs text-gray-500 truncate">{passenger.name}</div>
+                      ) : (
+                        <div className="text-xs text-gray-400 truncate">Details</div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active passenger form */}
+              <div className="mt-4 rounded-lg border p-4 space-y-4">
+                {(() => {
+                  const passenger = passengers[expandedPassenger];
+                  if (!passenger) return null;
+                  const index = expandedPassenger;
+                  return (
+                    <>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2">
                           <Label>* Name</Label>
@@ -504,13 +532,13 @@ export const WidgetBookingDetails = ({
                           className="mt-1"
                         />
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    </>
+                  );
+                })()}
+              </div>
             </div>
-          </div>
-        ))}
+          )}
+        </div>
 
         {/* Private Boat Activity Add-ons Selection */}
         {isPrivateBoat && routeActivityAddons.length > 0 && (
