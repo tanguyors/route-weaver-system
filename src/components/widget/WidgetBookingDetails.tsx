@@ -252,6 +252,26 @@ export const WidgetBookingDetails = ({
       return;
     }
 
+    // Validate all passengers - all fields are required
+    for (let i = 0; i < passengers.length; i++) {
+      const p = passengers[i];
+      if (!p.name.trim()) {
+        setErrors({ [`passenger_${i}_name`]: `Passenger ${i + 1}: Name is required` });
+        setExpandedPassenger(i);
+        return;
+      }
+      if (!p.age.trim()) {
+        setErrors({ [`passenger_${i}_age`]: `Passenger ${i + 1}: Age is required` });
+        setExpandedPassenger(i);
+        return;
+      }
+      if (!p.idNumber.trim()) {
+        setErrors({ [`passenger_${i}_idNumber`]: `Passenger ${i + 1}: ID Number is required` });
+        setExpandedPassenger(i);
+        return;
+      }
+    }
+
     // Validate pickup address if pickup is enabled
     if (isPrivateBoat && pickupEnabled && selectedPickupRuleId && !pickupDetails.trim()) {
       setErrors({ pickupDetails: 'Please enter your hotel or pickup address' });
@@ -492,6 +512,7 @@ export const WidgetBookingDetails = ({
                               placeholder="Full Name"
                               value={passenger.name}
                               onChange={(e) => updatePassenger(index, 'name', e.target.value)}
+                              className={errors[`passenger_${index}_name`] ? 'border-red-500' : ''}
                             />
                             <select className="p-2 border rounded-md">
                               <option>Gender</option>
@@ -499,6 +520,9 @@ export const WidgetBookingDetails = ({
                               <option>Female</option>
                             </select>
                           </div>
+                          {errors[`passenger_${index}_name`] && (
+                            <p className="text-sm text-red-500 mt-1">{errors[`passenger_${index}_name`]}</p>
+                          )}
                         </div>
                         <div>
                           <Label>* Age</Label>
@@ -507,8 +531,11 @@ export const WidgetBookingDetails = ({
                             type="number"
                             value={passenger.age}
                             onChange={(e) => updatePassenger(index, 'age', e.target.value)}
-                            className="mt-1"
+                            className={cn("mt-1", errors[`passenger_${index}_age`] && 'border-red-500')}
                           />
+                          {errors[`passenger_${index}_age`] && (
+                            <p className="text-sm text-red-500 mt-1">{errors[`passenger_${index}_age`]}</p>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -517,8 +544,11 @@ export const WidgetBookingDetails = ({
                           placeholder="ID Number"
                           value={passenger.idNumber}
                           onChange={(e) => updatePassenger(index, 'idNumber', e.target.value)}
-                          className="mt-1"
+                          className={cn("mt-1", errors[`passenger_${index}_idNumber`] && 'border-red-500')}
                         />
+                        {errors[`passenger_${index}_idNumber`] && (
+                          <p className="text-sm text-red-500 mt-1">{errors[`passenger_${index}_idNumber`]}</p>
+                        )}
                       </div>
                     </>
                   );
