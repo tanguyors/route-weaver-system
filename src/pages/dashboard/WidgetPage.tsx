@@ -207,9 +207,15 @@ const WidgetPage = () => {
                     <iframe
                       ref={iframeRef}
                       src={getDirectLink(widgetStyle)}
-                      className="w-full border-0"
+                      className="w-full border-0 touch-manipulation"
                       style={{ height: previewHeight }}
                       title="Widget Preview"
+                      onLoad={() =>
+                        iframeRef.current?.contentWindow?.postMessage(
+                          { type: 'sribooking-request-resize' },
+                          '*'
+                        )
+                      }
                     />
                   </div>
                 </CardContent>
