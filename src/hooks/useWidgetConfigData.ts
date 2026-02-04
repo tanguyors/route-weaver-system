@@ -510,13 +510,14 @@ export const useWidgetConfigData = () => {
     const baseUrl = window.location.origin;
     return `<!-- Full Widget for Dedicated Booking Page -->
 <style>
-  /* Adjust height if you have a fixed header */
+  /* Adjust min-height if you have a fixed header */
   :root { --header-h: 0px; }
   #sribooking-widget {
     width: 100%;
-    height: calc(100dvh - var(--header-h));
+    min-height: calc(100dvh - var(--header-h));
     border: 0;
     display: block;
+    transition: height 0.2s ease;
   }
 </style>
 <iframe
@@ -529,17 +530,130 @@ export const useWidgetConfigData = () => {
 (function(){
   var iframe = document.getElementById('sribooking-widget');
   if(!iframe) return;
+
+  // Setup URL params
   var p = new URLSearchParams(window.location.search);
   var base = "${baseUrl}/book-new";
   var url = new URL(base);
-  // Pass all search params from URL to widget
   ["key","from","to","depart","return","ad","ch","inf","trip","currency","lang"].forEach(function(k){
     var v = p.get(k);
     if(v) url.searchParams.set(k, v);
   });
-  // Fallback key if not in URL
   if(!url.searchParams.get("key")) url.searchParams.set("key", "${widget.public_widget_key}");
   iframe.src = url.toString();
+
+  // iOS detection
+  var isIOS = false;
+  try {
+    isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  } catch (e) {}
+
+  // Auto-resize: listen for height messages from widget
+  function clampHeight(h){
+    if (!isFinite(h) || h <= 0) return null;
+    return Math.max(400, Math.round(h));
+  }
+
+  function requestResize(){
+    try {
+      if (iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'sribooking-request-resize' }, '*');
+      }
+    } catch (e) {}
+  }
+
+  function onMessage(e){
+    if (!e || !e.data || e.data.type !== 'sribooking-resize') return;
+    if (e.source !== iframe.contentWindow) return;
+    var h = clampHeight(Number(e.data.height));
+    if (h === null) return;
+    iframe.style.height = h + 'px';
+  }
+
+  window.addEventListener('message', onMessage);
+
+  // Throttled resize requests
+  var t = null;
+  function throttledRequest(){
+    if (t) return;
+    t = setTimeout(function(){
+      t = null;
+      requestResize();
+    }, 150);
+  }
+
+  window.addEventListener('resize', throttledRequest);
+  window.addEventListener('orientationchange', throttledRequest);
+  window.addEventListener('scroll', throttledRequest, { passive: true });
+  window.addEventListener('pageshow', function(){ requestResize(); });
+
+  // iOS scroll lock during touch interaction
+  var __sr_lock = { locked: false, y: 0, prev: null };
+  function lockHostScroll(){
+    if (!isIOS) return;
+    if (__sr_lock.locked) return;
+    if (!document || !document.body) return;
+
+    __sr_lock.locked = true;
+    __sr_lock.y = window.pageYOffset || document.documentElement.scrollTop || 0;
+
+    __sr_lock.prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width
+    };
+
+    document.body.style.position = 'fixed';
+    document.body.style.top = (-__sr_lock.y) + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+  }
+  function unlockHostScroll(){
+    if (!__sr_lock.locked) return;
+    if (!document || !document.body) return;
+
+    __sr_lock.locked = false;
+    var y = __sr_lock.y;
+    var prev = __sr_lock.prev;
+    __sr_lock.prev = null;
+
+    try {
+      if (prev) {
+        document.body.style.position = prev.position;
+        document.body.style.top = prev.top;
+        document.body.style.left = prev.left;
+        document.body.style.right = prev.right;
+        document.body.style.width = prev.width;
+      } else {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+      }
+    } catch (e) {}
+
+    try { window.scrollTo(0, y); } catch (e) {}
+  }
+
+  if (isIOS) {
+    iframe.addEventListener('touchstart', function(){ lockHostScroll(); requestResize(); }, { passive: true });
+    iframe.addEventListener('touchend', function(){ setTimeout(unlockHostScroll, 0); }, { passive: true });
+    iframe.addEventListener('touchcancel', function(){ unlockHostScroll(); }, { passive: true });
+  }
+
+  iframe.addEventListener('load', function(){
+    requestResize();
+    setTimeout(requestResize, 300);
+    setTimeout(requestResize, 1200);
+    setTimeout(requestResize, 2500);
+  });
+
+  requestResize();
 })();
 </script>
 
@@ -548,6 +662,7 @@ export const useWidgetConfigData = () => {
   1. Create a dedicated page on your website (e.g., /booking)
   2. Paste this code as the ONLY content of that page body
   3. If you have a fixed header, set --header-h to your header height (e.g., 72px)
+  4. The iframe will auto-resize to fit the widget content - page scrolls, not iframe
 -->`;
   };
 
