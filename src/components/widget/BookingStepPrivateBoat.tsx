@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Anchor, MapPin, Clock, Calendar, ArrowRight, ArrowLeft, Users } from 'lucide-react';
+import { GooglePlacesAutocomplete } from './GooglePlacesAutocomplete';
 
 interface RouteActivityAddon {
   id: string;
@@ -445,12 +446,14 @@ export const BookingStepPrivateBoat = ({
                     </button>
                   </div>
                 </div>
-                <Input
-                  className="mt-2"
-                  placeholder="Hotel name / pickup address"
-                  value={pickupDetails}
-                  onChange={(e) => setPickupDetails(e.target.value)}
-                />
+                <div className="mt-2">
+                  <GooglePlacesAutocomplete
+                    value={pickupDetails}
+                    onChange={(v) => setPickupDetails(v)}
+                    placeholder="Hotel name / pickup address"
+                    country="id"
+                  />
+                </div>
               </>
             )}
           </div>
@@ -516,12 +519,14 @@ export const BookingStepPrivateBoat = ({
                     </button>
                   </div>
                 </div>
-                <Input
-                  className="mt-2"
-                  placeholder="Hotel name / dropoff address"
-                  value={dropoffDetails}
-                  onChange={(e) => setDropoffDetails(e.target.value)}
-                />
+                <div className="mt-2">
+                  <GooglePlacesAutocomplete
+                    value={dropoffDetails}
+                    onChange={(v) => setDropoffDetails(v)}
+                    placeholder="Hotel name / dropoff address"
+                    country="id"
+                  />
+                </div>
               </>
             )}
           </div>
