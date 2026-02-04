@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { MapPin, CalendarDays, Users, Baby, Search, Ship, Anchor, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -133,7 +133,6 @@ export const WidgetSearchForm = ({
   const { t } = useWidgetLanguage();
   const [departureDateOpen, setDepartureDateOpen] = useState(false);
   const [returnDateOpen, setReturnDateOpen] = useState(false);
-  const returnPopoverContentRef = useRef<HTMLDivElement | null>(null);
   
   // Service type toggle
   const hasPrivateBoats = privateBoats.length > 0;
@@ -173,38 +172,66 @@ export const WidgetSearchForm = ({
     window.setTimeout(close, 0);
   };
 
-  // iOS Safari (especially inside iframes) can sometimes update the DayPicker UI state
-  // (a day looks selected) while React callbacks like `onSelect` / `onDayClick` don't fire reliably.
-  // We add a DOM-based fallback that reads the selected day button and updates our state.
+  // iOS Safari inside embedded iframes can fail to synthesize a reliable "click" on DayPicker day buttons.
+  // We therefore capture touch/pointer events at the PopoverContent level and derive the date directly
+  // from the tapped day button's DOM attributes.
+  const isIosInIframe = (() => {
+    if (typeof window === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    const isIOSDevice =
+      /iP(hone|od|ad)/.test(ua) ||
+      (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1);
+    let isIframe = false;
+    try {
+      isIframe = window.self !== window.top;
+    } catch {
+      isIframe = true;
+    }
+    return isIOSDevice && isIframe;
+  })();
+
   const DAY_STR_RE = /^\d{4}-\d{2}-\d{2}$/;
-  const getDateStrFromDayButton = (btn: Element | null): string | null => {
-    if (!btn || !(btn instanceof HTMLButtonElement)) return null;
+  const getDateStrFromTapTarget = (target: EventTarget | null): string | null => {
+    if (!target || !(target instanceof Element)) return null;
+    const btn = target.closest('button') as HTMLButtonElement | null;
+    if (!btn || btn.disabled) return null;
+
     const candidates = [
       btn.getAttribute('data-day'),
       btn.getAttribute('data-date'),
       btn.getAttribute('data-value'),
       btn.getAttribute('value'),
-      // Some builds may set the date on the DOM property.
       typeof btn.value === 'string' ? btn.value : null,
     ].filter(Boolean) as string[];
 
     for (const c of candidates) {
       if (DAY_STR_RE.test(c)) return c;
     }
+
+    // Fallback: DayPicker usually sets an English aria-label (e.g. "February 4, 2026").
+    const ariaLabel = btn.getAttribute('aria-label');
+    if (ariaLabel) {
+      const parsed = new Date(ariaLabel);
+      if (isValid(parsed)) return formatDateOnly(parsed);
+    }
+
     return null;
   };
 
-  const syncReturnDateFromDom = () => {
-    const root = returnPopoverContentRef.current;
-    if (!root) return;
-    // Let DayPicker apply aria-selected first.
-    window.setTimeout(() => {
-      const selectedBtn = root.querySelector('button[aria-selected="true"]');
-      const dateStr = getDateStrFromDayButton(selectedBtn);
-      if (!dateStr) return;
-      onReturnDateChange(dateStr);
-      closePopoverSoon(() => setReturnDateOpen(false));
-    }, 0);
+  const handleIosIframeDateTap = (
+    e: React.PointerEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>,
+    onDate: (dateStr: string) => void,
+    close: () => void,
+  ) => {
+    if (!isIosInIframe) return;
+    const dateStr = getDateStrFromTapTarget(e.target);
+    if (!dateStr) return;
+
+    // We explicitly manage selection + closing for iOS/iframe.
+    onDate(dateStr);
+    e.preventDefault();
+    e.stopPropagation();
+    closePopoverSoon(close);
   };
 
   const parsedDepartureDate = departureDate ? parseDateOnly(departureDate) : null;
@@ -425,6 +452,12 @@ export const WidgetSearchForm = ({
                     align="start" 
                     sideOffset={5}
                     onOpenAutoFocus={(e) => e.preventDefault()}
+                    onPointerUpCapture={(e) =>
+                      handleIosIframeDateTap(e, onDepartureDateChange, () => setDepartureDateOpen(false))
+                    }
+                    onTouchEndCapture={(e) =>
+                      handleIosIframeDateTap(e, onDepartureDateChange, () => setDepartureDateOpen(false))
+                    }
                   >
                     <Calendar
                       mode="single"
@@ -471,14 +504,17 @@ export const WidgetSearchForm = ({
                     </button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    ref={returnPopoverContentRef}
                     className="w-auto p-0 z-[9999]" 
                     align="start" 
                     side="bottom"
                     sideOffset={5}
                     onOpenAutoFocus={(e) => e.preventDefault()}
-                    onPointerUpCapture={() => syncReturnDateFromDom()}
-                    onTouchEndCapture={() => syncReturnDateFromDom()}
+                    onPointerUpCapture={(e) =>
+                      handleIosIframeDateTap(e, onReturnDateChange, () => setReturnDateOpen(false))
+                    }
+                    onTouchEndCapture={(e) =>
+                      handleIosIframeDateTap(e, onReturnDateChange, () => setReturnDateOpen(false))
+                    }
                   >
                     <Calendar
                       mode="single"
