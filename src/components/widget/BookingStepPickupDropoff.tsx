@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, ArrowRight, MapPin, Car, Bus } from 'lucide-react';
+import { GooglePlacesAutocomplete, PlaceResult } from './GooglePlacesAutocomplete';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 interface PickupDropoffRule {
   id: string;
@@ -225,12 +228,23 @@ export const BookingStepPickupDropoff = ({
 
                 <div>
                   <Label>Pickup Address / Hotel Name</Label>
-                  <Input
-                    className="mt-1"
-                    placeholder="Enter your hotel name or pickup address"
-                    value={pickupDetails}
-                    onChange={(e) => setPickupDetails(e.target.value)}
-                  />
+                  {GOOGLE_MAPS_API_KEY ? (
+                    <GooglePlacesAutocomplete
+                      value={pickupDetails}
+                      onChange={(value) => setPickupDetails(value)}
+                      placeholder="Search hotel or address..."
+                      apiKey={GOOGLE_MAPS_API_KEY}
+                      country="id"
+                      className="mt-1"
+                    />
+                  ) : (
+                    <Input
+                      className="mt-1"
+                      placeholder="Enter your hotel name or pickup address"
+                      value={pickupDetails}
+                      onChange={(e) => setPickupDetails(e.target.value)}
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -309,12 +323,23 @@ export const BookingStepPickupDropoff = ({
 
                 <div>
                   <Label>Dropoff Address / Hotel Name</Label>
-                  <Input
-                    className="mt-1"
-                    placeholder="Enter your destination hotel or address"
-                    value={dropoffDetails}
-                    onChange={(e) => setDropoffDetails(e.target.value)}
-                  />
+                  {GOOGLE_MAPS_API_KEY ? (
+                    <GooglePlacesAutocomplete
+                      value={dropoffDetails}
+                      onChange={(value) => setDropoffDetails(value)}
+                      placeholder="Search destination hotel or address..."
+                      apiKey={GOOGLE_MAPS_API_KEY}
+                      country="id"
+                      className="mt-1"
+                    />
+                  ) : (
+                    <Input
+                      className="mt-1"
+                      placeholder="Enter your destination hotel or address"
+                      value={dropoffDetails}
+                      onChange={(e) => setDropoffDetails(e.target.value)}
+                    />
+                  )}
                 </div>
               </div>
             )}
