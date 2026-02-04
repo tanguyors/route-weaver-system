@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MapPin, CalendarDays, Users, Baby, Search, Ship, Anchor, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -148,9 +148,14 @@ export const WidgetSearchForm = ({
   const [passengerCount, setPassengerCount] = useState<number>(1);
   const [privateDateOpen, setPrivateDateOpen] = useState(false);
 
-  const parsedDepartureDate = departureDate ? new Date(departureDate) : null;
-  const parsedReturnDate = returnDate ? new Date(returnDate) : null;
-  const parsedPrivateDate = privateDate ? new Date(privateDate) : null;
+  const parseDateOnly = (value: string) => {
+    const d = parseISO(value);
+    return isValid(d) ? d : null;
+  };
+
+  const parsedDepartureDate = departureDate ? parseDateOnly(departureDate) : null;
+  const parsedReturnDate = returnDate ? parseDateOnly(returnDate) : null;
+  const parsedPrivateDate = privateDate ? parseDateOnly(privateDate) : null;
 
   const selectedBoat = privateBoats.find(b => b.id === selectedBoatId);
   const selectedRoute = selectedBoat?.routes.find(r => r.id === selectedRouteId);
@@ -388,7 +393,7 @@ export const WidgetSearchForm = ({
 
               {/* Return Date */}
               <FieldWrapper label={t('returnDate')} icon={CalendarDays}>
-                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen} modal={true}>
+                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
                   <PopoverTrigger asChild>
                     <button 
                       type="button"
@@ -397,12 +402,6 @@ export const WidgetSearchForm = ({
                         tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900 cursor-pointer"
                       )}
                       disabled={tripType === 'one-way'}
-                      onClick={(e) => {
-                        if (tripType === 'round-trip') {
-                          e.stopPropagation();
-                          setReturnDateOpen(true);
-                        }
-                      }}
                     >
                       {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
@@ -414,7 +413,6 @@ export const WidgetSearchForm = ({
                       side="bottom"
                       sideOffset={5}
                       onOpenAutoFocus={(e) => e.preventDefault()}
-                      onPointerDownOutside={(e) => e.preventDefault()}
                     >
                       <Calendar
                         mode="single"
