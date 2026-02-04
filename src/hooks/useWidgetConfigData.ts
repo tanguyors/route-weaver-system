@@ -480,25 +480,48 @@ export const useWidgetConfigData = () => {
   const getPreWidgetCode = () => {
     if (!widget) return '';
     const baseUrl = window.location.origin;
-    return `<div
+    const themeConfig = widget.theme_config || {};
+    const primaryColor = themeConfig.primary_color || '#1B5E3B';
+    const logoUrl = themeConfig.logo_url || '';
+    
+    return `<!-- Pre-Widget Search Bar for Homepage -->
+<div
   id="sribooking-prewidget"
   data-key="${widget.public_widget_key}"
   data-redirect="/booking"
   data-lang="en"
   data-theme="light"
-  data-primary-color="${widget.theme_config?.primary_color || '#1B5E3B'}"
+  data-primary-color="${primaryColor}"${logoUrl ? `
+  data-logo="${logoUrl}"` : ''}
 ></div>
-<script async src="${baseUrl}/embed/prewidget.js"></script>`;
+<script async src="${baseUrl}/embed/prewidget.js"></script>
+
+<!-- 
+  Instructions:
+  - Change data-redirect to your booking page path (e.g., "/booking", "/tickets")
+  - Set data-lang to "en", "fr", or "id"
+  - Set data-theme to "light" or "dark"
+-->`;
   };
 
   // Get Full Widget embed code (iframe for dedicated booking page)
   const getFullWidgetCode = () => {
     if (!widget) return '';
     const baseUrl = window.location.origin;
-    return `<iframe
+    return `<!-- Full Widget for Dedicated Booking Page -->
+<style>
+  /* Adjust height if you have a fixed header */
+  :root { --header-h: 0px; }
+  #sribooking-widget {
+    width: 100%;
+    height: calc(100dvh - var(--header-h));
+    border: 0;
+    display: block;
+  }
+</style>
+<iframe
   id="sribooking-widget"
   src="${baseUrl}/book-new"
-  style="width:100%;height:100dvh;border:0;display:block;"
   allow="payment"
   title="SriBooking"
 ></iframe>
@@ -509,7 +532,7 @@ export const useWidgetConfigData = () => {
   var p = new URLSearchParams(window.location.search);
   var base = "${baseUrl}/book-new";
   var url = new URL(base);
-  // Pass all search params to widget
+  // Pass all search params from URL to widget
   ["key","from","to","depart","return","ad","ch","inf","trip","currency","lang"].forEach(function(k){
     var v = p.get(k);
     if(v) url.searchParams.set(k, v);
@@ -518,7 +541,14 @@ export const useWidgetConfigData = () => {
   if(!url.searchParams.get("key")) url.searchParams.set("key", "${widget.public_widget_key}");
   iframe.src = url.toString();
 })();
-</script>`;
+</script>
+
+<!--
+  Instructions:
+  1. Create a dedicated page on your website (e.g., /booking)
+  2. Paste this code as the ONLY content of that page body
+  3. If you have a fixed header, set --header-h to your header height (e.g., 72px)
+-->`;
   };
 
   return {

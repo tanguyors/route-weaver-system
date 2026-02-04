@@ -99,9 +99,12 @@ const WidgetEmbedCode = ({
       {embedType === 'prewidget' && (
         <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
           <div className="space-y-2">
-            <h3 className="font-semibold">Pre-Widget Search Bar</h3>
+            <h3 className="font-semibold flex items-center gap-2">
+              <Home className="w-4 h-4" />
+              Pre-Widget Search Bar
+            </h3>
             <p className="text-sm text-muted-foreground">
-              Embed this native search form on your <strong>homepage</strong>. It loads without iframe and redirects users to your booking page with search parameters.
+              Embed this <strong>native search form</strong> on your homepage. It looks exactly like the first step of the main widget and redirects users to your booking page.
             </p>
           </div>
 
@@ -109,7 +112,7 @@ const WidgetEmbedCode = ({
             <Textarea
               value={preWidgetCode}
               readOnly
-              className="font-mono text-xs h-40 bg-background resize-none"
+              className="font-mono text-xs h-56 bg-background resize-none"
             />
             <Button
               variant="secondary"
@@ -131,13 +134,12 @@ const WidgetEmbedCode = ({
             </Button>
           </div>
 
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p><strong>Instructions:</strong></p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Paste this code on your homepage where you want the search bar</li>
-              <li>Change <code className="bg-muted px-1 rounded">data-redirect="/booking"</code> to match your booking page path</li>
-              <li>Optionally set <code className="bg-muted px-1 rounded">data-lang</code> to "en", "fr", or "id"</li>
-              <li>Set <code className="bg-muted px-1 rounded">data-theme</code> to "light" or "dark"</li>
+          <div className="text-xs text-muted-foreground bg-background p-3 rounded border space-y-2">
+            <p className="font-semibold">How it works:</p>
+            <ol className="list-decimal list-inside space-y-1 ml-2">
+              <li>User fills in From/To, Dates, Passengers on your homepage</li>
+              <li>Clicks "Search Trips" → redirects to your booking page with params</li>
+              <li>The full widget auto-reads params and shows results</li>
             </ol>
           </div>
         </div>
@@ -146,9 +148,12 @@ const WidgetEmbedCode = ({
       {embedType === 'fullwidget' && (
         <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
           <div className="space-y-2">
-            <h3 className="font-semibold">Full Widget (Dedicated Page)</h3>
+            <h3 className="font-semibold flex items-center gap-2">
+              <Layout className="w-4 h-4" />
+              Full Widget (Dedicated Page)
+            </h3>
             <p className="text-sm text-muted-foreground">
-              Embed this iframe on a <strong>dedicated booking page</strong> (e.g., /booking). It will auto-fill search parameters from the URL.
+              Embed this iframe on a <strong>dedicated booking page</strong> (e.g., /booking). It auto-reads URL parameters from the pre-widget and starts the search.
             </p>
           </div>
 
@@ -156,7 +161,7 @@ const WidgetEmbedCode = ({
             <Textarea
               value={fullWidgetCode}
               readOnly
-              className="font-mono text-xs h-56 bg-background resize-none"
+              className="font-mono text-xs h-72 bg-background resize-none"
             />
             <Button
               variant="secondary"
@@ -166,7 +171,7 @@ const WidgetEmbedCode = ({
             >
               {copied === 'fullwidget' ? (
                 <>
-                  <Check className="w-4 h-4 mr-1 text-green-600" />
+                  <Check className="w-4 h-4 mr-1 text-success" />
                   Copied!
                 </>
               ) : (
@@ -178,14 +183,13 @@ const WidgetEmbedCode = ({
             </Button>
           </div>
 
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p><strong>Instructions:</strong></p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Create a dedicated page on your website (e.g., /booking)</li>
-              <li>Paste this code as the main content of that page</li>
-              <li>The iframe takes full viewport height (100dvh)</li>
-              <li>If you have a fixed header, adjust the height: <code className="bg-muted px-1 rounded">calc(100dvh - 72px)</code></li>
-            </ol>
+          <div className="text-xs text-muted-foreground bg-background p-3 rounded border space-y-2">
+            <p className="font-semibold">Important for mobile:</p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li>The booking page should have minimal content (just the iframe)</li>
+              <li>No scroll wrapper around the iframe</li>
+              <li>If you have a fixed header, adjust <code className="bg-muted px-1 rounded">--header-h</code></li>
+            </ul>
           </div>
 
           <div className="flex gap-2 mt-2">
