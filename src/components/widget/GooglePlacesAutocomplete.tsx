@@ -1,7 +1,8 @@
 /// <reference types="@types/google.maps" />
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
-import { MapPin, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MapPin, Loader2, LocateFixed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGoogleMapsApiKey } from '@/hooks/useGoogleMapsApiKey';
 
@@ -32,6 +33,7 @@ interface GooglePlacesAutocompleteProps {
   disabled?: boolean;
   apiKey?: string;
   country?: string; // Restrict to specific country (e.g., 'id' for Indonesia)
+  showGeolocation?: boolean; // Show geolocation button
 }
 
 export const GooglePlacesAutocomplete = ({
@@ -42,6 +44,7 @@ export const GooglePlacesAutocomplete = ({
   disabled,
   apiKey,
   country = 'id',
+  showGeolocation = true,
 }: GooglePlacesAutocompleteProps) => {
   const { apiKey: fetchedApiKey, loading: keyLoading, error: keyError } = useGoogleMapsApiKey();
 
@@ -50,6 +53,7 @@ export const GooglePlacesAutocomplete = ({
   }, [apiKey, fetchedApiKey]);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeolocating, setIsGeolocating] = useState(false);
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
@@ -57,6 +61,7 @@ export const GooglePlacesAutocomplete = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Load Google Maps script
@@ -122,8 +127,87 @@ export const GooglePlacesAutocomplete = ({
       // Create a temporary div for PlacesService (required by API)
       const tempDiv = document.createElement('div');
       placesServiceRef.current = new window.google.maps.places.PlacesService(tempDiv);
+      geocoderRef.current = new window.google.maps.Geocoder();
     }
   }, [isScriptLoaded]);
+
+  // Handle geolocation
+  const handleGeolocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLoadError('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsGeolocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        if (geocoderRef.current) {
+          geocoderRef.current.geocode(
+            { location: { lat: latitude, lng: longitude } },
+            (results, status) => {
+              setIsGeolocating(false);
+              if (status === 'OK' && results && results[0]) {
+                const place = results[0];
+                const placeData: PlaceResult = {
+                  formatted_address: place.formatted_address || '',
+                  place_id: place.place_id || '',
+                  geometry: {
+                    location: {
+                      lat: latitude,
+                      lng: longitude,
+                    },
+                  },
+                };
+                onChange(place.formatted_address || '', placeData);
+              } else {
+                // Fallback: just use coordinates
+                const coordsText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                const placeData: PlaceResult = {
+                  formatted_address: coordsText,
+                  place_id: '',
+                  geometry: {
+                    location: { lat: latitude, lng: longitude },
+                  },
+                };
+                onChange(coordsText, placeData);
+              }
+            }
+          );
+        } else {
+          // No geocoder, use coordinates directly
+          setIsGeolocating(false);
+          const coordsText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          const placeData: PlaceResult = {
+            formatted_address: coordsText,
+            place_id: '',
+            geometry: {
+              location: { lat: latitude, lng: longitude },
+            },
+          };
+          onChange(coordsText, placeData);
+        }
+      },
+      (error) => {
+        setIsGeolocating(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLoadError('Location access denied');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLoadError('Location unavailable');
+            break;
+          case error.TIMEOUT:
+            setLoadError('Location request timed out');
+            break;
+          default:
+            setLoadError('Could not get location');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }, [onChange]);
 
   // Handle input change and fetch suggestions
   const handleInputChange = useCallback(async (inputValue: string) => {
@@ -230,19 +314,38 @@ export const GooglePlacesAutocomplete = ({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          ref={inputRef}
-          value={value}
-          onChange={(e) => handleInputChange(e.target.value)}
-          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-          placeholder={placeholder}
-          className={cn("pl-10 pr-10", className)}
-          disabled={disabled}
-        />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+      <div className="relative flex gap-2">
+        <div className="relative flex-1">
+          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={inputRef}
+            value={value}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            placeholder={placeholder}
+            className={cn("pl-10 pr-10", className)}
+            disabled={disabled}
+          />
+          {isLoading && (
+            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        {showGeolocation && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={handleGeolocation}
+            disabled={disabled || isGeolocating}
+            className="flex-shrink-0"
+            title="Use my current location"
+          >
+            {isGeolocating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <LocateFixed className="h-4 w-4" />
+            )}
+          </Button>
         )}
       </div>
 
@@ -271,7 +374,7 @@ export const GooglePlacesAutocomplete = ({
 
       {(keyError || loadError) && (
         <p className="text-xs text-destructive mt-1">
-          Address search unavailable. Please type manually.
+          {loadError || 'Address search unavailable. Please type manually.'}
         </p>
       )}
 
