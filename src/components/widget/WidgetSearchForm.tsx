@@ -388,15 +388,21 @@ export const WidgetSearchForm = ({
 
               {/* Return Date */}
               <FieldWrapper label={t('returnDate')} icon={CalendarDays}>
-                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen}>
+                <Popover open={returnDateOpen} onOpenChange={setReturnDateOpen} modal={true}>
                   <PopoverTrigger asChild>
                     <button 
                       type="button"
                       className={cn(
-                        "w-full text-left font-medium focus:outline-none cursor-pointer",
-                        tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900"
+                        "w-full text-left font-medium focus:outline-none",
+                        tripType === 'one-way' ? "text-gray-400 cursor-not-allowed" : "text-gray-900 cursor-pointer"
                       )}
                       disabled={tripType === 'one-way'}
+                      onClick={(e) => {
+                        if (tripType === 'round-trip') {
+                          e.stopPropagation();
+                          setReturnDateOpen(true);
+                        }
+                      }}
                     >
                       {parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : t('selectDate')}
                     </button>
@@ -405,8 +411,10 @@ export const WidgetSearchForm = ({
                     <PopoverContent 
                       className="w-auto p-0 z-[9999]" 
                       align="start" 
+                      side="bottom"
                       sideOffset={5}
                       onOpenAutoFocus={(e) => e.preventDefault()}
+                      onPointerDownOutside={(e) => e.preventDefault()}
                     >
                       <Calendar
                         mode="single"
@@ -422,15 +430,19 @@ export const WidgetSearchForm = ({
                         }}
                         disabled={(date) => {
                           // Return date must be >= departure date (same day allowed)
-                          const today = new Date(new Date().setHours(0, 0, 0, 0));
-                          const minDate = parsedDepartureDate 
-                            ? new Date(parsedDepartureDate.setHours(0, 0, 0, 0))
-                            : today;
-                          // Compare dates without time component
-                          const dateOnly = new Date(date.setHours(0, 0, 0, 0));
-                          return dateOnly < minDate;
+                          // Create new Date objects to avoid mutating originals
+                          const todayStart = new Date();
+                          todayStart.setHours(0, 0, 0, 0);
+                          
+                          let minDate = todayStart;
+                          if (parsedDepartureDate) {
+                            minDate = new Date(parsedDepartureDate.getFullYear(), parsedDepartureDate.getMonth(), parsedDepartureDate.getDate());
+                          }
+                          
+                          const dateToCheck = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                          return dateToCheck < minDate;
                         }}
-                        className="p-3 pointer-events-auto"
+                        className="p-3 pointer-events-auto touch-auto"
                       />
                     </PopoverContent>
                   )}
