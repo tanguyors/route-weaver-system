@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MapPin, CalendarDays, Users, Baby, Search, Ship, Anchor, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, isValid, parseISO, startOfDay, isAfter, isBefore, isSameDay } from 'date-fns';
+import { format, isValid, startOfDay, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -156,6 +156,20 @@ export const WidgetSearchForm = ({
     if (!year || !month || !day) return null;
     const d = new Date(year, month - 1, day); // month is 0-indexed
     return isValid(d) ? startOfDay(d) : null;
+  };
+
+  const formatDateOnly = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // On some mobile/iframe contexts, react-day-picker selection can visually highlight
+  // without reliably firing `onSelect`. We therefore also handle `onDayClick` as a fallback.
+  const closePopoverSoon = (close: () => void) => {
+    // Defer closing to avoid touch/pointer event ordering issues on mobile.
+    window.setTimeout(close, 0);
   };
 
   const parsedDepartureDate = departureDate ? parseDateOnly(departureDate) : null;
@@ -381,16 +395,26 @@ export const WidgetSearchForm = ({
                       mode="single"
                       selected={parsedDepartureDate || undefined}
                       onSelect={(date) => {
-                        if (date) {
-                          const year = date.getFullYear();
-                          const month = String(date.getMonth() + 1).padStart(2, '0');
-                          const day = String(date.getDate()).padStart(2, '0');
-                          onDepartureDateChange(`${year}-${month}-${day}`);
+                        try {
+                          if (date) onDepartureDateChange(formatDateOnly(date));
+                        } catch (e) {
+                          console.error('Departure date selection failed:', e);
+                        } finally {
+                          closePopoverSoon(() => setDepartureDateOpen(false));
                         }
-                        setDepartureDateOpen(false);
                       }}
-                        disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
-                      className="p-3 pointer-events-auto"
+                      onDayClick={(day, modifiers: any) => {
+                        if (modifiers?.disabled) return;
+                        try {
+                          onDepartureDateChange(formatDateOnly(day));
+                        } catch (e) {
+                          console.error('Departure date day click failed:', e);
+                        } finally {
+                          closePopoverSoon(() => setDepartureDateOpen(false));
+                        }
+                      }}
+                      disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                      className="p-3 pointer-events-auto touch-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -422,13 +446,23 @@ export const WidgetSearchForm = ({
                       mode="single"
                       selected={parsedReturnDate || undefined}
                       onSelect={(date) => {
-                        if (date) {
-                          const year = date.getFullYear();
-                          const month = String(date.getMonth() + 1).padStart(2, '0');
-                          const day = String(date.getDate()).padStart(2, '0');
-                          onReturnDateChange(`${year}-${month}-${day}`);
+                        try {
+                          if (date) onReturnDateChange(formatDateOnly(date));
+                        } catch (e) {
+                          console.error('Return date selection failed:', e);
+                        } finally {
+                          closePopoverSoon(() => setReturnDateOpen(false));
                         }
-                        setReturnDateOpen(false);
+                      }}
+                      onDayClick={(day, modifiers: any) => {
+                        if (modifiers?.disabled) return;
+                        try {
+                          onReturnDateChange(formatDateOnly(day));
+                        } catch (e) {
+                          console.error('Return date day click failed:', e);
+                        } finally {
+                          closePopoverSoon(() => setReturnDateOpen(false));
+                        }
                       }}
                       disabled={(date) => {
                         const today = startOfDay(new Date());
