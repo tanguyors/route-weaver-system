@@ -11,6 +11,7 @@ import { BookingStepPayment, PaymentMethod } from '@/components/widget/BookingSt
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import { WidgetLanguageSelector } from '@/components/widget/WidgetLanguageSelector';
 import { WidgetLanguageProvider } from '@/contexts/WidgetLanguageContext';
+import WidgetDebugPanel from '@/components/widget/WidgetDebugPanel';
 import { Card } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -257,6 +258,7 @@ const WidgetBookingNew = () => {
   return (
     <WidgetLanguageProvider>
       <div className="min-h-screen pb-6">
+        <WidgetDebugPanel />
         {/* Step Indicator */}
         <WidgetStepIndicator currentStep={step} primaryColor={primaryColor} />
 
