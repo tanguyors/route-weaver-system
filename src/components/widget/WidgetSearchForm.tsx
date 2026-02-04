@@ -172,22 +172,25 @@ export const WidgetSearchForm = ({
     window.setTimeout(close, 0);
   };
 
-  // iOS Safari inside embedded iframes can fail to synthesize a reliable "click" on DayPicker day buttons.
-  // We therefore capture touch/pointer events at the PopoverContent level and derive the date directly
-  // from the tapped day button's DOM attributes.
-  const isIosInIframe = (() => {
+  // Mobile browsers (iOS Safari AND Android) inside embedded iframes can fail to synthesize 
+  // a reliable "click" on DayPicker day buttons. We therefore capture touch/pointer events 
+  // at the PopoverContent level and derive the date directly from the tapped day button's DOM attributes.
+  const isMobileInIframe = (() => {
     if (typeof window === 'undefined') return false;
     const ua = navigator.userAgent || '';
     const isIOSDevice =
       /iP(hone|od|ad)/.test(ua) ||
       (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(ua);
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     let isIframe = false;
     try {
       isIframe = window.self !== window.top;
     } catch {
       isIframe = true;
     }
-    return isIOSDevice && isIframe;
+    // Enable for all mobile/touch devices in iframe
+    return (isIOSDevice || isAndroid || isTouchDevice) && isIframe;
   })();
 
   const DAY_STR_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -218,16 +221,26 @@ export const WidgetSearchForm = ({
     return null;
   };
 
-  const handleIosIframeDateTap = (
+  const handleMobileIframeDateTap = (
     e: React.PointerEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>,
     onDate: (dateStr: string) => void,
     close: () => void,
+    minDateStr?: string | null,
   ) => {
-    if (!isIosInIframe) return;
+    if (!isMobileInIframe) return;
     const dateStr = getDateStrFromTapTarget(e.target);
     if (!dateStr) return;
 
-    // We explicitly manage selection + closing for iOS/iframe.
+    // Check if the date is valid (not before minDate)
+    if (minDateStr) {
+      const tappedDate = parseDateOnly(dateStr);
+      const minDate = parseDateOnly(minDateStr);
+      if (tappedDate && minDate && isBefore(startOfDay(tappedDate), startOfDay(minDate))) {
+        return; // Date is disabled, don't select
+      }
+    }
+
+    // We explicitly manage selection + closing for mobile/iframe.
     onDate(dateStr);
     e.preventDefault();
     e.stopPropagation();
@@ -453,10 +466,10 @@ export const WidgetSearchForm = ({
                     sideOffset={5}
                     onOpenAutoFocus={(e) => e.preventDefault()}
                     onPointerUpCapture={(e) =>
-                      handleIosIframeDateTap(e, onDepartureDateChange, () => setDepartureDateOpen(false))
+                      handleMobileIframeDateTap(e, onDepartureDateChange, () => setDepartureDateOpen(false), formatDateOnly(new Date()))
                     }
                     onTouchEndCapture={(e) =>
-                      handleIosIframeDateTap(e, onDepartureDateChange, () => setDepartureDateOpen(false))
+                      handleMobileIframeDateTap(e, onDepartureDateChange, () => setDepartureDateOpen(false), formatDateOnly(new Date()))
                     }
                   >
                     <Calendar
@@ -509,16 +522,19 @@ export const WidgetSearchForm = ({
                     side="bottom"
                     sideOffset={5}
                     onOpenAutoFocus={(e) => e.preventDefault()}
-                    onPointerUpCapture={(e) =>
-                      handleIosIframeDateTap(e, onReturnDateChange, () => setReturnDateOpen(false))
-                    }
-                    onTouchEndCapture={(e) =>
-                      handleIosIframeDateTap(e, onReturnDateChange, () => setReturnDateOpen(false))
-                    }
+                    onPointerUpCapture={(e) => {
+                      const minDateStr = departureDate || formatDateOnly(new Date());
+                      handleMobileIframeDateTap(e, onReturnDateChange, () => setReturnDateOpen(false), minDateStr);
+                    }}
+                    onTouchEndCapture={(e) => {
+                      const minDateStr = departureDate || formatDateOnly(new Date());
+                      handleMobileIframeDateTap(e, onReturnDateChange, () => setReturnDateOpen(false), minDateStr);
+                    }}
                   >
                     <Calendar
                       mode="single"
                       selected={parsedReturnDate || undefined}
+                      defaultMonth={parsedDepartureDate || new Date()}
                       onSelect={(date) => {
                         try {
                           if (date) onReturnDateChange(formatDateOnly(date));
