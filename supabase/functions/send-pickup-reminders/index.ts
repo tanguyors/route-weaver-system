@@ -14,6 +14,10 @@ interface PickupInfo {
   pickup_address?: string;
   pickup_note?: string;
   vehicle_type?: string;
+  coords?: {
+    lat: number;
+    lng: number;
+  } | null;
 }
 
 interface BookingAddon {
@@ -74,6 +78,8 @@ interface TemplateData {
   pickup_date: string;
   pickup_time: string;
   pickup_location: string;
+  pickup_location_link: string;
+  pickup_location_whatsapp: string;
   pickup_area: string;
   vehicle_type: string;
   origin_port: string;
@@ -84,6 +90,24 @@ interface TemplateData {
   customer_phone: string;
   booking_ref: string;
   hours_before: string;
+}
+
+// Helper to generate Google Maps link
+function getGoogleMapsLink(address: string, coords?: { lat: number; lng: number } | null): string {
+  if (coords && coords.lat && coords.lng) {
+    return `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
+
+function getGoogleMapsHtmlLink(address: string, coords?: { lat: number; lng: number } | null): string {
+  const url = getGoogleMapsLink(address, coords);
+  return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${address} 📍</a>`;
+}
+
+function getGoogleMapsWhatsAppText(address: string, coords?: { lat: number; lng: number } | null): string {
+  const url = getGoogleMapsLink(address, coords);
+  return `${address}\n📍 ${url}`;
 }
 
 // Default templates (fallback when no custom template exists)
@@ -116,7 +140,7 @@ const DEFAULT_TEMPLATES = {
         </tr>
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>📍 Pickup Location</strong></td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">{{pickup_location}}<br><span style="color: #666;">{{pickup_area}}</span></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">{{pickup_location_link}}<br><span style="color: #666;">{{pickup_area}}</span></td>
         </tr>
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>🚗 Vehicle</strong></td>
@@ -181,7 +205,7 @@ const DEFAULT_TEMPLATES = {
         </tr>
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>📍 Pickup Location</strong></td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">{{pickup_location}}<br><span style="color: #666;">{{pickup_area}}</span></td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">{{pickup_location_link}}<br><span style="color: #666;">{{pickup_area}}</span></td>
         </tr>
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #eee;"><strong>🚗 Vehicle Type</strong></td>
@@ -214,7 +238,7 @@ Your pickup is scheduled for:
 ⏰ *{{pickup_time}}*
 
 📍 *Pickup Location:*
-{{pickup_location}}
+{{pickup_location_whatsapp}}
 Area: {{pickup_area}}
 
 🚗 *Vehicle:* {{vehicle_type}}
@@ -241,7 +265,7 @@ Booking ref: {{booking_ref}}`
 {{pickup_time}}
 
 📍 *Location:*
-{{pickup_location}}
+{{pickup_location_whatsapp}}
 Area: {{pickup_area}}
 
 🚗 *Vehicle:* {{vehicle_type}}
@@ -477,13 +501,16 @@ const handler = async (req: Request): Promise<Response> => {
         const hoursText = reminderType === "24h" ? "24 hours" : "12 hours";
         const vehicleText = pickupInfo.vehicle_type === "bus" ? "Shuttle Bus" : "Private Car";
         const pickupLocation = pickupInfo.pickup_hotel || pickupInfo.pickup_address || pickupInfo.pickup_area || "";
+        const pickupCoords = pickupInfo.coords || null;
 
-        // Prepare template data
+        // Prepare template data with clickable map link
         const templateData: TemplateData = {
           customer_name: customer.full_name,
           pickup_date: pickupDate,
           pickup_time: pickupTime,
           pickup_location: pickupLocation,
+          pickup_location_link: getGoogleMapsHtmlLink(pickupLocation, pickupCoords),
+          pickup_location_whatsapp: getGoogleMapsWhatsAppText(pickupLocation, pickupCoords),
           pickup_area: pickupInfo.pickup_area || "",
           vehicle_type: vehicleText,
           origin_port: departure.route.origin_port.name,
