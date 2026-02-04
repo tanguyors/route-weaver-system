@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarDays, Trash2, Ship, Car, Bus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWidgetLanguage, useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
+import { GooglePlacesAutocomplete, PlaceResult } from './GooglePlacesAutocomplete';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 interface Boat {
   id: string;
@@ -300,12 +303,23 @@ export const CartItemCard = ({
 
                   <div>
                     <div className="text-sm text-gray-600 mb-1">{t('hotelAddress')}</div>
-                    <Input
-                      placeholder={t('enterHotelAddress')}
-                      value={pickupDetails}
-                      onChange={(e) => onPickupDetailsChange(e.target.value)}
-                      disabled={pickupRuleId === NONE}
-                    />
+                    {GOOGLE_MAPS_API_KEY ? (
+                      <GooglePlacesAutocomplete
+                        value={pickupDetails}
+                        onChange={(value) => onPickupDetailsChange(value)}
+                        placeholder={t('enterHotelAddress')}
+                        apiKey={GOOGLE_MAPS_API_KEY}
+                        country="id"
+                        disabled={pickupRuleId === NONE}
+                      />
+                    ) : (
+                      <Input
+                        placeholder={t('enterHotelAddress')}
+                        value={pickupDetails}
+                        onChange={(e) => onPickupDetailsChange(e.target.value)}
+                        disabled={pickupRuleId === NONE}
+                      />
+                    )}
                   </div>
                 </div>
 

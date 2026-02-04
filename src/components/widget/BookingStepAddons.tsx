@@ -8,7 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WidgetAddon, SelectedAddon, PickupZone } from '@/hooks/useWidgetBooking';
 import { ArrowLeft, ArrowRight, MapPin, Package, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { GooglePlacesAutocomplete, PlaceResult } from './GooglePlacesAutocomplete';
 
+// Google Maps API key - this is a public key that can be in frontend code
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 interface BookingStepAddonsProps {
   addons: WidgetAddon[];
   paxTotal: number;
@@ -24,6 +27,9 @@ interface AddonSelection {
     hotel_name?: string;
     address?: string;
     pickup_note?: string;
+    latitude?: number;
+    longitude?: number;
+    place_id?: string;
   };
 }
 
@@ -70,6 +76,22 @@ export const BookingStepAddons = ({ addons, paxTotal, onConfirm, onBack }: Booki
       pickupInfo: {
         ...selection.pickupInfo,
         [field]: value,
+      },
+    })));
+  };
+
+  const setPickupAddress = (addonId: string, address: string, placeData?: PlaceResult) => {
+    const selection = selections.get(addonId);
+    if (!selection) return;
+    
+    setSelections(new Map(selections.set(addonId, {
+      ...selection,
+      pickupInfo: {
+        ...selection.pickupInfo,
+        address: address,
+        latitude: placeData?.geometry?.location?.lat,
+        longitude: placeData?.geometry?.location?.lng,
+        place_id: placeData?.place_id,
       },
     })));
   };
@@ -240,23 +262,54 @@ export const BookingStepAddons = ({ addons, paxTotal, onConfirm, onBack }: Booki
                       {addon.pickup_required_info.hotel_name && (
                         <div>
                           <Label htmlFor={`hotel-${addon.id}`}>Hotel Name *</Label>
-                          <Input
-                            id={`hotel-${addon.id}`}
-                            placeholder="Enter hotel name"
-                            value={selection.pickupInfo.hotel_name || ''}
-                            onChange={(e) => setPickupInfo(addon.id, 'hotel_name', e.target.value)}
-                          />
+                          {GOOGLE_MAPS_API_KEY ? (
+                            <GooglePlacesAutocomplete
+                              value={selection.pickupInfo.hotel_name || ''}
+                              onChange={(value, placeData) => {
+                                setPickupInfo(addon.id, 'hotel_name', value);
+                                if (placeData) {
+                                  // Also update address with precise coordinates
+                                  setPickupAddress(addon.id, placeData.formatted_address, placeData);
+                                }
+                              }}
+                              placeholder="Search hotel or address..."
+                              apiKey={GOOGLE_MAPS_API_KEY}
+                              country="id"
+                            />
+                          ) : (
+                            <Input
+                              id={`hotel-${addon.id}`}
+                              placeholder="Enter hotel name"
+                              value={selection.pickupInfo.hotel_name || ''}
+                              onChange={(e) => setPickupInfo(addon.id, 'hotel_name', e.target.value)}
+                            />
+                          )}
                         </div>
                       )}
                       {addon.pickup_required_info.address && (
                         <div>
                           <Label htmlFor={`address-${addon.id}`}>Address *</Label>
-                          <Input
-                            id={`address-${addon.id}`}
-                            placeholder="Enter pickup address"
-                            value={selection.pickupInfo.address || ''}
-                            onChange={(e) => setPickupInfo(addon.id, 'address', e.target.value)}
-                          />
+                          {GOOGLE_MAPS_API_KEY ? (
+                            <GooglePlacesAutocomplete
+                              value={selection.pickupInfo.address || ''}
+                              onChange={(value, placeData) => setPickupAddress(addon.id, value, placeData)}
+                              placeholder="Search pickup address..."
+                              apiKey={GOOGLE_MAPS_API_KEY}
+                              country="id"
+                            />
+                          ) : (
+                            <Input
+                              id={`address-${addon.id}`}
+                              placeholder="Enter pickup address"
+                              value={selection.pickupInfo.address || ''}
+                              onChange={(e) => setPickupInfo(addon.id, 'address', e.target.value)}
+                            />
+                          )}
+                          {selection.pickupInfo.latitude && selection.pickupInfo.longitude && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              📍 GPS: {selection.pickupInfo.latitude.toFixed(6)}, {selection.pickupInfo.longitude.toFixed(6)}
+                            </p>
+                          )}
                         </div>
                       )}
                       {addon.pickup_required_info.pickup_note && (
