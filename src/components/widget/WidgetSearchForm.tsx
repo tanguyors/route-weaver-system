@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MapPin, CalendarDays, Users, Baby, Search, Ship, Anchor, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -133,6 +133,7 @@ export const WidgetSearchForm = ({
   const { t } = useWidgetLanguage();
   const [departureDateOpen, setDepartureDateOpen] = useState(false);
   const [returnDateOpen, setReturnDateOpen] = useState(false);
+  const returnPopoverContentRef = useRef<HTMLDivElement | null>(null);
   
   // Service type toggle
   const hasPrivateBoats = privateBoats.length > 0;
@@ -170,6 +171,40 @@ export const WidgetSearchForm = ({
   const closePopoverSoon = (close: () => void) => {
     // Defer closing to avoid touch/pointer event ordering issues on mobile.
     window.setTimeout(close, 0);
+  };
+
+  // iOS Safari (especially inside iframes) can sometimes update the DayPicker UI state
+  // (a day looks selected) while React callbacks like `onSelect` / `onDayClick` don't fire reliably.
+  // We add a DOM-based fallback that reads the selected day button and updates our state.
+  const DAY_STR_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const getDateStrFromDayButton = (btn: Element | null): string | null => {
+    if (!btn || !(btn instanceof HTMLButtonElement)) return null;
+    const candidates = [
+      btn.getAttribute('data-day'),
+      btn.getAttribute('data-date'),
+      btn.getAttribute('data-value'),
+      btn.getAttribute('value'),
+      // Some builds may set the date on the DOM property.
+      typeof btn.value === 'string' ? btn.value : null,
+    ].filter(Boolean) as string[];
+
+    for (const c of candidates) {
+      if (DAY_STR_RE.test(c)) return c;
+    }
+    return null;
+  };
+
+  const syncReturnDateFromDom = () => {
+    const root = returnPopoverContentRef.current;
+    if (!root) return;
+    // Let DayPicker apply aria-selected first.
+    window.setTimeout(() => {
+      const selectedBtn = root.querySelector('button[aria-selected="true"]');
+      const dateStr = getDateStrFromDayButton(selectedBtn);
+      if (!dateStr) return;
+      onReturnDateChange(dateStr);
+      closePopoverSoon(() => setReturnDateOpen(false));
+    }, 0);
   };
 
   const parsedDepartureDate = departureDate ? parseDateOnly(departureDate) : null;
@@ -436,11 +471,14 @@ export const WidgetSearchForm = ({
                     </button>
                   </PopoverTrigger>
                   <PopoverContent 
+                    ref={returnPopoverContentRef}
                     className="w-auto p-0 z-[9999]" 
                     align="start" 
                     side="bottom"
                     sideOffset={5}
                     onOpenAutoFocus={(e) => e.preventDefault()}
+                    onPointerUpCapture={() => syncReturnDateFromDom()}
+                    onTouchEndCapture={() => syncReturnDateFromDom()}
                   >
                     <Calendar
                       mode="single"
