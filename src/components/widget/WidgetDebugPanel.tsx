@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { widgetLogger, type LogEntry } from '@/lib/widgetLogger';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,8 @@ export default function WidgetDebugPanel() {
   const enabled = widgetLogger.isDebugEnabled();
   const [open, setOpen] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>(() => widgetLogger.getAllLogs());
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const lastActivateTsRef = useRef(0);
 
   const summary = useMemo(() => {
     const errors = logs.filter((l) => l.level === 'error').length;
@@ -48,6 +50,28 @@ export default function WidgetDebugPanel() {
     return () => window.clearInterval(id);
   }, [enabled]);
 
+  // IMPORTANT (iOS + iframes): some overlays set pointer-events on <body>.
+  // Mounting into <html> keeps the debug UI clickable even in those cases.
+  useEffect(() => {
+    if (!enabled) return;
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    if (!root) return;
+
+    const el = document.createElement('div');
+    el.setAttribute('data-sribooking-debug-portal', '');
+    root.appendChild(el);
+    setPortalTarget(el);
+
+    return () => {
+      try {
+        el.remove();
+      } catch {
+        // ignore
+      }
+    };
+  }, [enabled]);
+
   if (!enabled) return null;
 
   const copy = async () => {
@@ -59,8 +83,17 @@ export default function WidgetDebugPanel() {
     }
   };
 
+  const activateOnce = (fn: () => void, meta?: { type?: string }) => {
+    const now = Date.now();
+    if (now - lastActivateTsRef.current < 250) return;
+    lastActivateTsRef.current = now;
+    widgetLogger.debug('DebugPanel', 'activate', { type: meta?.type });
+    fn();
+  };
+
   const ui = (
     <div
+      data-sribooking-debug-panel="1"
       className="fixed bottom-3 right-3 z-[2147483647] pointer-events-auto"
       style={{ touchAction: 'manipulation' }}
       onPointerDownCapture={(e) => e.stopPropagation()}
@@ -71,7 +104,21 @@ export default function WidgetDebugPanel() {
       {!open ? (
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onPointerUp={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            activateOnce(() => setOpen(true), { type: e.type });
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            activateOnce(() => setOpen(true), { type: e.type });
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            activateOnce(() => setOpen(true), { type: e.type });
+          }}
           className={cn(
             'rounded-full border bg-background text-foreground shadow-lg px-3 py-2 text-xs font-semibold',
             'hover:bg-muted'
@@ -155,10 +202,8 @@ export default function WidgetDebugPanel() {
     </div>
   );
 
-  // Render in a portal to escape any stacking-context / overlay issues in iframes.
-  if (typeof document !== 'undefined' && document.body) {
-    return createPortal(ui, document.body);
-  }
-
+  // Prefer mounting outside <body> to bypass body-level pointer-event locks.
+  if (portalTarget) return createPortal(ui, portalTarget);
+  if (typeof document !== 'undefined' && document.body) return createPortal(ui, document.body);
   return ui;
 }
