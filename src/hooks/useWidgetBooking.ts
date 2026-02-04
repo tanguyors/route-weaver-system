@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { addDays, format as formatDate, isValid, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 
 // Simple in-memory cache for widget data
@@ -296,9 +297,9 @@ export const useWidgetBooking = (widgetKey: string | null) => {
 
   // Helper to get next day from a date string
   const getNextDay = (dateStr: string) => {
-    const date = new Date(dateStr);
-    date.setDate(date.getDate() + 1);
-    return date.toISOString().split('T')[0];
+    const parsed = parseISO(dateStr);
+    if (!isValid(parsed)) return dateStr; // never crash the widget on invalid dates
+    return formatDate(addDays(parsed, 1), 'yyyy-MM-dd');
   };
 
   const getReturnDepartures = (returnDate: string) => {
