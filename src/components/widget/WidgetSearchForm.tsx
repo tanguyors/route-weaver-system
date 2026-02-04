@@ -719,106 +719,175 @@ export const WidgetSearchForm = ({
                 </select>
               </FieldWrapper>
 
-              {/* Depart Date */}
+              {/* Depart Date - Using native dropdown for mobile iframe reliability */}
               <FieldWrapper label={t('departureDate')} icon={CalendarDays}>
-                <Popover open={departureDateOpen} onOpenChange={handleDepartureCalendarOpenChange}>
-                  <PopoverTrigger asChild>
+                {isMobileInIframe ? (
+                  // Mobile iframe: use a simple click-to-toggle div instead of Radix Popover
+                  <div className="relative">
                     <button 
                       type="button"
                       className="w-full text-left text-gray-900 font-medium focus:outline-none cursor-pointer"
-                      onPointerDownCapture={(e) =>
-                        !useTouchFallback &&
-                        handleMobileTriggerToggle(e, false, () => setDepartureDateOpen((v) => !v))
-                      }
-                      onTouchStartCapture={(e) =>
-                        useTouchFallback &&
-                        handleMobileTriggerToggle(e, false, () => setDepartureDateOpen((v) => !v))
-                      }
+                      onClick={() => setDepartureDateOpen((v) => !v)}
                     >
                       {formatTripDatesLabel()}
                     </button>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-auto p-0 z-[9999]" 
-                    align="start" 
-                    sideOffset={5}
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                    {...(!useTouchFallback
-                      ? {
-                          onPointerUpCapture: (e: React.PointerEvent<HTMLDivElement>) =>
-                            handleMobileIframeTripDatesTap(e),
-                        }
-                      : {})}
-                    {...(useTouchFallback
-                      ? {
-                          onTouchEndCapture: (e: React.TouchEvent<HTMLDivElement>) =>
-                            handleMobileIframeTripDatesTap(e),
-                        }
-                      : {})}
-                  >
-                    {tripType === 'round-trip' ? (
-                      <Calendar
-                        mode="range"
-                        selected={{
-                          from: parsedDepartureDate ?? undefined,
-                          to: parsedReturnDate ?? undefined,
-                        }}
-                        defaultMonth={parsedReturnDate || parsedDepartureDate || new Date()}
-                        onSelect={(range: DateRange | undefined) => {
-                          try {
-                            if (!range?.from) return;
-                            onDepartureDateChange(formatDateOnly(range.from));
-                            if (range.to) {
-                              onReturnDateChange(formatDateOnly(range.to));
-                              closePopoverSoon(() => setDepartureDateOpen(false));
-                            } else {
-                              onReturnDateChange('');
-                            }
-                          } catch (e) {
-                            console.error('Trip date selection failed:', e);
-                          }
-                        }}
-                        onDayClick={(day, modifiers: any) => {
-                          if (modifiers?.disabled) return;
-                          try {
-                            const { shouldClose } = applyRoundTripDayClick(day);
-                            if (shouldClose) closePopoverSoon(() => setDepartureDateOpen(false));
-                          } catch (e) {
-                            console.error('Trip date day click failed:', e);
-                          }
-                        }}
-                        disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
-                        className="p-3 pointer-events-auto touch-auto"
-                      />
-                    ) : (
-                      <Calendar
-                        mode="single"
-                        selected={parsedDepartureDate || undefined}
-                        defaultMonth={parsedDepartureDate || new Date()}
-                        onSelect={(date) => {
-                          try {
-                            if (!date) return;
-                            onDepartureDateChange(formatDateOnly(date));
-                            closePopoverSoon(() => setDepartureDateOpen(false));
-                          } catch (e) {
-                            console.error('Trip date selection failed:', e);
-                          }
-                        }}
-                        onDayClick={(day, modifiers: any) => {
-                          if (modifiers?.disabled) return;
-                          try {
-                            onDepartureDateChange(formatDateOnly(day));
-                            closePopoverSoon(() => setDepartureDateOpen(false));
-                          } catch (e) {
-                            console.error('Trip date day click failed:', e);
-                          }
-                        }}
-                        disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
-                        className="p-3 pointer-events-auto touch-auto"
-                      />
+                    {departureDateOpen && (
+                      <>
+                        {/* Backdrop to close calendar */}
+                        <div 
+                          className="fixed inset-0 z-[9998]" 
+                          onClick={() => {
+                            if (canCloseDepartureCalendar) setDepartureDateOpen(false);
+                          }}
+                        />
+                        {/* Calendar dropdown */}
+                        <div className="absolute left-0 top-full mt-1 z-[9999] bg-white rounded-md border shadow-lg">
+                          {tripType === 'round-trip' ? (
+                            <Calendar
+                              mode="range"
+                              selected={{
+                                from: parsedDepartureDate ?? undefined,
+                                to: parsedReturnDate ?? undefined,
+                              }}
+                              defaultMonth={parsedReturnDate || parsedDepartureDate || new Date()}
+                              onSelect={(range: DateRange | undefined) => {
+                                try {
+                                  if (!range?.from) return;
+                                  onDepartureDateChange(formatDateOnly(range.from));
+                                  if (range.to) {
+                                    onReturnDateChange(formatDateOnly(range.to));
+                                    setDepartureDateOpen(false);
+                                  } else {
+                                    onReturnDateChange('');
+                                  }
+                                } catch (e) {
+                                  console.error('Trip date selection failed:', e);
+                                }
+                              }}
+                              onDayClick={(day, modifiers: any) => {
+                                if (modifiers?.disabled) return;
+                                try {
+                                  const { shouldClose } = applyRoundTripDayClick(day);
+                                  if (shouldClose) setDepartureDateOpen(false);
+                                } catch (e) {
+                                  console.error('Trip date day click failed:', e);
+                                }
+                              }}
+                              disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                              className="p-3 pointer-events-auto touch-auto"
+                            />
+                          ) : (
+                            <Calendar
+                              mode="single"
+                              selected={parsedDepartureDate || undefined}
+                              defaultMonth={parsedDepartureDate || new Date()}
+                              onSelect={(date) => {
+                                try {
+                                  if (!date) return;
+                                  onDepartureDateChange(formatDateOnly(date));
+                                  setDepartureDateOpen(false);
+                                } catch (e) {
+                                  console.error('Trip date selection failed:', e);
+                                }
+                              }}
+                              onDayClick={(day, modifiers: any) => {
+                                if (modifiers?.disabled) return;
+                                try {
+                                  onDepartureDateChange(formatDateOnly(day));
+                                  setDepartureDateOpen(false);
+                                } catch (e) {
+                                  console.error('Trip date day click failed:', e);
+                                }
+                              }}
+                              disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                              className="p-3 pointer-events-auto touch-auto"
+                            />
+                          )}
+                        </div>
+                      </>
                     )}
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                ) : (
+                  // Desktop: use Radix Popover
+                  <Popover open={departureDateOpen} onOpenChange={handleDepartureCalendarOpenChange}>
+                    <PopoverTrigger asChild>
+                      <button 
+                        type="button"
+                        className="w-full text-left text-gray-900 font-medium focus:outline-none cursor-pointer"
+                      >
+                        {formatTripDatesLabel()}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent 
+                      className="w-auto p-0 z-[9999]" 
+                      align="start" 
+                      sideOffset={5}
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                    >
+                      {tripType === 'round-trip' ? (
+                        <Calendar
+                          mode="range"
+                          selected={{
+                            from: parsedDepartureDate ?? undefined,
+                            to: parsedReturnDate ?? undefined,
+                          }}
+                          defaultMonth={parsedReturnDate || parsedDepartureDate || new Date()}
+                          onSelect={(range: DateRange | undefined) => {
+                            try {
+                              if (!range?.from) return;
+                              onDepartureDateChange(formatDateOnly(range.from));
+                              if (range.to) {
+                                onReturnDateChange(formatDateOnly(range.to));
+                                closePopoverSoon(() => setDepartureDateOpen(false));
+                              } else {
+                                onReturnDateChange('');
+                              }
+                            } catch (e) {
+                              console.error('Trip date selection failed:', e);
+                            }
+                          }}
+                          onDayClick={(day, modifiers: any) => {
+                            if (modifiers?.disabled) return;
+                            try {
+                              const { shouldClose } = applyRoundTripDayClick(day);
+                              if (shouldClose) closePopoverSoon(() => setDepartureDateOpen(false));
+                            } catch (e) {
+                              console.error('Trip date day click failed:', e);
+                            }
+                          }}
+                          disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                          className="p-3 pointer-events-auto touch-auto"
+                        />
+                      ) : (
+                        <Calendar
+                          mode="single"
+                          selected={parsedDepartureDate || undefined}
+                          defaultMonth={parsedDepartureDate || new Date()}
+                          onSelect={(date) => {
+                            try {
+                              if (!date) return;
+                              onDepartureDateChange(formatDateOnly(date));
+                              closePopoverSoon(() => setDepartureDateOpen(false));
+                            } catch (e) {
+                              console.error('Trip date selection failed:', e);
+                            }
+                          }}
+                          onDayClick={(day, modifiers: any) => {
+                            if (modifiers?.disabled) return;
+                            try {
+                              onDepartureDateChange(formatDateOnly(day));
+                              closePopoverSoon(() => setDepartureDateOpen(false));
+                            } catch (e) {
+                              console.error('Trip date day click failed:', e);
+                            }
+                          }}
+                          disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                          className="p-3 pointer-events-auto touch-auto"
+                        />
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                )}
               </FieldWrapper>
             </div>
 
