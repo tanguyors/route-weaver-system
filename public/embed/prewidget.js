@@ -339,7 +339,7 @@
         color: ${mutedColor};
       }
       
-      /* Calendar Dropdown - positioned relative to body */
+      /* Calendar Dropdown - centered horizontally */
       .srb-pw-calendar-dropdown {
         position: absolute;
         z-index: 1000;
@@ -350,16 +350,9 @@
         padding: 12px;
         width: calc(100% - 32px);
         max-width: 300px;
-        left: 16px;
-        right: 16px;
+        left: 50%;
+        transform: translateX(-50%);
         margin-top: 4px;
-      }
-      @media (min-width: 640px) {
-        .srb-pw-calendar-dropdown {
-          width: 300px;
-          left: auto;
-          right: auto;
-        }
       }
       
       .srb-pw-calendar-header {
