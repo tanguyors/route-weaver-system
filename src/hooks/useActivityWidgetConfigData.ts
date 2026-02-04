@@ -279,12 +279,72 @@ export const useActivityWidgetConfigData = () => {
   var iframe = document.getElementById('${iframeId}');
   if (!iframe) return;
 
+  // iOS Safari can sometimes treat taps inside large iframes as page scroll gestures.
+  // Locking the host-page scroll *only while interacting with the iframe* makes taps
+  // reliably reach the widget, while still keeping the overall UX as page-scroll.
+  var isIOS = false;
+  try {
+    isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  } catch (e) {}
+
   try {
     iframe.style.display = 'block';
     iframe.style.width = '100%';
     iframe.style.maxWidth = '100%';
     iframe.style.touchAction = 'manipulation';
   } catch (e) {}
+
+  var __sr_lock = { locked: false, y: 0, prev: null };
+  function lockHostScroll(){
+    if (!isIOS) return;
+    if (__sr_lock.locked) return;
+    if (!document || !document.body) return;
+
+    __sr_lock.locked = true;
+    __sr_lock.y = window.pageYOffset || document.documentElement.scrollTop || 0;
+
+    __sr_lock.prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width
+    };
+
+    document.body.style.position = 'fixed';
+    document.body.style.top = (-__sr_lock.y) + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+  }
+  function unlockHostScroll(){
+    if (!__sr_lock.locked) return;
+    if (!document || !document.body) return;
+
+    __sr_lock.locked = false;
+    var y = __sr_lock.y;
+    var prev = __sr_lock.prev;
+    __sr_lock.prev = null;
+
+    try {
+      if (prev) {
+        document.body.style.position = prev.position;
+        document.body.style.top = prev.top;
+        document.body.style.left = prev.left;
+        document.body.style.right = prev.right;
+        document.body.style.width = prev.width;
+      } else {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+      }
+    } catch (e) {}
+
+    try { window.scrollTo(0, y); } catch (e) {}
+  }
 
   function clampHeight(h){
     if (!isFinite(h) || h <= 0) return null;
@@ -319,12 +379,23 @@ export const useActivityWidgetConfigData = () => {
   }
 
   window.addEventListener('resize', throttledRequest);
+  window.addEventListener('orientationchange', throttledRequest);
   window.addEventListener('scroll', throttledRequest, { passive: true });
+  window.addEventListener('pageshow', function(){ requestResize(); });
+
+  // iOS interaction help: lock host scroll while finger is down on the iframe.
+  // We do NOT preventDefault; we only stabilize Safari's gesture routing.
+  if (isIOS) {
+    iframe.addEventListener('touchstart', function(){ lockHostScroll(); requestResize(); }, { passive: true });
+    iframe.addEventListener('touchend', function(){ setTimeout(unlockHostScroll, 0); }, { passive: true });
+    iframe.addEventListener('touchcancel', function(){ unlockHostScroll(); }, { passive: true });
+  }
 
   iframe.addEventListener('load', function(){
     requestResize();
     setTimeout(requestResize, 300);
     setTimeout(requestResize, 1200);
+    setTimeout(requestResize, 2500);
   });
 
   requestResize();
