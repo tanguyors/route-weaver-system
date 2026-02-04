@@ -1,5 +1,6 @@
 /**
  * SriBooking Pre-Widget - Native search bar (no iframe)
+ * Exact same visual style as the main widget WidgetSearchForm
  * Embed on partner's homepage, redirects to dedicated booking page with params
  */
 (function() {
@@ -18,17 +19,76 @@
   var lang = container.getAttribute('data-lang') || 'en';
   var theme = container.getAttribute('data-theme') || 'light';
   var primaryColor = container.getAttribute('data-primary-color') || '#1B5E3B';
+  var logoUrl = container.getAttribute('data-logo') || '';
+  var tagline = container.getAttribute('data-tagline') || '';
 
   if (!widgetKey) {
     container.innerHTML = '<p style="color:red;">Missing data-key attribute</p>';
     return;
   }
 
-  // Translations
+  // Translations - same as widget
   var translations = {
-    en: { from: 'From', to: 'To', departure: 'Departure Date', return: 'Return Date', adults: 'Adults', children: 'Children', infants: 'Infants', search: 'Search Trips', oneway: 'One Way', roundtrip: 'Round Trip', selectFrom: 'Select origin', selectTo: 'Select destination', loading: 'Loading...' },
-    fr: { from: 'De', to: 'Vers', departure: 'Date de départ', return: 'Date de retour', adults: 'Adultes', children: 'Enfants', infants: 'Bébés', search: 'Rechercher', oneway: 'Aller simple', roundtrip: 'Aller-retour', selectFrom: 'Origine', selectTo: 'Destination', loading: 'Chargement...' },
-    id: { from: 'Dari', to: 'Ke', departure: 'Tanggal Berangkat', return: 'Tanggal Kembali', adults: 'Dewasa', children: 'Anak', infants: 'Bayi', search: 'Cari Perjalanan', oneway: 'Sekali Jalan', roundtrip: 'Pulang Pergi', selectFrom: 'Pilih asal', selectTo: 'Pilih tujuan', loading: 'Memuat...' },
+    en: { 
+      bookTickets: 'bookTickets',
+      sharedBoat: 'Shared Boat',
+      privateBoat: 'Private Boat',
+      oneWay: 'One Way',
+      roundTrip: 'Round Trip',
+      selectVoyage: 'Select Voyage',
+      from: 'From',
+      to: 'To',
+      selectOrigin: 'Select origin',
+      selectDestination: 'Select destination',
+      departureDate: 'Departure Date',
+      selectDate: 'Select Date',
+      adultAge: 'Adult',
+      child: 'Child',
+      infantAge: 'Infant',
+      searchTrips: 'Search Trips',
+      loading: 'Loading...',
+      poweredBy: 'By'
+    },
+    fr: { 
+      bookTickets: 'Réserver',
+      sharedBoat: 'Bateau Partagé',
+      privateBoat: 'Bateau Privé',
+      oneWay: 'Aller Simple',
+      roundTrip: 'Aller-Retour',
+      selectVoyage: 'Sélectionner',
+      from: 'De',
+      to: 'Vers',
+      selectOrigin: 'Origine',
+      selectDestination: 'Destination',
+      departureDate: 'Date Départ',
+      selectDate: 'Choisir',
+      adultAge: 'Adulte',
+      child: 'Enfant',
+      infantAge: 'Bébé',
+      searchTrips: 'Rechercher',
+      loading: 'Chargement...',
+      poweredBy: 'Par'
+    },
+    id: { 
+      bookTickets: 'Pesan Tiket',
+      sharedBoat: 'Kapal Bersama',
+      privateBoat: 'Kapal Pribadi',
+      oneWay: 'Sekali Jalan',
+      roundTrip: 'Pulang Pergi',
+      selectVoyage: 'Pilih',
+      from: 'Dari',
+      to: 'Ke',
+      selectOrigin: 'Pilih asal',
+      selectDestination: 'Pilih tujuan',
+      departureDate: 'Tanggal Berangkat',
+      selectDate: 'Pilih Tanggal',
+      adultAge: 'Dewasa',
+      child: 'Anak',
+      infantAge: 'Bayi',
+      searchTrips: 'Cari Perjalanan',
+      loading: 'Memuat...',
+      poweredBy: 'Oleh'
+    },
   };
   var t = translations[lang] || translations.en;
 
@@ -48,10 +108,9 @@
     error: null
   };
 
-  // Get API base URL (same origin as script or from data attribute)
+  // Get API base URL
   var apiBase = container.getAttribute('data-api') || '';
   if (!apiBase) {
-    // Try to detect from script src
     var scripts = document.getElementsByTagName('script');
     for (var i = 0; i < scripts.length; i++) {
       var src = scripts[i].src || '';
@@ -61,188 +120,286 @@
       }
     }
   }
-  // Fallback to current origin
   if (!apiBase) {
     apiBase = window.location.origin;
   }
 
-  // Styles
+  // Check if dark theme
   var isDark = theme === 'dark';
-  var bgColor = isDark ? '#1a1a2e' : '#ffffff';
-  var textColor = isDark ? '#ffffff' : '#1f2937';
+  var bgColor = isDark ? '#1f2937' : '#ffffff';
+  var textColor = isDark ? '#f9fafb' : '#1f2937';
+  var mutedColor = isDark ? '#9ca3af' : '#6b7280';
   var borderColor = isDark ? '#374151' : '#e5e7eb';
-  var inputBg = isDark ? '#2d2d44' : '#f9fafb';
+  var inputBg = isDark ? '#374151' : '#ffffff';
+  var fieldBorderColor = isDark ? '#4b5563' : '#e5e7eb';
 
-  var styles = `
-    .srb-prewidget {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: ${bgColor};
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-      color: ${textColor};
-    }
-    .srb-prewidget * { box-sizing: border-box; }
-    .srb-trip-toggle {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .srb-trip-btn {
-      flex: 1;
-      padding: 10px 16px;
-      border: 2px solid ${borderColor};
-      background: transparent;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      color: ${textColor};
-      transition: all 0.2s;
-    }
-    .srb-trip-btn.active {
-      background: ${primaryColor};
-      border-color: ${primaryColor};
-      color: white;
-    }
-    .srb-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .srb-field {
-      display: flex;
-      flex-direction: column;
-    }
-    .srb-label {
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 4px;
-      color: ${isDark ? '#9ca3af' : '#6b7280'};
-    }
-    .srb-select, .srb-input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid ${borderColor};
-      border-radius: 8px;
-      background: ${inputBg};
-      color: ${textColor};
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .srb-select:focus, .srb-input:focus {
-      border-color: ${primaryColor};
-    }
-    .srb-pax-row {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .srb-pax-field {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .srb-pax-label {
-      font-size: 13px;
-      color: ${textColor};
-      min-width: 60px;
-    }
-    .srb-stepper {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .srb-stepper-btn {
-      width: 32px;
-      height: 32px;
-      border: 1px solid ${borderColor};
-      background: ${inputBg};
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 18px;
-      color: ${textColor};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-    .srb-stepper-btn:hover:not(:disabled) {
-      background: ${primaryColor};
-      color: white;
-      border-color: ${primaryColor};
-    }
-    .srb-stepper-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-    .srb-stepper-value {
-      width: 32px;
-      text-align: center;
-      font-weight: 600;
-    }
-    .srb-search-btn {
-      width: 100%;
-      padding: 14px 24px;
-      background: ${primaryColor};
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .srb-search-btn:hover {
-      opacity: 0.9;
-    }
-    .srb-search-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    .srb-branding {
-      text-align: center;
-      margin-top: 12px;
-      font-size: 11px;
-      color: ${isDark ? '#6b7280' : '#9ca3af'};
-    }
-    .srb-branding a {
-      color: ${primaryColor};
-      text-decoration: none;
-    }
-    .srb-error {
-      color: #ef4444;
-      font-size: 13px;
-      margin-bottom: 12px;
-    }
-    .srb-loading {
-      text-align: center;
-      padding: 40px;
-      color: ${isDark ? '#9ca3af' : '#6b7280'};
-    }
-    @media (max-width: 600px) {
-      .srb-row { grid-template-columns: 1fr; }
-      .srb-pax-row { flex-direction: column; gap: 12px; }
-    }
-  `;
+  // Inject scoped styles (matching WidgetSearchForm exactly)
+  var styleId = 'srb-prewidget-styles';
+  if (!document.getElementById(styleId)) {
+    var styleEl = document.createElement('style');
+    styleEl.id = styleId;
+    styleEl.textContent = `
+      .srb-pw {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: transparent;
+        max-width: 100%;
+      }
+      .srb-pw * { box-sizing: border-box; margin: 0; padding: 0; }
+      
+      .srb-pw-card {
+        background: ${bgColor};
+        border-radius: 8px;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        overflow: hidden;
+      }
+      
+      /* Header with primary color */
+      .srb-pw-header {
+        padding: 12px 16px;
+        color: white;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-header { padding: 16px 24px; }
+      }
+      .srb-pw-header h2 {
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-header h2 { font-size: 20px; gap: 8px; }
+      }
+      .srb-pw-header-tagline {
+        font-style: italic;
+        opacity: 0.9;
+        font-weight: 400;
+        font-size: 14px;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-header-tagline { font-size: 16px; }
+      }
+      
+      /* Body */
+      .srb-pw-body {
+        padding: 16px;
+        color: ${textColor};
+      }
+      @media (min-width: 640px) {
+        .srb-pw-body { padding: 24px; }
+      }
+      
+      /* Trip type toggle (pill buttons) */
+      .srb-pw-trip-toggle {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-trip-toggle { gap: 16px; margin-bottom: 24px; }
+      }
+      .srb-pw-trip-btn {
+        padding: 8px 16px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid ${borderColor};
+        background: ${bgColor};
+        color: ${mutedColor};
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-trip-btn { padding: 8px 24px; font-size: 14px; }
+      }
+      .srb-pw-trip-btn:hover {
+        background: ${isDark ? '#374151' : '#f9fafb'};
+      }
+      .srb-pw-trip-btn.active-oneway {
+        background: ${isDark ? '#374151' : '#f3f4f6'};
+        border-color: ${isDark ? '#4b5563' : '#d1d5db'};
+        color: ${textColor};
+      }
+      .srb-pw-trip-btn.active-round {
+        color: white;
+        border: none;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      }
+      .srb-pw-trip-info {
+        display: none;
+        font-size: 14px;
+        color: ${mutedColor};
+        align-items: center;
+        gap: 4px;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-trip-info { display: flex; }
+      }
+      .srb-pw-trip-info-icon {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 1px solid ${borderColor};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+      }
+      
+      /* Field grid */
+      .srb-pw-fields-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      @media (min-width: 768px) {
+        .srb-pw-fields-row { grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+      }
+      
+      /* Field wrapper (icon + label + input) */
+      .srb-pw-field {
+        border: 1px solid ${fieldBorderColor};
+        border-radius: 8px;
+        background: ${inputBg};
+        transition: border-color 0.2s;
+      }
+      .srb-pw-field:hover {
+        border-color: ${isDark ? '#6b7280' : '#9ca3af'};
+      }
+      .srb-pw-field-inner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+      }
+      .srb-pw-field-icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 4px;
+      }
+      .srb-pw-field-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+      .srb-pw-field-content {
+        flex: 1;
+        min-width: 0;
+      }
+      .srb-pw-field-label {
+        display: block;
+        font-size: 11px;
+        color: ${mutedColor};
+        margin-bottom: 2px;
+      }
+      .srb-pw-field select,
+      .srb-pw-field input[type="date"] {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: ${textColor};
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      .srb-pw-field select:disabled {
+        color: ${mutedColor};
+        cursor: not-allowed;
+      }
+      
+      /* Passengers row */
+      .srb-pw-pax-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      @media (min-width: 768px) {
+        .srb-pw-pax-row { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+      }
+      
+      /* Search button */
+      .srb-pw-search-btn {
+        grid-column: span 3;
+        min-height: 50px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        background: #374151;
+      }
+      @media (min-width: 768px) {
+        .srb-pw-search-btn { grid-column: span 1; min-height: 60px; font-size: 18px; }
+      }
+      .srb-pw-search-btn:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+      .srb-pw-search-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
+      /* Branding */
+      .srb-pw-branding {
+        text-align: center;
+        padding-top: 8px;
+        font-size: 12px;
+        color: ${isDark ? '#6b7280' : '#9ca3af'};
+      }
+      .srb-pw-branding a {
+        text-decoration: none;
+      }
+      .srb-pw-branding a:hover {
+        text-decoration: underline;
+      }
+      
+      /* Loading / Error */
+      .srb-pw-loading {
+        text-align: center;
+        padding: 60px 20px;
+        color: ${mutedColor};
+        font-size: 14px;
+      }
+      .srb-pw-error {
+        color: #ef4444;
+        font-size: 13px;
+        margin-bottom: 12px;
+        padding: 12px;
+        background: ${isDark ? '#7f1d1d' : '#fef2f2'};
+        border-radius: 8px;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
 
-  // Inject styles
-  var styleEl = document.createElement('style');
-  styleEl.textContent = styles;
-  document.head.appendChild(styleEl);
+  // SVG Icons (inline)
+  var icons = {
+    mapPin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+    users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+    baby: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h.01"></path><path d="M15 12h.01"></path><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"></path><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"></path></svg>',
+  };
 
   // Render function
   function render() {
     if (state.loading) {
-      container.innerHTML = '<div class="srb-prewidget"><div class="srb-loading">' + t.loading + '</div></div>';
+      container.innerHTML = '<div class="srb-pw"><div class="srb-pw-card"><div class="srb-pw-loading">' + t.loading + '</div></div></div>';
       return;
     }
 
     if (state.error) {
-      container.innerHTML = '<div class="srb-prewidget"><div class="srb-error">' + state.error + '</div></div>';
+      container.innerHTML = '<div class="srb-pw"><div class="srb-pw-card"><div class="srb-pw-body"><div class="srb-pw-error">' + state.error + '</div></div></div></div>';
       return;
     }
 
@@ -250,8 +407,8 @@
     var isRoundTrip = state.tripType === 'roundtrip';
 
     // Build port options
-    var fromOptions = '<option value="">' + t.selectFrom + '</option>';
-    var toOptions = '<option value="">' + t.selectTo + '</option>';
+    var fromOptions = '<option value="">' + t.selectOrigin + '</option>';
+    var toOptions = '<option value="">' + t.selectDestination + '</option>';
     
     // Get valid origins
     var origins = [];
@@ -290,66 +447,124 @@
       });
     }
 
-    var html = '<div class="srb-prewidget">' +
-      // Trip type toggle
-      '<div class="srb-trip-toggle">' +
-        '<button type="button" class="srb-trip-btn' + (state.tripType === 'oneway' ? ' active' : '') + '" data-trip="oneway">' + t.oneway + '</button>' +
-        '<button type="button" class="srb-trip-btn' + (state.tripType === 'roundtrip' ? ' active' : '') + '" data-trip="roundtrip">' + t.roundtrip + '</button>' +
-      '</div>' +
-      // From / To
-      '<div class="srb-row">' +
-        '<div class="srb-field">' +
-          '<label class="srb-label">' + t.from + '</label>' +
-          '<select class="srb-select" id="srb-from">' + fromOptions + '</select>' +
+    // Build passenger options
+    var adultOptions = '';
+    for (var a = 1; a <= 10; a++) {
+      adultOptions += '<option value="' + a + '"' + (state.adults === a ? ' selected' : '') + '>' + a + '</option>';
+    }
+    var childOptions = '';
+    for (var c = 0; c <= 10; c++) {
+      childOptions += '<option value="' + c + '"' + (state.children === c ? ' selected' : '') + '>' + c + '</option>';
+    }
+    var infantOptions = '';
+    for (var inf = 0; inf <= 5; inf++) {
+      infantOptions += '<option value="' + inf + '"' + (state.infants === inf ? ' selected' : '') + '>' + inf + '</option>';
+    }
+
+    var html = '<div class="srb-pw">' +
+      '<div class="srb-pw-card">' +
+        // Header
+        '<div class="srb-pw-header" style="background-color: ' + primaryColor + ';">' +
+          '<h2>' +
+            '<span>▸ ' + t.bookTickets + '</span>' +
+            (tagline ? '<span class="srb-pw-header-tagline">' + tagline + '</span>' : '') +
+          '</h2>' +
         '</div>' +
-        '<div class="srb-field">' +
-          '<label class="srb-label">' + t.to + '</label>' +
-          '<select class="srb-select" id="srb-to">' + toOptions + '</select>' +
-        '</div>' +
-      '</div>' +
-      // Dates
-      '<div class="srb-row">' +
-        '<div class="srb-field">' +
-          '<label class="srb-label">' + t.departure + '</label>' +
-          '<input type="date" class="srb-input" id="srb-depart" min="' + today + '" value="' + state.departDate + '">' +
-        '</div>' +
-        (isRoundTrip ? 
-          '<div class="srb-field">' +
-            '<label class="srb-label">' + t.return + '</label>' +
-            '<input type="date" class="srb-input" id="srb-return" min="' + (state.departDate || today) + '" value="' + state.returnDate + '">' +
-          '</div>' : '') +
-      '</div>' +
-      // Passengers
-      '<div class="srb-pax-row">' +
-        '<div class="srb-pax-field">' +
-          '<span class="srb-pax-label">' + t.adults + '</span>' +
-          '<div class="srb-stepper">' +
-            '<button type="button" class="srb-stepper-btn" data-pax="adults" data-action="minus"' + (state.adults <= 1 ? ' disabled' : '') + '>−</button>' +
-            '<span class="srb-stepper-value">' + state.adults + '</span>' +
-            '<button type="button" class="srb-stepper-btn" data-pax="adults" data-action="plus">+</button>' +
+        // Body
+        '<div class="srb-pw-body">' +
+          // Trip type toggle
+          '<div class="srb-pw-trip-toggle">' +
+            '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'oneway' ? ' active-oneway' : '') + '" data-trip="oneway">' + t.oneWay + '</button>' +
+            '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'roundtrip' ? ' active-round' : '') + '" data-trip="roundtrip" style="' + (state.tripType === 'roundtrip' ? 'background-color: ' + primaryColor + ';' : '') + '">' + t.roundTrip + '</button>' +
+            '<span class="srb-pw-trip-info"><span class="srb-pw-trip-info-icon">i</span>' + t.selectVoyage + '</span>' +
+          '</div>' +
+          // Row 1: From, To, Date
+          '<div class="srb-pw-fields-row">' +
+            // From
+            '<div class="srb-pw-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">' + t.from + '</label>' +
+                  '<select id="srb-from">' + fromOptions + '</select>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            // To
+            '<div class="srb-pw-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">' + t.to + '</label>' +
+                  '<select id="srb-to"' + (!state.from ? ' disabled' : '') + '>' + toOptions + '</select>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            // Departure Date
+            '<div class="srb-pw-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">' + t.departureDate + '</label>' +
+                  '<input type="date" id="srb-depart" min="' + today + '" value="' + state.departDate + '" placeholder="' + t.selectDate + '">' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          // Row 2 (only for round trip): Return Date
+          (isRoundTrip ?
+            '<div class="srb-pw-fields-row" style="grid-template-columns: 1fr;">' +
+              '<div class="srb-pw-field">' +
+                '<div class="srb-pw-field-inner">' +
+                  '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
+                  '<div class="srb-pw-field-content">' +
+                    '<label class="srb-pw-field-label">Return Date</label>' +
+                    '<input type="date" id="srb-return" min="' + (state.departDate || today) + '" value="' + state.returnDate + '">' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' : '') +
+          // Passengers row
+          '<div class="srb-pw-pax-row">' +
+            // Adult
+            '<div class="srb-pw-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">' + t.adultAge + '</label>' +
+                  '<select id="srb-adults">' + adultOptions + '</select>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            // Child
+            '<div class="srb-pw-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">' + t.child + '</label>' +
+                  '<select id="srb-children">' + childOptions + '</select>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            // Infant
+            '<div class="srb-pw-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.baby + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">' + t.infantAge + '</label>' +
+                  '<select id="srb-infants">' + infantOptions + '</select>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            // Search button
+            '<button type="button" class="srb-pw-search-btn" id="srb-search">' + t.searchTrips + '</button>' +
+          '</div>' +
+          // Branding
+          '<div class="srb-pw-branding">' +
+            t.poweredBy + ' <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" style="color: ' + primaryColor + ';">SriBooking.com</a>' +
           '</div>' +
         '</div>' +
-        '<div class="srb-pax-field">' +
-          '<span class="srb-pax-label">' + t.children + '</span>' +
-          '<div class="srb-stepper">' +
-            '<button type="button" class="srb-stepper-btn" data-pax="children" data-action="minus"' + (state.children <= 0 ? ' disabled' : '') + '>−</button>' +
-            '<span class="srb-stepper-value">' + state.children + '</span>' +
-            '<button type="button" class="srb-stepper-btn" data-pax="children" data-action="plus">+</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="srb-pax-field">' +
-          '<span class="srb-pax-label">' + t.infants + '</span>' +
-          '<div class="srb-stepper">' +
-            '<button type="button" class="srb-stepper-btn" data-pax="infants" data-action="minus"' + (state.infants <= 0 ? ' disabled' : '') + '>−</button>' +
-            '<span class="srb-stepper-value">' + state.infants + '</span>' +
-            '<button type="button" class="srb-stepper-btn" data-pax="infants" data-action="plus">+</button>' +
-          '</div>' +
-        '</div>' +
       '</div>' +
-      // Search button
-      '<button type="button" class="srb-search-btn" id="srb-search">' + t.search + '</button>' +
-      // Branding
-      '<div class="srb-branding">Powered by <a href="https://sribooking.com" target="_blank">SriBooking.com</a></div>' +
     '</div>';
 
     container.innerHTML = html;
@@ -359,7 +574,7 @@
   // Bind events
   function bindEvents() {
     // Trip type toggle
-    var tripBtns = container.querySelectorAll('.srb-trip-btn');
+    var tripBtns = container.querySelectorAll('.srb-pw-trip-btn');
     tripBtns.forEach(function(btn) {
       btn.addEventListener('click', function() {
         state.tripType = this.getAttribute('data-trip');
@@ -407,21 +622,27 @@
       });
     }
 
-    // Pax steppers
-    var stepperBtns = container.querySelectorAll('.srb-stepper-btn');
-    stepperBtns.forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var pax = this.getAttribute('data-pax');
-        var action = this.getAttribute('data-action');
-        if (action === 'plus') {
-          state[pax]++;
-        } else if (action === 'minus') {
-          if (pax === 'adults' && state[pax] > 1) state[pax]--;
-          else if (pax !== 'adults' && state[pax] > 0) state[pax]--;
-        }
-        render();
+    // Passengers
+    var adultsSelect = document.getElementById('srb-adults');
+    if (adultsSelect) {
+      adultsSelect.addEventListener('change', function() {
+        state.adults = parseInt(this.value, 10) || 1;
       });
-    });
+    }
+
+    var childrenSelect = document.getElementById('srb-children');
+    if (childrenSelect) {
+      childrenSelect.addEventListener('change', function() {
+        state.children = parseInt(this.value, 10) || 0;
+      });
+    }
+
+    var infantsSelect = document.getElementById('srb-infants');
+    if (infantsSelect) {
+      infantsSelect.addEventListener('change', function() {
+        state.infants = parseInt(this.value, 10) || 0;
+      });
+    }
 
     // Search button
     var searchBtn = document.getElementById('srb-search');
@@ -434,19 +655,19 @@
   function handleSearch() {
     // Validate
     if (!state.from) {
-      alert(t.selectFrom);
+      alert(t.selectOrigin);
       return;
     }
     if (!state.to) {
-      alert(t.selectTo);
+      alert(t.selectDestination);
       return;
     }
     if (!state.departDate) {
-      alert(t.departure + ' required');
+      alert(t.selectDate);
       return;
     }
     if (state.tripType === 'roundtrip' && !state.returnDate) {
-      alert(t.return + ' required');
+      alert('Return date is required');
       return;
     }
 
