@@ -13,7 +13,9 @@ export const useIframeHeightMessenger = () => {
   const observerRef = useRef<ResizeObserver | null>(null);
   const throttleRef = useRef<number | null>(null);
 
-  const sendHeightMessage = useCallback(() => {
+  const sendHeightMessage = useCallback((options?: { force?: boolean }) => {
+    const force = options?.force ?? false;
+
     // Get the maximum height from various sources to ensure we capture everything
     const bodyHeight = document.body.scrollHeight;
     const documentHeight = document.documentElement.scrollHeight;
@@ -23,7 +25,9 @@ export const useIframeHeightMessenger = () => {
     const height = Math.max(bodyHeight, documentHeight, bodyOffsetHeight);
     
     // Only send if height actually changed (with small tolerance for rounding)
-    if (Math.abs(height - lastHeightRef.current) > 5 && height > 0) {
+    // IMPORTANT: we must sometimes re-send the same height, because on iOS
+    // postMessage delivery or parent listeners can be delayed until the user scrolls.
+    if ((force || Math.abs(height - lastHeightRef.current) > 5) && height > 0) {
       lastHeightRef.current = height;
       
       // Send in both standard format and iframe-resizer compatible format
@@ -35,12 +39,13 @@ export const useIframeHeightMessenger = () => {
   }, []);
 
   // Throttled version to prevent too many updates
-  const throttledSendHeight = useCallback(() => {
+  const throttledSendHeight = useCallback((options?: { force?: boolean }) => {
+    const force = options?.force ?? false;
     if (throttleRef.current) return;
     
     throttleRef.current = window.setTimeout(() => {
       throttleRef.current = null;
-      sendHeightMessage();
+      sendHeightMessage({ force });
     }, 50);
   }, [sendHeightMessage]);
 
@@ -78,16 +83,16 @@ export const useIframeHeightMessenger = () => {
     document.head.appendChild(styleEl);
 
     // Send initial height after a small delay to ensure content is rendered
-    const initialTimeout = setTimeout(sendHeightMessage, 100);
+    const initialTimeout = setTimeout(() => sendHeightMessage({ force: true }), 100);
     
     // Also send after images and fonts are loaded
-    const loadTimeout = setTimeout(sendHeightMessage, 500);
+    const loadTimeout = setTimeout(() => sendHeightMessage({ force: true }), 500);
     
     // And again after a longer delay for dynamic content
-    const extendedTimeout = setTimeout(sendHeightMessage, 1500);
+    const extendedTimeout = setTimeout(() => sendHeightMessage({ force: true }), 1500);
     
     // Aggressive height updates every 2 seconds to catch any missed changes
-    const intervalId = setInterval(sendHeightMessage, 2000);
+    const intervalId = setInterval(() => sendHeightMessage(), 2000);
 
     // Set up ResizeObserver to watch for content changes
     observerRef.current = new ResizeObserver(() => {
@@ -121,6 +126,21 @@ export const useIframeHeightMessenger = () => {
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
 
+    // When the user starts interacting (common iOS case), request an immediate height re-check.
+    const handleInteraction = () => {
+      throttledSendHeight();
+    };
+    const interactionOptions: AddEventListenerOptions = { capture: true, passive: true };
+    document.addEventListener('touchstart', handleInteraction, interactionOptions);
+    document.addEventListener('pointerdown', handleInteraction, interactionOptions);
+
+    // Parent can explicitly request a resize (useful when Safari delays message delivery).
+    const handleParentMessage = (e: MessageEvent) => {
+      if (!e?.data || e.data.type !== 'sribooking-request-resize') return;
+      sendHeightMessage({ force: true });
+    };
+    window.addEventListener('message', handleParentMessage);
+
     // Cleanup
     return () => {
       clearTimeout(initialTimeout);
@@ -134,6 +154,9 @@ export const useIframeHeightMessenger = () => {
       mutationObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('touchstart', handleInteraction, interactionOptions);
+      document.removeEventListener('pointerdown', handleInteraction, interactionOptions);
+      window.removeEventListener('message', handleParentMessage);
       document.getElementById('sribooking-iframe-fix')?.remove();
     };
   }, [sendHeightMessage, throttledSendHeight]);
