@@ -16,13 +16,37 @@ export const useIframeHeightMessenger = () => {
   const sendHeightMessage = useCallback((options?: { force?: boolean }) => {
     const force = options?.force ?? false;
 
+    // iOS SAFARI QUIRK:
+    // If an iframe is taller than the iPhone viewport (i.e., its bottom is off-screen),
+    // Safari can deliver very unreliable touch events inside the iframe.
+    // A robust workaround is to cap the *iframe height we ask the parent to apply*
+    // to the current visual viewport height, letting the iframe content scroll normally.
+    const isIOS =
+      typeof navigator !== 'undefined' &&
+      (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        // iPadOS reports itself as MacIntel
+        (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1));
+
     // Get the maximum height from various sources to ensure we capture everything
     const bodyHeight = document.body.scrollHeight;
     const documentHeight = document.documentElement.scrollHeight;
     const bodyOffsetHeight = document.body.offsetHeight;
     
     // Use the maximum to ensure all content is visible
-    const height = Math.max(bodyHeight, documentHeight, bodyOffsetHeight);
+    let height = Math.max(bodyHeight, documentHeight, bodyOffsetHeight);
+
+    if (isIOS) {
+      const vv = typeof window !== 'undefined' ? window.visualViewport : undefined;
+      const viewportHeight =
+        Math.round((vv?.height ?? window.innerHeight ?? document.documentElement.clientHeight) || 0);
+
+      // Only cap when we have a meaningful viewport measurement.
+      if (viewportHeight > 0) {
+        // Keep a small floor so we don't collapse on transient 0/1px measurements.
+        const safeViewportHeight = Math.max(320, viewportHeight);
+        height = Math.min(height, safeViewportHeight);
+      }
+    }
     
     // Only send if height actually changed (with small tolerance for rounding)
     // IMPORTANT: we must sometimes re-send the same height, because on iOS
