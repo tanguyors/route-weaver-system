@@ -10,6 +10,7 @@ import { WidgetOrderSummary } from './WidgetOrderSummary';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { countries, phoneCodes } from '@/lib/countries';
+import { GooglePlacesAutocomplete } from './GooglePlacesAutocomplete';
 
 const customerSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -619,12 +620,13 @@ export const WidgetBookingDetails = ({
 
                   <div>
                     <Label className="text-sm text-gray-600 mb-1">* Hotel / Address</Label>
-                    <Input
-                      placeholder="Enter your hotel or address"
+                    <GooglePlacesAutocomplete
                       value={pickupDetails}
-                      onChange={(e) => setPickupDetails(e.target.value)}
+                      onChange={(v) => setPickupDetails(v)}
+                      placeholder="Enter your hotel or address"
                       disabled={!selectedPickupRuleId}
-                      className={errors.pickupDetails ? 'border-red-500' : ''}
+                      country="id"
+                      className={errors.pickupDetails ? 'border-destructive focus-visible:ring-destructive' : ''}
                     />
                     {errors.pickupDetails && (
                       <p className="text-sm text-red-500 mt-1">{errors.pickupDetails}</p>

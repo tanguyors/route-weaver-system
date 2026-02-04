@@ -1,8 +1,9 @@
 /// <reference types="@types/google.maps" />
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { MapPin, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useGoogleMapsApiKey } from '@/hooks/useGoogleMapsApiKey';
 
 // Extend Window interface for Google Maps
 declare global {
@@ -29,7 +30,7 @@ interface GooglePlacesAutocompleteProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  apiKey: string;
+  apiKey?: string;
   country?: string; // Restrict to specific country (e.g., 'id' for Indonesia)
 }
 
@@ -42,10 +43,17 @@ export const GooglePlacesAutocomplete = ({
   apiKey,
   country = 'id',
 }: GooglePlacesAutocompleteProps) => {
+  const { apiKey: fetchedApiKey, loading: keyLoading, error: keyError } = useGoogleMapsApiKey();
+
+  const resolvedApiKey = useMemo(() => {
+    return (apiKey || fetchedApiKey || '').trim();
+  }, [apiKey, fetchedApiKey]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
@@ -58,12 +66,27 @@ export const GooglePlacesAutocomplete = ({
       return;
     }
 
+     // Don't inject script until we have a key.
+     if (!resolvedApiKey) {
+       setIsScriptLoaded(false);
+       return;
+     }
+
     const scriptId = 'google-maps-script';
+    const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
+    const existingKey = existing?.getAttribute('data-api-key');
+
+    // If script exists but for a different key, reload it.
+    if (existing && existingKey && existingKey !== resolvedApiKey) {
+      existing.remove();
+    }
+
     if (document.getElementById(scriptId)) {
       // Script already loading
       const checkLoaded = setInterval(() => {
         if (window.google?.maps?.places) {
           setIsScriptLoaded(true);
+          setLoadError(null);
           clearInterval(checkLoaded);
         }
       }, 100);
@@ -72,14 +95,25 @@ export const GooglePlacesAutocomplete = ({
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.setAttribute('data-api-key', resolvedApiKey);
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(resolvedApiKey)}&libraries=places`;
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      setIsScriptLoaded(true);
+      if (window.google?.maps?.places) {
+        setIsScriptLoaded(true);
+        setLoadError(null);
+      } else {
+        setIsScriptLoaded(false);
+        setLoadError('Google Maps loaded, but Places library is unavailable.');
+      }
+    };
+    script.onerror = () => {
+      setIsScriptLoaded(false);
+      setLoadError('Failed to load Google Maps. Check API key restrictions.');
     };
     document.head.appendChild(script);
-  }, [apiKey]);
+  }, [resolvedApiKey]);
 
   // Initialize services when script is loaded
   useEffect(() => {
@@ -184,7 +218,7 @@ export const GooglePlacesAutocomplete = ({
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder={placeholder}
           className={cn("pl-10 pr-10", className)}
-          disabled={disabled || !isScriptLoaded}
+          disabled={disabled}
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
@@ -214,7 +248,13 @@ export const GooglePlacesAutocomplete = ({
         </div>
       )}
 
-      {!isScriptLoaded && (
+      {(keyError || loadError) && (
+        <p className="text-xs text-destructive mt-1">
+          Address search unavailable. Please type manually.
+        </p>
+      )}
+
+      {!keyError && !loadError && (keyLoading || (resolvedApiKey && !isScriptLoaded)) && (
         <p className="text-xs text-muted-foreground mt-1">Loading address search...</p>
       )}
     </div>
