@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWidgetLanguage, useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 import type { DateRange } from 'react-day-picker';
+import { widgetLogger } from '@/lib/widgetLogger';
+import WidgetDebugPanel from '@/components/widget/WidgetDebugPanel';
 
 interface Port {
   id: string;
@@ -204,6 +206,14 @@ export const WidgetSearchForm = ({
     // Enable for all mobile/touch devices in iframe
     return (isIOSDevice || isAndroid || isTouchDevice) && isIframe;
   })();
+
+  useEffect(() => {
+    widgetLogger.info('Env', 'Widget environment detected', {
+      isMobileInIframe,
+      hasPointerEvent: typeof window !== 'undefined' ? 'PointerEvent' in window : false,
+      ua: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+    });
+  }, [isMobileInIframe]);
 
   const useTouchFallback = (() => {
     if (!isMobileInIframe) return false;
@@ -420,6 +430,12 @@ export const WidgetSearchForm = ({
   };
 
   const applyTripDatesFromMobileTap = (dateStr: string) => {
+    widgetLogger.info('TripDates', 'applyTripDatesFromMobileTap', {
+      dateStr,
+      tripType,
+      departureDate,
+      returnDate,
+    });
     if (tripType === 'one-way') {
       onDepartureDateChange(dateStr);
       return { shouldClose: true };
@@ -448,19 +464,31 @@ export const WidgetSearchForm = ({
   const handleMobileIframeTripDatesTap = (
     e: React.PointerEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>,
   ) => {
+    widgetLogger.debug('MobileTap', 'handleMobileIframeTripDatesTap', {
+      type: e.type,
+      target: (e.target as HTMLElement | null)?.tagName,
+    });
     if (!isMobileInIframe) return;
     const dateStr = getDateStrFromTapTarget(e.target);
+    widgetLogger.debug('MobileTap', 'Extracted dateStr', { dateStr });
     if (!dateStr) return;
 
     // Never allow selecting past dates
     const todayStr = formatDateOnly(new Date());
     const tappedDate = parseDateOnly(dateStr);
     const minDate = parseDateOnly(todayStr);
-    if (tappedDate && minDate && isBefore(startOfDay(tappedDate), startOfDay(minDate))) return;
+    if (tappedDate && minDate && isBefore(startOfDay(tappedDate), startOfDay(minDate))) {
+      widgetLogger.warn('MobileTap', 'Past date blocked', { dateStr, todayStr });
+      return;
+    }
 
-    if (!shouldProcessMobileGesture(lastMobileSelectionTsRef)) return;
+    if (!shouldProcessMobileGesture(lastMobileSelectionTsRef)) {
+      widgetLogger.debug('MobileTap', 'Gesture throttled (duplicate)', { dateStr });
+      return;
+    }
 
     const { shouldClose } = applyTripDatesFromMobileTap(dateStr);
+    widgetLogger.info('TripDates', 'Mobile tap applied', { dateStr, shouldClose });
     e.preventDefault();
     e.stopPropagation();
     if (shouldClose) closePopoverSoon(() => setDepartureDateOpen(false));
@@ -488,10 +516,26 @@ export const WidgetSearchForm = ({
     tripType !== 'round-trip' || !departureDate || !!returnDate;
 
   const handleDepartureCalendarOpenChange = (nextOpen: boolean) => {
+    widgetLogger.debug('Calendar', 'handleDepartureCalendarOpenChange', {
+      nextOpen,
+      tripType,
+      canCloseDepartureCalendar,
+      departureDate,
+      returnDate,
+    });
     // En round-trip, on empêche la fermeture tant que la date retour n'est pas choisie.
     if (!nextOpen && !canCloseDepartureCalendar) return;
     setDepartureDateOpen(nextOpen);
   };
+
+  useEffect(() => {
+    widgetLogger.info('Calendar', departureDateOpen ? 'OPEN' : 'CLOSE', {
+      tripType,
+      departureDate,
+      returnDate,
+      canCloseDepartureCalendar,
+    });
+  }, [departureDateOpen, tripType, departureDate, returnDate, canCloseDepartureCalendar]);
 
   const formatTripDatesLabel = () => {
     if (!parsedDepartureDate) return t('selectDate');
@@ -727,7 +771,14 @@ export const WidgetSearchForm = ({
                     <button 
                       type="button"
                       className="w-full text-left text-gray-900 font-medium focus:outline-none cursor-pointer"
-                      onClick={() => setDepartureDateOpen((v) => !v)}
+                      onClick={() => {
+                        widgetLogger.info('Calendar', 'Trigger clicked (mobile)', {
+                          from: departureDateOpen,
+                          to: !departureDateOpen,
+                          tripType,
+                        });
+                        setDepartureDateOpen((v) => !v);
+                      }}
                     >
                       {formatTripDatesLabel()}
                     </button>
@@ -737,6 +788,12 @@ export const WidgetSearchForm = ({
                         <div 
                           className="fixed inset-0 z-[9998]" 
                           onClick={() => {
+                            widgetLogger.info('Calendar', 'Backdrop clicked (mobile)', {
+                              canCloseDepartureCalendar,
+                              tripType,
+                              departureDate,
+                              returnDate,
+                            });
                             if (canCloseDepartureCalendar) setDepartureDateOpen(false);
                           }}
                         />
@@ -1132,6 +1189,7 @@ export const WidgetSearchForm = ({
           </div>
         )}
       </div>
+      <WidgetDebugPanel />
     </div>
   );
 };
