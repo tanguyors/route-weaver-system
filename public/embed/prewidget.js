@@ -339,19 +339,27 @@
         color: ${mutedColor};
       }
       
-      /* Calendar Dropdown */
+      /* Calendar Dropdown - positioned relative to body */
       .srb-pw-calendar-dropdown {
         position: absolute;
-        top: 100%;
-        left: 0;
         z-index: 1000;
         background: ${bgColor};
         border: 1px solid ${borderColor};
         border-radius: 8px;
         box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         padding: 12px;
-        min-width: 280px;
+        width: calc(100% - 32px);
+        max-width: 300px;
+        left: 16px;
+        right: 16px;
         margin-top: 4px;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-calendar-dropdown {
+          width: 300px;
+          left: auto;
+          right: auto;
+        }
       }
       
       .srb-pw-calendar-header {
@@ -774,9 +782,10 @@
                   '</button>' +
                 '</div>' +
               '</div>' +
-              (state.calendarOpen === 'depart' ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar">' + buildCalendarHTML('depart') + '</div>' : '') +
             '</div>' +
           '</div>' +
+          // Calendar dropdown for departure (outside field, inside body)
+          (state.calendarOpen === 'depart' ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar">' + buildCalendarHTML('depart') + '</div>' : '') +
           // Row 2 (only for round trip): Return Date
           (isRoundTrip ?
             '<div class="srb-pw-fields-row" style="grid-template-columns: 1fr;">' +
@@ -790,9 +799,10 @@
                     '</button>' +
                   '</div>' +
                 '</div>' +
-                (state.calendarOpen === 'return' ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar">' + buildCalendarHTML('return') + '</div>' : '') +
               '</div>' +
-            '</div>' : '') +
+            '</div>' +
+            // Calendar dropdown for return (outside field, inside body)
+            (state.calendarOpen === 'return' ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar">' + buildCalendarHTML('return') + '</div>' : '') : '') +
           // Passengers row
           '<div class="srb-pw-pax-row">' +
             // Adult
