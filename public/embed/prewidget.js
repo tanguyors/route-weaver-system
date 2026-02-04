@@ -108,21 +108,8 @@
     error: null
   };
 
-  // Get API base URL
-  var apiBase = container.getAttribute('data-api') || '';
-  if (!apiBase) {
-    var scripts = document.getElementsByTagName('script');
-    for (var i = 0; i < scripts.length; i++) {
-      var src = scripts[i].src || '';
-      if (src.indexOf('prewidget.js') !== -1) {
-        apiBase = src.replace(/\/embed\/prewidget\.js.*$/, '');
-        break;
-      }
-    }
-  }
-  if (!apiBase) {
-    apiBase = window.location.origin;
-  }
+  // Supabase Edge Function URL (hardcoded to avoid CORS issues)
+  var SUPABASE_URL = 'https://lefmdwcvddkrksggwnad.supabase.co';
 
   // Check if dark theme
   var isDark = theme === 'dark';
@@ -694,7 +681,7 @@
 
   // Fetch ports
   function fetchPorts() {
-    var url = apiBase + '/functions/v1/widget-ports?key=' + encodeURIComponent(widgetKey);
+    var url = SUPABASE_URL + '/functions/v1/widget-ports?key=' + encodeURIComponent(widgetKey);
     
     fetch(url)
       .then(function(res) {
