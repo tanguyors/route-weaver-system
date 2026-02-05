@@ -10,6 +10,7 @@
  import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
  import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
  import { Plus, Pencil, Trash2, Ship, Loader2 } from 'lucide-react';
+ import { icons } from 'lucide-react';
  import { toast } from 'sonner';
  
  interface Facility {
@@ -201,7 +202,18 @@
                      <TableRow key={facility.id}>
                        <TableCell className="font-medium">{facility.name}</TableCell>
                        <TableCell className="max-w-xs truncate">{facility.description || '-'}</TableCell>
-                       <TableCell>{facility.icon || '-'}</TableCell>
+                       <TableCell>
+                         {facility.icon ? (
+                           (() => {
+                             const iconName = facility.icon
+                               .split('-')
+                               .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                               .join('');
+                             const IconComponent = icons[iconName as keyof typeof icons];
+                             return IconComponent ? <IconComponent className="h-5 w-5 text-muted-foreground" /> : facility.icon;
+                           })()
+                         ) : '-'}
+                       </TableCell>
                        <TableCell className="text-right">
                          <div className="flex justify-end gap-2">
                            <Button
