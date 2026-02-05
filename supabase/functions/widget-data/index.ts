@@ -95,7 +95,10 @@ serve(async (req) => {
       // Boats
       supabase
         .from('boats')
-        .select('id, name, description, capacity, image_url, images')
+        .select(`
+          id, name, description, capacity, image_url, images,
+          boat_facilities(facility_id, is_free, facility:facilities(id, name, icon))
+        `)
         .eq('partner_id', partnerId)
         .eq('status', 'active'),
       

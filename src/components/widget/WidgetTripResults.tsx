@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarDays, Ship, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarDays, Ship, Info, ChevronDown, ChevronUp, Users, icons } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { BoatInfoModal } from './BoatInfoModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
+import type { BoatFacility } from '@/hooks/useWidgetBooking';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Boat {
   id: string;
@@ -15,6 +18,7 @@ interface Boat {
   capacity?: number;
   image_url: string | null;
   images?: string[] | null;
+  boat_facilities?: BoatFacility[];
 }
 
 interface Departure {
@@ -118,6 +122,17 @@ export const WidgetTripResults = ({
 
   const originPort = getPort(selectedOrigin);
   const destPort = getPort(selectedDestination);
+
+  // Helper to render facility icon dynamically
+  const renderFacilityIcon = (iconName: string | null) => {
+    if (!iconName) return null;
+    const pascalName = iconName
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('');
+    const IconComponent = (icons as Record<string, React.ComponentType<{ className?: string }>>)[pascalName];
+    return IconComponent ? <IconComponent className="h-3 w-3" /> : null;
+  };
 
   // Group departures by date
   const groupByDate = (departures: Departure[]) => {
@@ -234,6 +249,49 @@ export const WidgetTripResults = ({
               <p className="text-sm font-medium text-gray-700 sm:mt-2 sm:text-center truncate">
                 {boat?.name || 'Boat'}
               </p>
+              {/* Available Places Badge - Desktop */}
+              <div className="hidden sm:flex justify-center mt-2">
+                <Badge 
+                  variant={available <= 5 ? "destructive" : "secondary"}
+                  className="text-[10px] px-1.5"
+                >
+                  <Users className="h-2.5 w-2.5 mr-1" />
+                  {available} left
+                </Badge>
+              </div>
+              
+              {/* Facilities - Desktop */}
+              {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
+                <TooltipProvider>
+                  <div className="hidden sm:flex flex-wrap justify-center gap-1 mt-2">
+                    {boat.boat_facilities.slice(0, 4).map((bf) => (
+                      <Tooltip key={bf.facility_id}>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className={cn(
+                              "flex items-center justify-center w-5 h-5 rounded border",
+                              bf.is_free 
+                                ? "bg-green-50 border-green-200 text-green-600" 
+                                : "bg-amber-50 border-amber-200 text-amber-600"
+                            )}
+                          >
+                            {renderFacilityIcon(bf.facility?.icon ?? null)}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          <p>{bf.facility?.name}{bf.is_free ? ' (Free)' : ' (Paid)'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {boat.boat_facilities.length > 4 && (
+                      <div className="flex items-center justify-center w-5 h-5 rounded border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
+                        +{boat.boat_facilities.length - 4}
+                      </div>
+                    )}
+                  </div>
+                </TooltipProvider>
+              )}
+              
               {/* Boat Info Button - visible only on desktop */}
               {boat && (
                 <Button
@@ -309,18 +367,60 @@ export const WidgetTripResults = ({
             </div>
 
             {/* Mobile: Boat Info button */}
-            {boat && isMobile && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleOpenBoatInfo}
-                className="mt-2 text-xs w-full"
-                style={{ color: primaryColor }}
-              >
-                <Info className="h-3 w-3 mr-1" />
-                View Boat Info
-              </Button>
+            {/* Mobile: Available Places, Facilities & Boat Info */}
+            {isMobile && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between gap-2">
+                  {/* Available Places */}
+                  <Badge 
+                    variant={available <= 5 ? "destructive" : "secondary"}
+                    className="text-[10px] px-1.5"
+                  >
+                    <Users className="h-2.5 w-2.5 mr-1" />
+                    {available} left
+                  </Badge>
+                  
+                  {/* Facilities */}
+                  {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {boat.boat_facilities.slice(0, 3).map((bf) => (
+                        <div 
+                          key={bf.facility_id}
+                          className={cn(
+                            "flex items-center justify-center w-5 h-5 rounded border",
+                            bf.is_free 
+                              ? "bg-green-50 border-green-200 text-green-600" 
+                              : "bg-amber-50 border-amber-200 text-amber-600"
+                          )}
+                          title={`${bf.facility?.name}${bf.is_free ? ' (Free)' : ' (Paid)'}`}
+                        >
+                          {renderFacilityIcon(bf.facility?.icon ?? null)}
+                        </div>
+                      ))}
+                      {boat.boat_facilities.length > 3 && (
+                        <div className="flex items-center justify-center w-5 h-5 rounded border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
+                          +{boat.boat_facilities.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Boat Info Button */}
+                  {boat && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleOpenBoatInfo}
+                      className="text-xs h-6 px-2"
+                      style={{ color: primaryColor }}
+                    >
+                      <Info className="h-3 w-3 mr-1" />
+                      Info
+                    </Button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
