@@ -259,48 +259,6 @@ export const WidgetTripResults = ({
                   {available} left
                 </Badge>
               </div>
-
-              {/* Boat Info Button + Facilities - Desktop */}
-              <div className="hidden sm:flex items-center gap-3 mt-2">
-                {boat && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleOpenBoatInfo}
-                    className="text-xs shrink-0"
-                    style={{ borderColor: primaryColor, color: primaryColor }}
-                  >
-                    <Info className="h-3 w-3 mr-1" />
-                    Boat Info
-                  </Button>
-                )}
-                
-                {/* Facilities with icon + name - Desktop */}
-                {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
-                  <div className="flex flex-row flex-wrap gap-1 items-center">
-                    {boat.boat_facilities.slice(0, 3).map((bf) => (
-                      <div 
-                        key={bf.facility_id}
-                        className={cn(
-                          "flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] whitespace-nowrap",
-                          bf.is_free 
-                            ? "bg-green-50 border-green-200 text-green-700" 
-                            : "bg-amber-50 border-amber-200 text-amber-700"
-                        )}
-                      >
-                        {renderFacilityIcon(bf.facility?.icon ?? null)}
-                        <span className="truncate max-w-[70px]">{bf.facility?.name}</span>
-                      </div>
-                    ))}
-                    {boat.boat_facilities.length > 3 && (
-                      <div className="flex items-center justify-center px-1.5 py-0.5 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
-                        +{boat.boat_facilities.length - 3}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
@@ -360,6 +318,50 @@ export const WidgetTripResults = ({
                 </Button>
               </div>
             </div>
+
+            {/* Desktop: Boat Info + Facilities (horizontal, wraps inside card) */}
+            {!isMobile && boat && (
+              <div className="mt-3 flex items-center justify-end gap-2">
+                {boat && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenBoatInfo}
+                    className="text-xs shrink-0"
+                    style={{ borderColor: primaryColor, color: primaryColor }}
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    Boat Info
+                  </Button>
+                )}
+
+                {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-end gap-1">
+                    {boat.boat_facilities.slice(0, 5).map((bf) => (
+                      <div
+                        key={bf.facility_id}
+                        className={cn(
+                          "flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] whitespace-nowrap",
+                          bf.is_free
+                            ? "bg-green-50 border-green-200 text-green-700"
+                            : "bg-amber-50 border-amber-200 text-amber-700"
+                        )}
+                      >
+                        {renderFacilityIcon(bf.facility?.icon ?? null)}
+                        <span className="truncate max-w-[90px]">{bf.facility?.name}</span>
+                      </div>
+                    ))}
+
+                    {boat.boat_facilities.length > 5 && (
+                      <div className="flex items-center justify-center px-1.5 py-0.5 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
+                        +{boat.boat_facilities.length - 5}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Mobile: Boat Info button */}
             {/* Mobile: Available Places, Facilities & Boat Info */}
