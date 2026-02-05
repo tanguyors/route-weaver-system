@@ -321,23 +321,9 @@ export const WidgetTripResults = ({
 
             {/* Desktop: Boat Info + Facilities (horizontal, wraps inside card) */}
             {!isMobile && boat && (
-              <div className="mt-3 flex items-center justify-end gap-2">
-                {boat && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleOpenBoatInfo}
-                    className="text-xs shrink-0"
-                    style={{ borderColor: primaryColor, color: primaryColor }}
-                  >
-                    <Info className="h-3 w-3 mr-1" />
-                    Boat Info
-                  </Button>
-                )}
-
+              <div className="mt-3 flex items-center justify-start gap-2">
                 {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
-                  <div className="flex flex-wrap items-center justify-end gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     {boat.boat_facilities.slice(0, 5).map((bf) => (
                       <div
                         key={bf.facility_id}
@@ -352,7 +338,6 @@ export const WidgetTripResults = ({
                         <span className="truncate max-w-[90px]">{bf.facility?.name}</span>
                       </div>
                     ))}
-
                     {boat.boat_facilities.length > 5 && (
                       <div className="flex items-center justify-center px-1.5 py-0.5 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
                         +{boat.boat_facilities.length - 5}
@@ -360,6 +345,18 @@ export const WidgetTripResults = ({
                     )}
                   </div>
                 )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenBoatInfo}
+                  className="text-xs shrink-0"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  <Info className="h-3 w-3 mr-1" />
+                  Boat Info
+                </Button>
               </div>
             )}
 
