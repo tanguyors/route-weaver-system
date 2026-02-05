@@ -3,6 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 
+ export interface BoatFacility {
+   facility_id: string;
+   is_free: boolean;
+ }
+ 
 export interface Boat {
   id: string;
   partner_id: string;
@@ -14,6 +19,7 @@ export interface Boat {
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
+   facilities?: BoatFacility[];
 }
 
 export const useBoatsData = () => {
@@ -30,7 +36,7 @@ export const useBoatsData = () => {
     }
 
     setLoading(true);
-    let query = supabase.from('boats').select('*').order('name');
+     let query = supabase.from('boats').select('*, boat_facilities(facility_id, is_free)').order('name');
 
     if (role !== 'admin' && partnerId) {
       query = query.eq('partner_id', partnerId);
@@ -42,7 +48,11 @@ export const useBoatsData = () => {
       console.error('Error fetching boats:', error);
       toast.error('Failed to load boats');
     } else {
-      setBoats((data || []) as Boat[]);
+       const boatsWithFacilities = (data || []).map((boat: any) => ({
+         ...boat,
+         facilities: boat.boat_facilities || [],
+       }));
+       setBoats(boatsWithFacilities as Boat[]);
     }
     setLoading(false);
   }, [partnerId, role]);
@@ -58,12 +68,13 @@ export const useBoatsData = () => {
     image_url?: string;
     images?: string[];
     status: 'active' | 'inactive';
+     facilities?: BoatFacility[];
   }): Promise<{ error: Error | null }> => {
     if (!partnerId) {
       return { error: new Error('No partner ID') };
     }
 
-    const { error } = await supabase.from('boats').insert({
+     const { data: newBoat, error } = await supabase.from('boats').insert({
       partner_id: partnerId,
       name: data.name,
       description: data.description || null,
@@ -71,13 +82,23 @@ export const useBoatsData = () => {
       image_url: data.image_url || null,
       images: data.images || [],
       status: data.status,
-    });
+     }).select().single();
 
     if (error) {
       toast.error('Failed to create boat');
       return { error };
     }
 
+     // Insert facilities if any
+     if (data.facilities && data.facilities.length > 0 && newBoat) {
+       const facilitiesData = data.facilities.map(f => ({
+         boat_id: newBoat.id,
+         facility_id: f.facility_id,
+         is_free: f.is_free,
+       }));
+       await supabase.from('boat_facilities').insert(facilitiesData);
+     }
+ 
     toast.success('Boat created successfully');
     await fetchBoats();
     return { error: null };
@@ -92,11 +113,14 @@ export const useBoatsData = () => {
       image_url: string;
       images: string[];
       status: 'active' | 'inactive';
+       facilities: BoatFacility[];
     }>
   ): Promise<{ error: Error | null }> => {
+     const { facilities, ...boatData } = data;
+ 
     const { error } = await supabase
       .from('boats')
-      .update({ ...data, updated_at: new Date().toISOString() })
+       .update({ ...boatData, updated_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) {
@@ -104,6 +128,19 @@ export const useBoatsData = () => {
       return { error };
     }
 
+     // Update facilities - delete existing and insert new ones
+     if (facilities !== undefined) {
+       await supabase.from('boat_facilities').delete().eq('boat_id', id);
+       if (facilities.length > 0) {
+         const facilitiesData = facilities.map(f => ({
+           boat_id: id,
+           facility_id: f.facility_id,
+           is_free: f.is_free,
+         }));
+         await supabase.from('boat_facilities').insert(facilitiesData);
+       }
+     }
+ 
     toast.success('Boat updated successfully');
     await fetchBoats();
     return { error: null };

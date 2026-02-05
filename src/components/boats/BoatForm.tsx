@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+ import { Checkbox } from '@/components/ui/checkbox';
+ import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -17,8 +19,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Ship, Loader2, Plus } from 'lucide-react';
-import { Boat } from '@/hooks/useBoatsData';
+ import { Upload, X, Ship, Loader2, Plus, icons } from 'lucide-react';
+ import { Boat, BoatFacility } from '@/hooks/useBoatsData';
+ import { supabase } from '@/integrations/supabase/client';
+ 
+ interface Facility {
+   id: string;
+   name: string;
+   icon: string | null;
+ }
 
 interface BoatFormProps {
   open: boolean;
@@ -30,9 +39,10 @@ interface BoatFormProps {
     image_url?: string;
     images?: string[];
     status: 'active' | 'inactive';
+     facilities?: BoatFacility[];
   }) => Promise<{ error: Error | null }>;
   onUploadImage: (file: File) => Promise<{ url: string | null; error: Error | null }>;
-  initialData?: Boat & { images?: string[] };
+   initialData?: Boat & { images?: string[]; facilities?: BoatFacility[] };
   isEdit?: boolean;
 }
 
@@ -47,6 +57,20 @@ const BoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, isEdit 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+   const [allFacilities, setAllFacilities] = useState<Facility[]>([]);
+   const [selectedFacilities, setSelectedFacilities] = useState<Map<string, boolean>>(new Map());
+ 
+   // Fetch all facilities
+   useEffect(() => {
+     const fetchFacilities = async () => {
+       const { data } = await supabase
+         .from('facilities')
+         .select('id, name, icon')
+         .order('name');
+       setAllFacilities(data || []);
+     };
+     fetchFacilities();
+   }, []);
 
   // Reset form when initialData changes
   useEffect(() => {
@@ -62,6 +86,12 @@ const BoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, isEdit 
           : [];
       setImages(existingImages);
       setStatus(initialData.status || 'active');
+       // Set facilities
+       const facilityMap = new Map<string, boolean>();
+       initialData.facilities?.forEach(f => {
+         facilityMap.set(f.facility_id, f.is_free);
+       });
+       setSelectedFacilities(facilityMap);
     } else {
       // Reset to defaults
       setName('');
@@ -69,9 +99,43 @@ const BoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, isEdit 
       setCapacity(50);
       setImages([]);
       setStatus('active');
+       setSelectedFacilities(new Map());
     }
     setError('');
   }, [initialData, open]);
+   const toggleFacility = (facilityId: string) => {
+     setSelectedFacilities(prev => {
+       const newMap = new Map(prev);
+       if (newMap.has(facilityId)) {
+         newMap.delete(facilityId);
+       } else {
+         newMap.set(facilityId, true); // Default to free
+       }
+       return newMap;
+     });
+   };
+ 
+   const toggleIsFree = (facilityId: string) => {
+     setSelectedFacilities(prev => {
+       const newMap = new Map(prev);
+       const currentValue = newMap.get(facilityId);
+       if (currentValue !== undefined) {
+         newMap.set(facilityId, !currentValue);
+       }
+       return newMap;
+     });
+   };
+ 
+   const renderFacilityIcon = (iconName: string | null) => {
+     if (!iconName) return null;
+     const formattedName = iconName
+       .split('-')
+       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+       .join('');
+     const IconComponent = icons[formattedName as keyof typeof icons];
+     return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+   };
+ 
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -124,6 +188,13 @@ const BoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, isEdit 
     }
 
     setLoading(true);
+     
+     // Build facilities array
+     const facilitiesArray: BoatFacility[] = [];
+     selectedFacilities.forEach((isFree, facilityId) => {
+       facilitiesArray.push({ facility_id: facilityId, is_free: isFree });
+     });
+ 
     const result = await onSubmit({
       name: name.trim(),
       description: description.trim() || undefined,
@@ -131,6 +202,7 @@ const BoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, isEdit 
       image_url: images[0] || undefined, // First image as main image
       images: images,
       status,
+       facilities: facilitiesArray,
     });
 
     setLoading(false);
@@ -263,6 +335,51 @@ const BoatForm = ({ open, onClose, onSubmit, onUploadImage, initialData, isEdit 
             </div>
           </div>
 
+           {/* Facilities */}
+           <div className="space-y-3">
+             <Label>Facilities & Amenities</Label>
+             <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+               {allFacilities.length === 0 ? (
+                 <p className="text-sm text-muted-foreground text-center py-2">No facilities available</p>
+               ) : (
+                 allFacilities.map(facility => {
+                   const isSelected = selectedFacilities.has(facility.id);
+                   const isFree = selectedFacilities.get(facility.id) ?? true;
+                   
+                   return (
+                     <div key={facility.id} className="flex items-center justify-between gap-3 py-1">
+                       <div className="flex items-center gap-2 flex-1">
+                         <Checkbox
+                           id={`facility-${facility.id}`}
+                           checked={isSelected}
+                           onCheckedChange={() => toggleFacility(facility.id)}
+                         />
+                         <label
+                           htmlFor={`facility-${facility.id}`}
+                           className="flex items-center gap-2 text-sm cursor-pointer"
+                         >
+                           {renderFacilityIcon(facility.icon)}
+                           {facility.name}
+                         </label>
+                       </div>
+                       {isSelected && (
+                         <div className="flex items-center gap-2">
+                           <span className={`text-xs ${isFree ? 'text-green-600' : 'text-orange-600'}`}>
+                             {isFree ? 'Free' : 'Paid'}
+                           </span>
+                           <Switch
+                             checked={!isFree}
+                             onCheckedChange={() => toggleIsFree(facility.id)}
+                           />
+                         </div>
+                       )}
+                     </div>
+                   );
+                 })
+               )}
+             </div>
+           </div>
+ 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-4">
