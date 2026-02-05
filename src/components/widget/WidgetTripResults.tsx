@@ -375,23 +375,8 @@ export const WidgetTripResults = ({
                   </Badge>
                   
                   {/* Boat Info Button + Facilities - Mobile */}
-                  <div className="flex items-center gap-2 flex-1 justify-end">
-                    {/* Boat Info Button */}
-                    {boat && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleOpenBoatInfo}
-                        className="text-xs h-7 px-2 shrink-0"
-                        style={{ color: primaryColor }}
-                      >
-                        <Info className="h-3 w-3 mr-1" />
-                        Info
-                      </Button>
-                    )}
-                    
-                    {/* Facilities with icon + name - Mobile */}
+                  <div className="flex items-center gap-2 flex-1 justify-end overflow-hidden">
+                    {/* Facilities with icon + name - Mobile (left) */}
                     {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
                       <div className="flex flex-row flex-nowrap gap-1 items-center overflow-x-auto">
                         {boat.boat_facilities.slice(0, 2).map((bf) => (
@@ -414,6 +399,21 @@ export const WidgetTripResults = ({
                           </div>
                         )}
                       </div>
+                    )}
+                    
+                    {/* Boat Info Button (right) */}
+                    {boat && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleOpenBoatInfo}
+                        className="text-xs h-7 px-2 shrink-0"
+                        style={{ color: primaryColor }}
+                      >
+                        <Info className="h-3 w-3 mr-1" />
+                        Info
+                      </Button>
                     )}
                   </div>
                 </div>
