@@ -6,8 +6,10 @@ import {
   CarouselPrevious 
 } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
-import { Ship, Clock, MapPin, Users, X } from 'lucide-react';
+import { Ship, Clock, MapPin, Users, X, icons } from 'lucide-react';
 import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
+import type { BoatFacility } from '@/hooks/useWidgetBooking';
+import { cn } from '@/lib/utils';
 
 interface Boat {
   id: string;
@@ -16,6 +18,7 @@ interface Boat {
   capacity?: number;
   image_url: string | null;
   images?: string[] | null;
+  boat_facilities?: BoatFacility[];
 }
 
 interface Trip {
@@ -91,6 +94,17 @@ export const BoatInfoModal = ({
   const totalPrice = pricing 
     ? (paxAdult * pricing.adult) + (paxChild * pricing.child) 
     : 0;
+
+  // Helper to render facility icon dynamically
+  const renderFacilityIcon = (iconName: string | null) => {
+    if (!iconName) return null;
+    const pascalName = iconName
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('');
+    const IconComponent = (icons as Record<string, React.ComponentType<{ className?: string }>>)[pascalName];
+    return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+  };
 
   return (
     <>
@@ -174,6 +188,32 @@ export const BoatInfoModal = ({
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Users className="h-4 w-4" />
               <span>Capacity: {boat.capacity} passengers</span>
+            </div>
+          )}
+
+          {/* Boat Facilities */}
+          {boat.boat_facilities && boat.boat_facilities.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm text-gray-700">Facilities & Amenities</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {boat.boat_facilities.map((bf) => (
+                  <div
+                    key={bf.facility_id}
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded-lg border text-sm",
+                      bf.is_free 
+                        ? "bg-green-50 border-green-200 text-green-700" 
+                        : "bg-amber-50 border-amber-200 text-amber-700"
+                    )}
+                  >
+                    {renderFacilityIcon(bf.facility?.icon ?? null)}
+                    <span className="flex-1 truncate">{bf.facility?.name}</span>
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white/50">
+                      {bf.is_free ? 'Free' : 'Paid'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

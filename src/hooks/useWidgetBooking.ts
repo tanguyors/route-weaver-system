@@ -37,12 +37,24 @@ interface PriceRule {
   end_date: string | null;
 }
 
+export interface BoatFacility {
+  facility_id: string;
+  is_free: boolean;
+  facility: {
+    id: string;
+    name: string;
+    icon: string | null;
+  } | null;
+}
+
 interface Boat {
   id: string;
   name: string;
   description: string | null;
   capacity: number;
   image_url: string | null;
+  images: string[] | null;
+  boat_facilities: BoatFacility[];
 }
 
 interface Departure {
