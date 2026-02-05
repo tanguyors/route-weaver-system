@@ -278,23 +278,23 @@ export const WidgetTripResults = ({
                 
                 {/* Facilities with icon + name - Desktop */}
                 {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 items-center">
+                  <div className="flex flex-row flex-wrap gap-1 items-center">
                     {boat.boat_facilities.slice(0, 3).map((bf) => (
                       <div 
                         key={bf.facility_id}
                         className={cn(
-                          "flex items-center gap-1 px-2 py-1 rounded-md border text-[11px]",
+                          "flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] whitespace-nowrap",
                           bf.is_free 
                             ? "bg-green-50 border-green-200 text-green-700" 
                             : "bg-amber-50 border-amber-200 text-amber-700"
                         )}
                       >
                         {renderFacilityIcon(bf.facility?.icon ?? null)}
-                        <span className="truncate max-w-[60px]">{bf.facility?.name}</span>
+                        <span className="truncate max-w-[70px]">{bf.facility?.name}</span>
                       </div>
                     ))}
                     {boat.boat_facilities.length > 3 && (
-                      <div className="flex items-center justify-center px-2 py-1 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[11px] font-medium">
+                      <div className="flex items-center justify-center px-1.5 py-0.5 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
                         +{boat.boat_facilities.length - 3}
                       </div>
                     )}
@@ -394,23 +394,23 @@ export const WidgetTripResults = ({
                     
                     {/* Facilities with icon + name - Mobile */}
                     {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
-                      <div className="flex flex-wrap gap-1 items-center">
+                      <div className="flex flex-row flex-nowrap gap-1 items-center overflow-x-auto">
                         {boat.boat_facilities.slice(0, 2).map((bf) => (
                           <div 
                             key={bf.facility_id}
                             className={cn(
-                              "flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px]",
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] whitespace-nowrap shrink-0",
                               bf.is_free 
                                 ? "bg-green-50 border-green-200 text-green-700" 
                                 : "bg-amber-50 border-amber-200 text-amber-700"
                             )}
                           >
                             {renderFacilityIcon(bf.facility?.icon ?? null)}
-                            <span className="truncate max-w-[40px]">{bf.facility?.name}</span>
+                            <span className="truncate max-w-[50px]">{bf.facility?.name}</span>
                           </div>
                         ))}
                         {boat.boat_facilities.length > 2 && (
-                          <div className="flex items-center justify-center px-1.5 py-0.5 rounded border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
+                          <div className="flex items-center justify-center px-1.5 py-0.5 rounded border bg-gray-50 border-gray-200 text-gray-500 text-[9px] font-medium shrink-0">
                             +{boat.boat_facilities.length - 2}
                           </div>
                         )}
