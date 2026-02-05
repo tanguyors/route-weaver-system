@@ -253,59 +253,54 @@ export const WidgetTripResults = ({
               <div className="hidden sm:flex justify-center mt-2">
                 <Badge 
                   variant={available <= 5 ? "destructive" : "secondary"}
-                  className="text-xs px-2 py-0.5"
+                  className="text-sm px-3 py-1"
                 >
-                  <Users className="h-3 w-3 mr-1" />
+                  <Users className="h-4 w-4 mr-1.5" />
                   {available} left
                 </Badge>
               </div>
-              
-              {/* Facilities - Desktop */}
-              {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
-                <TooltipProvider>
-                  <div className="hidden sm:flex flex-wrap justify-center gap-1.5 mt-2">
-                    {boat.boat_facilities.slice(0, 5).map((bf) => (
-                      <Tooltip key={bf.facility_id}>
-                        <TooltipTrigger asChild>
-                          <div 
-                            className={cn(
-                              "flex items-center justify-center w-6 h-6 rounded-md border",
-                              bf.is_free 
-                                ? "bg-green-50 border-green-200 text-green-600" 
-                                : "bg-amber-50 border-amber-200 text-amber-600"
-                            )}
-                          >
-                            {renderFacilityIcon(bf.facility?.icon ?? null) || <span className="text-[8px]">?</span>}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
-                          <p>{bf.facility?.name}{bf.is_free ? ' (Free)' : ' (Paid)'}</p>
-                        </TooltipContent>
-                      </Tooltip>
+
+              {/* Boat Info Button + Facilities - Desktop */}
+              <div className="hidden sm:flex items-center gap-3 mt-2">
+                {boat && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenBoatInfo}
+                    className="text-xs shrink-0"
+                    style={{ borderColor: primaryColor, color: primaryColor }}
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    Boat Info
+                  </Button>
+                )}
+                
+                {/* Facilities with icon + name - Desktop */}
+                {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    {boat.boat_facilities.slice(0, 3).map((bf) => (
+                      <div 
+                        key={bf.facility_id}
+                        className={cn(
+                          "flex items-center gap-1 px-2 py-1 rounded-md border text-[11px]",
+                          bf.is_free 
+                            ? "bg-green-50 border-green-200 text-green-700" 
+                            : "bg-amber-50 border-amber-200 text-amber-700"
+                        )}
+                      >
+                        {renderFacilityIcon(bf.facility?.icon ?? null)}
+                        <span className="truncate max-w-[60px]">{bf.facility?.name}</span>
+                      </div>
                     ))}
-                    {boat.boat_facilities.length > 5 && (
-                      <div className="flex items-center justify-center w-6 h-6 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
-                        +{boat.boat_facilities.length - 5}
+                    {boat.boat_facilities.length > 3 && (
+                      <div className="flex items-center justify-center px-2 py-1 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[11px] font-medium">
+                        +{boat.boat_facilities.length - 3}
                       </div>
                     )}
                   </div>
-                </TooltipProvider>
-              )}
-              
-              {/* Boat Info Button - visible only on desktop */}
-              {boat && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenBoatInfo}
-                  className="hidden sm:flex w-full mt-2 text-xs"
-                  style={{ borderColor: primaryColor, color: primaryColor }}
-                >
-                  <Info className="h-3 w-3 mr-1" />
-                  Boat Info
-                </Button>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
@@ -374,51 +369,54 @@ export const WidgetTripResults = ({
                   {/* Available Places */}
                   <Badge 
                     variant={available <= 5 ? "destructive" : "secondary"}
-                    className="text-xs px-2 py-0.5"
+                    className="text-sm px-3 py-1"
                   >
-                    <Users className="h-3 w-3 mr-1" />
+                    <Users className="h-4 w-4 mr-1.5" />
                     {available} left
                   </Badge>
                   
-                  {/* Facilities */}
-                  {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {boat.boat_facilities.slice(0, 3).map((bf) => (
-                        <div 
-                          key={bf.facility_id}
-                          className={cn(
-                            "flex items-center justify-center w-6 h-6 rounded-md border",
-                            bf.is_free 
-                              ? "bg-green-50 border-green-200 text-green-600" 
-                              : "bg-amber-50 border-amber-200 text-amber-600"
-                          )}
-                          title={`${bf.facility?.name}${bf.is_free ? ' (Free)' : ' (Paid)'}`}
-                        >
-                          {renderFacilityIcon(bf.facility?.icon ?? null) || <span className="text-[8px]">?</span>}
-                        </div>
-                      ))}
-                      {boat.boat_facilities.length > 3 && (
-                        <div className="flex items-center justify-center w-6 h-6 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
-                          +{boat.boat_facilities.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Boat Info Button */}
-                  {boat && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleOpenBoatInfo}
-                      className="text-xs h-6 px-2"
-                      style={{ color: primaryColor }}
-                    >
-                      <Info className="h-3 w-3 mr-1" />
-                      Info
-                    </Button>
-                  )}
+                  {/* Boat Info Button + Facilities - Mobile */}
+                  <div className="flex items-center gap-2 flex-1 justify-end">
+                    {/* Boat Info Button */}
+                    {boat && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleOpenBoatInfo}
+                        className="text-xs h-7 px-2 shrink-0"
+                        style={{ color: primaryColor }}
+                      >
+                        <Info className="h-3 w-3 mr-1" />
+                        Info
+                      </Button>
+                    )}
+                    
+                    {/* Facilities with icon + name - Mobile */}
+                    {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 items-center">
+                        {boat.boat_facilities.slice(0, 2).map((bf) => (
+                          <div 
+                            key={bf.facility_id}
+                            className={cn(
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px]",
+                              bf.is_free 
+                                ? "bg-green-50 border-green-200 text-green-700" 
+                                : "bg-amber-50 border-amber-200 text-amber-700"
+                            )}
+                          >
+                            {renderFacilityIcon(bf.facility?.icon ?? null)}
+                            <span className="truncate max-w-[40px]">{bf.facility?.name}</span>
+                          </div>
+                        ))}
+                        {boat.boat_facilities.length > 2 && (
+                          <div className="flex items-center justify-center px-1.5 py-0.5 rounded border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
+                            +{boat.boat_facilities.length - 2}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
