@@ -253,9 +253,9 @@ export const WidgetTripResults = ({
               <div className="hidden sm:flex justify-center mt-2">
                 <Badge 
                   variant={available <= 5 ? "destructive" : "secondary"}
-                  className="text-[10px] px-1.5"
+                  className="text-xs px-2 py-0.5"
                 >
-                  <Users className="h-2.5 w-2.5 mr-1" />
+                  <Users className="h-3 w-3 mr-1" />
                   {available} left
                 </Badge>
               </div>
@@ -263,19 +263,19 @@ export const WidgetTripResults = ({
               {/* Facilities - Desktop */}
               {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
                 <TooltipProvider>
-                  <div className="hidden sm:flex flex-wrap justify-center gap-1 mt-2">
-                    {boat.boat_facilities.slice(0, 4).map((bf) => (
+                  <div className="hidden sm:flex flex-wrap justify-center gap-1.5 mt-2">
+                    {boat.boat_facilities.slice(0, 5).map((bf) => (
                       <Tooltip key={bf.facility_id}>
                         <TooltipTrigger asChild>
                           <div 
                             className={cn(
-                              "flex items-center justify-center w-5 h-5 rounded border",
+                              "flex items-center justify-center w-6 h-6 rounded-md border",
                               bf.is_free 
                                 ? "bg-green-50 border-green-200 text-green-600" 
                                 : "bg-amber-50 border-amber-200 text-amber-600"
                             )}
                           >
-                            {renderFacilityIcon(bf.facility?.icon ?? null)}
+                            {renderFacilityIcon(bf.facility?.icon ?? null) || <span className="text-[8px]">?</span>}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="text-xs">
@@ -283,9 +283,9 @@ export const WidgetTripResults = ({
                         </TooltipContent>
                       </Tooltip>
                     ))}
-                    {boat.boat_facilities.length > 4 && (
-                      <div className="flex items-center justify-center w-5 h-5 rounded border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
-                        +{boat.boat_facilities.length - 4}
+                    {boat.boat_facilities.length > 5 && (
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
+                        +{boat.boat_facilities.length - 5}
                       </div>
                     )}
                   </div>
@@ -374,31 +374,31 @@ export const WidgetTripResults = ({
                   {/* Available Places */}
                   <Badge 
                     variant={available <= 5 ? "destructive" : "secondary"}
-                    className="text-[10px] px-1.5"
+                    className="text-xs px-2 py-0.5"
                   >
-                    <Users className="h-2.5 w-2.5 mr-1" />
+                    <Users className="h-3 w-3 mr-1" />
                     {available} left
                   </Badge>
                   
                   {/* Facilities */}
                   {boat?.boat_facilities && boat.boat_facilities.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {boat.boat_facilities.slice(0, 3).map((bf) => (
                         <div 
                           key={bf.facility_id}
                           className={cn(
-                            "flex items-center justify-center w-5 h-5 rounded border",
+                            "flex items-center justify-center w-6 h-6 rounded-md border",
                             bf.is_free 
                               ? "bg-green-50 border-green-200 text-green-600" 
                               : "bg-amber-50 border-amber-200 text-amber-600"
                           )}
                           title={`${bf.facility?.name}${bf.is_free ? ' (Free)' : ' (Paid)'}`}
                         >
-                          {renderFacilityIcon(bf.facility?.icon ?? null)}
+                          {renderFacilityIcon(bf.facility?.icon ?? null) || <span className="text-[8px]">?</span>}
                         </div>
                       ))}
                       {boat.boat_facilities.length > 3 && (
-                        <div className="flex items-center justify-center w-5 h-5 rounded border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-md border bg-gray-50 border-gray-200 text-gray-500 text-[10px] font-medium">
                           +{boat.boat_facilities.length - 3}
                         </div>
                       )}
