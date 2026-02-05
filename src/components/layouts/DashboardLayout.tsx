@@ -31,6 +31,7 @@ import {
   ArrowLeftRight,
   Lock,
   Anchor,
+   Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -93,6 +94,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard, adminOnly: true },
   { label: 'Users', href: '/admin/users', icon: Users, adminOnly: true },
   { label: 'Ports', href: '/admin/ports', icon: Ship, adminOnly: true },
+   { label: 'Facilities', href: '/admin/facilities', icon: Wrench, adminOnly: true },
   { label: 'Settings', href: '/admin/settings', icon: Settings, adminOnly: true },
 ];
 
