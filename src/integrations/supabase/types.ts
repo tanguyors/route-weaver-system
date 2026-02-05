@@ -997,6 +997,45 @@ export type Database = {
           },
         ]
       }
+      boat_facilities: {
+        Row: {
+          boat_id: string
+          created_at: string
+          facility_id: string
+          id: string
+          is_free: boolean
+        }
+        Insert: {
+          boat_id: string
+          created_at?: string
+          facility_id: string
+          id?: string
+          is_free?: boolean
+        }
+        Update: {
+          boat_id?: string
+          created_at?: string
+          facility_id?: string
+          id?: string
+          is_free?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boat_facilities_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boat_facilities_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "facilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boats: {
         Row: {
           capacity: number
