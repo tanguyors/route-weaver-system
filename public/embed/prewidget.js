@@ -1,7 +1,7 @@
 /**
  * SriBooking Pre-Widget - Native search bar (no iframe)
  * Exact same visual style as the main widget WidgetSearchForm
- * Includes custom calendar picker (no native date input)
+ * Includes custom unified calendar picker (single field for one-way/round-trip)
  * Embed on partner's homepage, redirects to dedicated booking page with params
  */
 (function() {
@@ -41,6 +41,7 @@
       to: 'To',
       selectOrigin: 'Select origin',
       selectDestination: 'Select destination',
+      dates: 'Dates',
       departureDate: 'Departure Date',
       returnDate: 'Return Date',
       selectDate: 'Select Date',
@@ -62,6 +63,7 @@
       to: 'Vers',
       selectOrigin: 'Origine',
       selectDestination: 'Destination',
+      dates: 'Dates',
       departureDate: 'Date Départ',
       returnDate: 'Date Retour',
       selectDate: 'Choisir',
@@ -83,6 +85,7 @@
       to: 'Ke',
       selectOrigin: 'Pilih asal',
       selectDestination: 'Pilih tujuan',
+      dates: 'Tanggal',
       departureDate: 'Tanggal Berangkat',
       returnDate: 'Tanggal Kembali',
       selectDate: 'Pilih Tanggal',
@@ -107,12 +110,17 @@
     fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'],
     id: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
   };
+  var monthNamesShort = {
+    en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    fr: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
+    id: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+  };
 
   // State
   var state = {
     ports: [],
     routes: [],
-    tripType: 'oneway',
+    tripType: 'oneway', // 'oneway' | 'roundtrip'
     from: '',
     to: '',
     departDate: '',
@@ -122,8 +130,8 @@
     infants: 0,
     loading: true,
     error: null,
-    // Calendar state
-    calendarOpen: null, // 'depart' | 'return' | null
+    // Calendar state - unified calendar
+    calendarOpen: false,
     calendarViewDate: new Date()
   };
 
@@ -339,7 +347,7 @@
         color: ${mutedColor};
       }
       
-      /* Calendar Dropdown - opens upward, centered on trigger */
+      /* Calendar Dropdown - positioned via JS */
       .srb-pw-calendar-dropdown {
         position: absolute;
         z-index: 1000;
@@ -419,7 +427,7 @@
         align-items: center;
         justify-content: center;
       }
-      .srb-pw-calendar-day:hover:not(:disabled) {
+      .srb-pw-calendar-day:hover:not(:disabled):not(.selected):not(.in-range) {
         background: ${isDark ? '#374151' : '#f3f4f6'};
       }
       .srb-pw-calendar-day.outside {
@@ -432,6 +440,17 @@
       .srb-pw-calendar-day.selected {
         color: white;
         font-weight: 600;
+      }
+      .srb-pw-calendar-day.in-range {
+        background: ${isDark ? '#374151' : '#e5e7eb'};
+      }
+      .srb-pw-calendar-day.range-start {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+      .srb-pw-calendar-day.range-end {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
       }
       .srb-pw-calendar-day:disabled {
         color: ${isDark ? '#4b5563' : '#d1d5db'};
@@ -530,8 +549,22 @@
   function formatDisplayDate(dateStr) {
     if (!dateStr) return t.selectDate;
     var d = new Date(dateStr + 'T00:00:00');
-    var months = monthNames[lang] || monthNames.en;
-    return d.getDate() + ' ' + months[d.getMonth()].substring(0, 3) + ' ' + d.getFullYear();
+    var months = monthNamesShort[lang] || monthNamesShort.en;
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  // Format trip dates label (unified display)
+  function formatTripDatesLabel() {
+    if (!state.departDate) return t.selectDate;
+    
+    if (state.tripType === 'oneway') {
+      return formatDisplayDate(state.departDate);
+    }
+    
+    // round-trip
+    var fromLabel = formatDisplayDate(state.departDate);
+    var toLabel = state.returnDate ? formatDisplayDate(state.returnDate) : t.selectDate;
+    return fromLabel + ' → ' + toLabel;
   }
 
   function formatISODate(date) {
@@ -587,22 +620,33 @@
     return isSameDay(date, new Date());
   }
 
-  function isDateDisabled(date, type) {
+  function isDateDisabled(date) {
     var today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    if (date < today) return true;
-    
-    if (type === 'return' && state.departDate) {
-      var depart = new Date(state.departDate + 'T00:00:00');
-      if (date < depart) return true;
-    }
-    
-    return false;
+    return date < today;
   }
 
-  // Build calendar HTML
-  function buildCalendarHTML(type) {
+  function isDateInRange(date, startDate, endDate) {
+    if (!startDate || !endDate) return false;
+    var start = new Date(startDate + 'T00:00:00');
+    var end = new Date(endDate + 'T00:00:00');
+    return date > start && date < end;
+  }
+
+  function isRangeStart(date, startDate) {
+    if (!startDate) return false;
+    var start = new Date(startDate + 'T00:00:00');
+    return isSameDay(date, start);
+  }
+
+  function isRangeEnd(date, endDate) {
+    if (!endDate) return false;
+    var end = new Date(endDate + 'T00:00:00');
+    return isSameDay(date, end);
+  }
+
+  // Build calendar HTML - unified for both one-way and round-trip
+  function buildCalendarHTML() {
     var viewDate = state.calendarViewDate;
     var year = viewDate.getFullYear();
     var month = viewDate.getMonth();
@@ -610,8 +654,8 @@
     var days = dayNames[lang] || dayNames.en;
     var calendarDays = getCalendarDays(year, month);
     
-    var selectedDateStr = type === 'depart' ? state.departDate : state.returnDate;
-    var selectedDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : null;
+    var departDate = state.departDate ? new Date(state.departDate + 'T00:00:00') : null;
+    var returnDate = state.returnDate ? new Date(state.returnDate + 'T00:00:00') : null;
     
     var html = '<div class="srb-pw-calendar-header">' +
       '<span class="srb-pw-calendar-title">' + months[month] + ' ' + year + '</span>' +
@@ -632,16 +676,25 @@
       var dayInfo = calendarDays[j];
       var dayDate = dayInfo.date;
       var dateStr = formatISODate(dayDate);
-      var disabled = isDateDisabled(dayDate, type) || dayInfo.outside;
-      var isSelected = selectedDate && isSameDay(dayDate, selectedDate);
+      var disabled = isDateDisabled(dayDate) || dayInfo.outside;
+      
+      var isDepartSelected = departDate && isSameDay(dayDate, departDate);
+      var isReturnSelected = returnDate && isSameDay(dayDate, returnDate);
+      var isInRange = state.tripType === 'roundtrip' && isDateInRange(dayDate, state.departDate, state.returnDate);
       var isTodayDay = isToday(dayDate);
       
       var classes = 'srb-pw-calendar-day';
       if (dayInfo.outside) classes += ' outside';
       if (isTodayDay && !dayInfo.outside) classes += ' today';
-      if (isSelected) classes += ' selected';
+      if (isDepartSelected || isReturnSelected) classes += ' selected';
+      if (isInRange) classes += ' in-range';
+      if (isDepartSelected && state.returnDate) classes += ' range-start';
+      if (isReturnSelected) classes += ' range-end';
       
-      var style = isSelected ? 'background-color: ' + primaryColor + ';' : '';
+      var style = '';
+      if (isDepartSelected || isReturnSelected) {
+        style = 'background-color: ' + primaryColor + ';';
+      }
       
       html += '<button type="button" class="' + classes + '" data-date="' + dateStr + '" ' +
         (disabled ? 'disabled' : '') + 
@@ -651,6 +704,48 @@
     html += '</div>';
     
     return html;
+  }
+
+  // Handle day selection - unified logic like the widget
+  function handleDayClick(dateStr) {
+    var clickedDate = new Date(dateStr + 'T00:00:00');
+    
+    if (state.tripType === 'oneway') {
+      // One-way: single selection, close immediately
+      state.departDate = dateStr;
+      state.calendarOpen = false;
+    } else {
+      // Round-trip: sequential selection
+      if (!state.departDate || state.returnDate) {
+        // Start fresh selection
+        state.departDate = dateStr;
+        state.returnDate = '';
+        // Keep calendar open for return date
+      } else {
+        // Already have depart date, now selecting return
+        var departDateObj = new Date(state.departDate + 'T00:00:00');
+        
+        if (clickedDate < departDateObj) {
+          // User clicked earlier date, restart selection
+          state.departDate = dateStr;
+          state.returnDate = '';
+          // Keep calendar open
+        } else {
+          // Valid return date selected
+          state.returnDate = dateStr;
+          state.calendarOpen = false;
+        }
+      }
+    }
+    
+    render();
+  }
+
+  // Can close calendar logic
+  function canCloseCalendar() {
+    if (state.tripType === 'oneway') return true;
+    // Round-trip: can close if we don't have depart, or we have both dates
+    return !state.departDate || !!state.returnDate;
   }
 
   // Render function
@@ -722,6 +817,9 @@
       infantOptions += '<option value="' + inf + '"' + (state.infants === inf ? ' selected' : '') + '>' + inf + '</option>';
     }
 
+    // Determine date field label
+    var dateFieldLabel = isRoundTrip ? t.dates : t.departureDate;
+
     var html = '<div class="srb-pw">' +
       '<div class="srb-pw-card">' +
         // Header
@@ -739,7 +837,7 @@
             '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'roundtrip' ? ' active-round' : '') + '" data-trip="roundtrip" style="' + (state.tripType === 'roundtrip' ? 'background-color: ' + primaryColor + ';' : '') + '">' + t.roundTrip + '</button>' +
             '<span class="srb-pw-trip-info"><span class="srb-pw-trip-info-icon">i</span>' + t.selectVoyage + '</span>' +
           '</div>' +
-          // Row 1: From, To, Date
+          // Row 1: From, To, Date (unified single field)
           '<div class="srb-pw-fields-row">' +
             // From
             '<div class="srb-pw-field">' +
@@ -761,38 +859,21 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Departure Date (custom button + calendar)
-            '<div class="srb-pw-field" id="srb-depart-field">' +
+            // Unified Date Field (single button for one-way or round-trip)
+            '<div class="srb-pw-field" id="srb-date-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
                 '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + t.departureDate + '</label>' +
-                  '<button type="button" class="srb-pw-date-btn' + (!state.departDate ? ' placeholder' : '') + '" id="srb-depart-btn">' + 
-                    formatDisplayDate(state.departDate) + 
+                  '<label class="srb-pw-field-label">' + dateFieldLabel + '</label>' +
+                  '<button type="button" class="srb-pw-date-btn' + (!state.departDate ? ' placeholder' : '') + '" id="srb-date-btn">' + 
+                    formatTripDatesLabel() + 
                   '</button>' +
                 '</div>' +
               '</div>' +
             '</div>' +
           '</div>' +
-          // Calendar dropdown for departure - rendered via JS positioning
-          (state.calendarOpen === 'depart' ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar" data-for="depart">' + buildCalendarHTML('depart') + '</div>' : '') +
-          // Row 2 (only for round trip): Return Date
-          (isRoundTrip ?
-            '<div class="srb-pw-fields-row" style="grid-template-columns: 1fr;">' +
-              '<div class="srb-pw-field" id="srb-return-field">' +
-                '<div class="srb-pw-field-inner">' +
-                  '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
-                  '<div class="srb-pw-field-content">' +
-                    '<label class="srb-pw-field-label">' + t.returnDate + '</label>' +
-                    '<button type="button" class="srb-pw-date-btn' + (!state.returnDate ? ' placeholder' : '') + '" id="srb-return-btn">' + 
-                      formatDisplayDate(state.returnDate) + 
-                    '</button>' +
-                  '</div>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            // Calendar dropdown for return - rendered via JS positioning
-            (state.calendarOpen === 'return' ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar" data-for="return">' + buildCalendarHTML('return') + '</div>' : '') : '') +
+          // Calendar dropdown - unified, rendered via JS positioning
+          (state.calendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-calendar">' + buildCalendarHTML() + '</div>' : '') +
           // Passengers row
           '<div class="srb-pw-pax-row">' +
             // Adult
@@ -851,9 +932,7 @@
     var calendar = container.querySelector('.srb-pw-calendar-dropdown');
     if (!calendar) return;
 
-    var forType = calendar.getAttribute('data-for');
-    var btnId = forType === 'depart' ? 'srb-depart-btn' : 'srb-return-btn';
-    var btn = document.getElementById(btnId);
+    var btn = document.getElementById('srb-date-btn');
     var body = container.querySelector('.srb-pw-body');
     
     if (!btn || !body) return;
@@ -887,12 +966,14 @@
 
   // Bind events
   function bindEvents() {
-    // Backdrop click to close calendar
+    // Backdrop click to close calendar (only if allowed)
     var backdrop = document.getElementById('srb-backdrop');
     if (backdrop) {
       backdrop.addEventListener('click', function() {
-        state.calendarOpen = null;
-        render();
+        if (canCloseCalendar()) {
+          state.calendarOpen = false;
+          render();
+        }
       });
     }
 
@@ -900,8 +981,12 @@
     var tripBtns = container.querySelectorAll('.srb-pw-trip-btn');
     tripBtns.forEach(function(btn) {
       btn.addEventListener('click', function() {
-        state.tripType = this.getAttribute('data-trip');
-        if (state.tripType === 'oneway') state.returnDate = '';
+        var newType = this.getAttribute('data-trip');
+        state.tripType = newType;
+        // Clear return date when switching to one-way
+        if (newType === 'oneway') {
+          state.returnDate = '';
+        }
         render();
       });
     });
@@ -924,33 +1009,21 @@
       });
     }
 
-    // Departure date button
-    var departBtn = document.getElementById('srb-depart-btn');
-    if (departBtn) {
-      departBtn.addEventListener('click', function(e) {
+    // Unified date button
+    var dateBtn = document.getElementById('srb-date-btn');
+    if (dateBtn) {
+      dateBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        state.calendarOpen = state.calendarOpen === 'depart' ? null : 'depart';
-        if (state.departDate) {
-          state.calendarViewDate = new Date(state.departDate + 'T00:00:00');
-        } else {
-          state.calendarViewDate = new Date();
-        }
-        render();
-      });
-    }
-
-    // Return date button
-    var returnBtn = document.getElementById('srb-return-btn');
-    if (returnBtn) {
-      returnBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        state.calendarOpen = state.calendarOpen === 'return' ? null : 'return';
-        if (state.returnDate) {
-          state.calendarViewDate = new Date(state.returnDate + 'T00:00:00');
-        } else if (state.departDate) {
-          state.calendarViewDate = new Date(state.departDate + 'T00:00:00');
-        } else {
-          state.calendarViewDate = new Date();
+        state.calendarOpen = !state.calendarOpen;
+        if (state.calendarOpen) {
+          // Set initial view month
+          if (state.returnDate) {
+            state.calendarViewDate = new Date(state.returnDate + 'T00:00:00');
+          } else if (state.departDate) {
+            state.calendarViewDate = new Date(state.departDate + 'T00:00:00');
+          } else {
+            state.calendarViewDate = new Date();
+          }
         }
         render();
       });
@@ -978,17 +1051,7 @@
       dayBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         var dateStr = this.getAttribute('data-date');
-        if (state.calendarOpen === 'depart') {
-          state.departDate = dateStr;
-          // If return date is before depart, reset it
-          if (state.returnDate && state.returnDate < dateStr) {
-            state.returnDate = '';
-          }
-        } else if (state.calendarOpen === 'return') {
-          state.returnDate = dateStr;
-        }
-        state.calendarOpen = null;
-        render();
+        handleDayClick(dateStr);
       });
     });
 
