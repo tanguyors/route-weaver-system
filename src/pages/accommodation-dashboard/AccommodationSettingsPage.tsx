@@ -122,7 +122,7 @@ const AccommodationSettingsPage = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="business" className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-full max-w-md">
+          <TabsList className="grid grid-cols-4 w-full max-w-md">
             <TabsTrigger value="business" className="gap-2">
               <Building2 className="w-4 h-4" />
               <span className="hidden sm:inline">Business</span>
@@ -134,6 +134,10 @@ const AccommodationSettingsPage = () => {
             <TabsTrigger value="team" className="gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Team</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2">
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
           </TabsList>
 
@@ -366,6 +370,14 @@ const AccommodationSettingsPage = () => {
                 onInvite={handleInviteStaff}
               />
             )}
+          </TabsContent>
+          {/* Notifications */}
+          <TabsContent value="notifications">
+            <AccommodationNotificationTemplatesEditor
+              partnerId={partnerInfo?.id || null}
+              partnerEmail={partnerInfo?.contact_email}
+              partnerPhone={partnerInfo?.contact_phone}
+            />
           </TabsContent>
         </Tabs>
       </div>
