@@ -58,7 +58,9 @@ import AdminActivityPayoutsPage from "./pages/admin/AdminActivityPayoutsPage";
 import AdminActivityInvoicesPage from "./pages/admin/AdminActivityInvoicesPage";
 import AdminActivityCommissionsPage from "./pages/admin/AdminActivityCommissionsPage";
 import AdminCommissionsPage from "./pages/admin/AdminCommissionsPage";
- import AdminFacilitiesPage from "./pages/admin/AdminFacilitiesPage";
+import AdminAccommodationBookingsPage from "./pages/admin/AdminAccommodationBookingsPage";
+import AdminAccommodationCommissionsPage from "./pages/admin/AdminAccommodationCommissionsPage";
+import AdminFacilitiesPage from "./pages/admin/AdminFacilitiesPage";
 import NotFound from "./pages/NotFound";
 import WidgetBooking from "./pages/WidgetBooking";
 import WidgetBookingNew from "./pages/WidgetBookingNew";
@@ -154,6 +156,8 @@ const App = () => (
             <Route path="/admin/activity-payouts" element={<ProtectedRoute><AdminActivityPayoutsPage /></ProtectedRoute>} />
             <Route path="/admin/activity-invoices" element={<ProtectedRoute><AdminActivityInvoicesPage /></ProtectedRoute>} />
             <Route path="/admin/activity-commissions" element={<ProtectedRoute><AdminActivityCommissionsPage /></ProtectedRoute>} />
+            <Route path="/admin/accommodation-bookings" element={<ProtectedRoute><AdminAccommodationBookingsPage /></ProtectedRoute>} />
+            <Route path="/admin/accommodation-commissions" element={<ProtectedRoute><AdminAccommodationCommissionsPage /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

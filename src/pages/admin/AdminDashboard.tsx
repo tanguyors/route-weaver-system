@@ -1,6 +1,6 @@
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, BookOpen, DollarSign, Users, Loader2, BookMarked, UserPlus, Wallet } from 'lucide-react';
+import { Building2, BookOpen, DollarSign, Users, Loader2, BookMarked, UserPlus, Wallet, Home } from 'lucide-react';
 import { useAdminDashboardData } from '@/hooks/useAdminDashboardData';
 import { format } from 'date-fns';
 
@@ -16,6 +16,8 @@ const ActivityIcon = ({ type }: { type: string }) => {
       return <UserPlus className="w-4 h-4 text-green-500" />;
     case 'withdrawal':
       return <Wallet className="w-4 h-4 text-orange-500" />;
+    case 'accommodation_booking':
+      return <Home className="w-4 h-4 text-blue-500" />;
     default:
       return <BookMarked className="w-4 h-4 text-muted-foreground" />;
   }
