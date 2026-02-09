@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import AccommodationDashboardLayout from '@/components/layouts/AccommodationDashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import { useAccommodationsData } from '@/hooks/useAccommodationsData';
 import { useAccommodationCalendarData } from '@/hooks/useAccommodationCalendarData';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameMonth } from 'date-fns';
+import { useMultiPropertyCalendarData } from '@/hooks/useMultiPropertyCalendarData';
+import MultiPropertyCalendar from '@/components/accommodation/MultiPropertyCalendar';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameMonth, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -19,25 +21,37 @@ const statusColors: Record<string, string> = {
   blocked: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 hover:bg-red-200',
 };
 
+type ViewMode = 'single' | 'multi';
+
 const AccommodationCalendarPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedAccommodation, setSelectedAccommodation] = useState<string>('');
+  const [viewMode, setViewMode] = useState<ViewMode>('multi');
   const { accommodations, loading: accLoading } = useAccommodationsData();
-  
+
   const accommodationId = selectedAccommodation || accommodations[0]?.id || '';
-  
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  
+  const startStr = format(monthStart, 'yyyy-MM-dd');
+  const endStr = format(monthEnd, 'yyyy-MM-dd');
+
   const { calendarEntries, loading: calLoading, toggleBlock } = useAccommodationCalendarData(
-    accommodationId,
-    format(monthStart, 'yyyy-MM-dd'),
-    format(monthEnd, 'yyyy-MM-dd')
+    accommodationId, startStr, endStr
   );
 
-  const days = useMemo(() => eachDayOfInterval({ start: monthStart, end: monthEnd }), [currentMonth]);
+  const { groups, loading: multiLoading, toggleBlock: multiToggleBlock } = useMultiPropertyCalendarData(
+    startStr, endStr
+  );
 
-  // Monday-based offset
+  // Default to single view if only 1 accommodation
+  useEffect(() => {
+    if (!accLoading && accommodations.length <= 1) {
+      setViewMode('single');
+    }
+  }, [accLoading, accommodations.length]);
+
+  const days = useMemo(() => eachDayOfInterval({ start: monthStart, end: monthEnd }), [currentMonth]);
   const firstDayOffset = (getDay(monthStart) + 6) % 7;
 
   const getStatusForDate = (dateStr: string) => {
@@ -45,11 +59,15 @@ const AccommodationCalendarPage = () => {
     return entry?.status || 'available';
   };
 
+  const getGuestForDate = (dateStr: string) => {
+    const entry = calendarEntries.find(e => e.date === dateStr);
+    return entry?.guest_name || null;
+  };
+
   const handleDayClick = async (dateStr: string) => {
     if (!accommodationId) return;
     const status = getStatusForDate(dateStr);
-    if (status === 'booked_sribooking' || status === 'booked_external') return; // Can't unblock booked dates
-    
+    if (status === 'booked_sribooking' || status === 'booked_external') return;
     try {
       await toggleBlock(dateStr, status);
       toast.success(status === 'blocked' ? 'Date unblocked' : 'Date blocked');
@@ -78,17 +96,45 @@ const AccommodationCalendarPage = () => {
           </Card>
         ) : (
           <>
-            {/* Accommodation Selector + Navigation */}
+            {/* Controls row */}
             <div className="flex flex-wrap items-center gap-4">
-              <Select value={accommodationId} onValueChange={setSelectedAccommodation}>
-                <SelectTrigger className="w-[250px]"><SelectValue placeholder="Select accommodation" /></SelectTrigger>
-                <SelectContent>
-                  {accommodations.map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
+              {/* View toggle (only show if multiple accommodations) */}
+              {accommodations.length > 1 && (
+                <div className="flex items-center border rounded-lg overflow-hidden">
+                  <Button
+                    variant={viewMode === 'multi' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-none"
+                    onClick={() => setViewMode('multi')}
+                  >
+                    <List className="w-4 h-4 mr-1" />
+                    Multi
+                  </Button>
+                  <Button
+                    variant={viewMode === 'single' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-none"
+                    onClick={() => setViewMode('single')}
+                  >
+                    <LayoutGrid className="w-4 h-4 mr-1" />
+                    Single
+                  </Button>
+                </div>
+              )}
+
+              {/* Accommodation selector (single view only) */}
+              {viewMode === 'single' && (
+                <Select value={accommodationId} onValueChange={setSelectedAccommodation}>
+                  <SelectTrigger className="w-[250px]"><SelectValue placeholder="Select accommodation" /></SelectTrigger>
+                  <SelectContent>
+                    {accommodations.map(acc => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Month navigation */}
               <div className="flex items-center gap-2 ml-auto">
                 <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
                   <ChevronLeft className="w-4 h-4" />
@@ -108,51 +154,62 @@ const AccommodationCalendarPage = () => {
               <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-red-200 dark:bg-red-900" />Blocked</div>
             </div>
 
-            {/* Calendar Grid */}
-            <Card>
-              <CardContent className="pt-6">
-                {calLoading ? (
-                  <div className="flex items-center justify-center h-48">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-7 gap-1">
-                    {/* Day names */}
-                    {DAY_NAMES.map(d => (
-                      <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2">{d}</div>
-                    ))}
-                    
-                    {/* Empty cells for offset */}
-                    {Array.from({ length: firstDayOffset }).map((_, i) => (
-                      <div key={`empty-${i}`} />
-                    ))}
-                    
-                    {/* Day cells */}
-                    {days.map(day => {
-                      const dateStr = format(day, 'yyyy-MM-dd');
-                      const status = getStatusForDate(dateStr);
-                      const isBooked = status === 'booked_sribooking' || status === 'booked_external';
-                      
-                      return (
-                        <button
-                          key={dateStr}
-                          onClick={() => handleDayClick(dateStr)}
-                          disabled={isBooked}
-                          className={cn(
-                            'aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-colors',
-                            statusColors[status] || statusColors.available,
-                            isBooked && 'cursor-not-allowed opacity-80',
-                            !isSameMonth(day, currentMonth) && 'opacity-30',
-                          )}
-                        >
-                          <span>{format(day, 'd')}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Calendar Views */}
+            {viewMode === 'multi' ? (
+              <MultiPropertyCalendar
+                currentMonth={currentMonth}
+                groups={groups}
+                loading={multiLoading}
+                onToggleBlock={multiToggleBlock}
+              />
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  {calLoading ? (
+                    <div className="flex items-center justify-center h-48">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-7 gap-1">
+                      {DAY_NAMES.map(d => (
+                        <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2">{d}</div>
+                      ))}
+                      {Array.from({ length: firstDayOffset }).map((_, i) => (
+                        <div key={`empty-${i}`} />
+                      ))}
+                      {days.map(day => {
+                        const dateStr = format(day, 'yyyy-MM-dd');
+                        const status = getStatusForDate(dateStr);
+                        const guestName = getGuestForDate(dateStr);
+                        const isBooked = status === 'booked_sribooking' || status === 'booked_external';
+
+                        return (
+                          <button
+                            key={dateStr}
+                            onClick={() => handleDayClick(dateStr)}
+                            disabled={isBooked}
+                            className={cn(
+                              'aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-colors p-1',
+                              statusColors[status] || statusColors.available,
+                              isBooked && 'cursor-not-allowed opacity-80',
+                              !isSameMonth(day, currentMonth) && 'opacity-30',
+                              isToday(day) && 'ring-2 ring-primary/40',
+                            )}
+                          >
+                            <span>{format(day, 'd')}</span>
+                            {guestName && (
+                              <span className="text-[9px] leading-tight truncate max-w-full mt-0.5 opacity-80">
+                                {guestName}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
       </div>
