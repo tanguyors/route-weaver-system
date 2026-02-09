@@ -9,6 +9,7 @@ export interface CalendarEntry {
   status: string;
   source: string;
   booking_id: string | null;
+  room_id: string | null;
   note: string | null;
   guest_name?: string | null;
 }

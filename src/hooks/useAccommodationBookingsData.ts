@@ -6,6 +6,7 @@ export interface AccommodationBooking {
   id: string;
   accommodation_id: string;
   partner_id: string;
+  room_id: string | null;
   guest_name: string;
   guest_email: string | null;
   guest_phone: string | null;
@@ -22,6 +23,7 @@ export interface AccommodationBooking {
   created_at: string;
   updated_at: string;
   accommodation?: { name: string; price_per_night: number };
+  room?: { name: string; price_per_night: number } | null;
 }
 
 export interface BookingStats {
@@ -33,6 +35,7 @@ export interface BookingStats {
 
 export interface CreateBookingInput {
   accommodation_id: string;
+  room_id?: string;
   guest_name: string;
   guest_email?: string;
   guest_phone?: string;
@@ -77,7 +80,7 @@ export const useAccommodationBookingsData = (filters?: {
     try {
       let query = supabase
         .from('accommodation_bookings')
-        .select('*, accommodation:accommodations(name, price_per_night)')
+        .select('*, accommodation:accommodations(name, price_per_night), room:accommodation_rooms(name, price_per_night)')
         .eq('partner_id', partnerId)
         .order('checkin_date', { ascending: false });
 
@@ -103,14 +106,12 @@ export const useAccommodationBookingsData = (filters?: {
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       const monthEnd = nextMonth.toISOString().split('T')[0];
 
-      // Total active properties
       const { count: propCount } = await supabase
         .from('accommodations')
         .select('id', { count: 'exact', head: true })
         .eq('partner_id', partnerId)
         .eq('status', 'active');
 
-      // Active bookings (confirmed) this month
       const { data: monthBookings } = await supabase
         .from('accommodation_bookings')
         .select('total_nights, total_amount, status')
@@ -123,12 +124,7 @@ export const useAccommodationBookingsData = (filters?: {
       const revenue = (monthBookings || []).reduce((sum, b) => sum + (b.total_amount || 0), 0);
       const activeBookings = (monthBookings || []).length;
 
-      setStats({
-        totalProperties: propCount || 0,
-        nightsBooked,
-        activeBookings,
-        revenue,
-      });
+      setStats({ totalProperties: propCount || 0, nightsBooked, activeBookings, revenue });
     } catch (err) {
       console.error('Error fetching stats:', err);
     }
@@ -145,71 +141,141 @@ export const useAccommodationBookingsData = (filters?: {
 
     const datesToBlock = getDatesBetween(input.checkin_date, input.checkout_date);
 
-    // Check availability
-    const { data: existing } = await supabase
-      .from('accommodation_calendar')
-      .select('date')
-      .eq('accommodation_id', input.accommodation_id)
-      .in('date', datesToBlock)
-      .in('status', ['booked_sribooking', 'booked_external', 'blocked']);
+    if (input.room_id) {
+      // --- Hotel room booking: check availability from bookings ---
+      const { data: roomData } = await supabase
+        .from('accommodation_rooms')
+        .select('quantity')
+        .eq('id', input.room_id)
+        .single();
 
-    if (existing && existing.length > 0) {
-      const conflictDates = existing.map(e => e.date).join(', ');
-      throw new Error(`Dates unavailable: ${conflictDates}`);
-    }
+      if (!roomData) throw new Error('Room not found');
 
-    // Insert booking
-    const { data: booking, error: bookingError } = await supabase
-      .from('accommodation_bookings')
-      .insert({
+      // Check accommodation-level blocks
+      const { data: accBlocks } = await supabase
+        .from('accommodation_calendar')
+        .select('date')
+        .eq('accommodation_id', input.accommodation_id)
+        .is('room_id', null)
+        .in('date', datesToBlock)
+        .in('status', ['blocked', 'booked_external']);
+
+      if (accBlocks && accBlocks.length > 0) {
+        throw new Error(`Dates blocked at property level: ${accBlocks.map(b => b.date).join(', ')}`);
+      }
+
+      // Check room stock availability
+      const { data: overlapping } = await supabase
+        .from('accommodation_bookings')
+        .select('checkin_date, checkout_date')
+        .eq('room_id', input.room_id)
+        .eq('status', 'confirmed')
+        .lt('checkin_date', input.checkout_date)
+        .gte('checkout_date', input.checkin_date);
+
+      for (const date of datesToBlock) {
+        const count = (overlapping || []).filter(b =>
+          b.checkin_date <= date && b.checkout_date > date
+        ).length;
+        if (count >= (roomData as any).quantity) {
+          throw new Error(`No rooms available on ${date}`);
+        }
+      }
+
+      // Insert booking with room_id (no calendar entries for room bookings)
+      const { data: booking, error: bookingError } = await supabase
+        .from('accommodation_bookings')
+        .insert({
+          accommodation_id: input.accommodation_id,
+          partner_id: partnerId,
+          room_id: input.room_id,
+          guest_name: input.guest_name,
+          guest_email: input.guest_email || null,
+          guest_phone: input.guest_phone || null,
+          guests_count: input.guests_count,
+          checkin_date: input.checkin_date,
+          checkout_date: input.checkout_date,
+          total_nights: nights,
+          total_amount: input.total_amount,
+          channel: input.channel,
+          status: 'confirmed',
+          notes: input.notes || null,
+        } as any)
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+
+      supabase.functions.invoke('send-accommodation-booking-confirmation', {
+        body: { booking_id: (booking as any).id }
+      }).catch(err => console.error('Notification error:', err));
+
+      await fetchBookings();
+      await fetchStats();
+      return booking;
+    } else {
+      // --- Villa booking: use calendar-based availability ---
+      const { data: existing } = await supabase
+        .from('accommodation_calendar')
+        .select('date')
+        .eq('accommodation_id', input.accommodation_id)
+        .in('date', datesToBlock)
+        .in('status', ['booked_sribooking', 'booked_external', 'blocked']);
+
+      if (existing && existing.length > 0) {
+        const conflictDates = existing.map(e => e.date).join(', ');
+        throw new Error(`Dates unavailable: ${conflictDates}`);
+      }
+
+      const { data: booking, error: bookingError } = await supabase
+        .from('accommodation_bookings')
+        .insert({
+          accommodation_id: input.accommodation_id,
+          partner_id: partnerId,
+          guest_name: input.guest_name,
+          guest_email: input.guest_email || null,
+          guest_phone: input.guest_phone || null,
+          guests_count: input.guests_count,
+          checkin_date: input.checkin_date,
+          checkout_date: input.checkout_date,
+          total_nights: nights,
+          total_amount: input.total_amount,
+          channel: input.channel,
+          status: 'confirmed',
+          notes: input.notes || null,
+        } as any)
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+
+      const calendarRows = datesToBlock.map(date => ({
         accommodation_id: input.accommodation_id,
         partner_id: partnerId,
-        guest_name: input.guest_name,
-        guest_email: input.guest_email || null,
-        guest_phone: input.guest_phone || null,
-        guests_count: input.guests_count,
-        checkin_date: input.checkin_date,
-        checkout_date: input.checkout_date,
-        total_nights: nights,
-        total_amount: input.total_amount,
-        channel: input.channel,
-        status: 'confirmed',
-        notes: input.notes || null,
-      } as any)
-      .select()
-      .single();
+        date,
+        status: 'booked_sribooking',
+        source: 'sribooking',
+        booking_id: (booking as any).id,
+      }));
 
-    if (bookingError) throw bookingError;
+      const { error: calError } = await supabase
+        .from('accommodation_calendar')
+        .upsert(calendarRows as any[], { onConflict: 'accommodation_id,date' });
 
-    // Block calendar dates
-    const calendarRows = datesToBlock.map(date => ({
-      accommodation_id: input.accommodation_id,
-      partner_id: partnerId,
-      date,
-      status: 'booked_sribooking',
-      source: 'sribooking',
-      booking_id: (booking as any).id,
-    }));
+      if (calError) throw calError;
 
-    const { error: calError } = await supabase
-      .from('accommodation_calendar')
-      .upsert(calendarRows as any[], { onConflict: 'accommodation_id,date' });
+      supabase.functions.invoke('send-accommodation-booking-confirmation', {
+        body: { booking_id: (booking as any).id }
+      }).catch(err => console.error('Notification error:', err));
 
-    if (calError) throw calError;
-
-    // Send confirmation notification (non-blocking)
-    supabase.functions.invoke('send-accommodation-booking-confirmation', {
-      body: { booking_id: (booking as any).id }
-    }).catch(err => console.error('Notification error:', err));
-
-    await fetchBookings();
-    await fetchStats();
-    return booking;
+      await fetchBookings();
+      await fetchStats();
+      return booking;
+    }
   };
 
   const updateBookingStatus = async (id: string, status: string) => {
     if (status === 'cancelled') {
-      // Remove calendar entries for this booking
       const { error: calDelError } = await supabase
         .from('accommodation_calendar')
         .delete()
@@ -238,7 +304,7 @@ export const useAccommodationBookingsData = (filters?: {
     const today = new Date().toISOString().split('T')[0];
     const { data } = await supabase
       .from('accommodation_bookings')
-      .select('*, accommodation:accommodations(name, price_per_night)')
+      .select('*, accommodation:accommodations(name, price_per_night), room:accommodation_rooms(name, price_per_night)')
       .eq('partner_id', partnerId)
       .eq('status', 'confirmed')
       .gte('checkin_date', today)

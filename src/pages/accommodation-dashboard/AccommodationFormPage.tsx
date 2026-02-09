@@ -12,6 +12,8 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { useAccommodationsData } from '@/hooks/useAccommodationsData';
 import { useUserRole } from '@/hooks/useUserRole';
 import { AccommodationImageGallery } from '@/components/accommodation/AccommodationImageGallery';
+import { RoomTypesList } from '@/components/accommodation/RoomTypesList';
+import { PriceTiersList } from '@/components/accommodation/PriceTiersList';
 import { toast } from 'sonner';
 
 const AMENITIES_OPTIONS = [
@@ -109,6 +111,11 @@ const AccommodationFormPage = () => {
           {/* Photos - only in edit mode */}
           {isEdit && (
             <AccommodationImageGallery accommodationId={id} partnerId={partnerId || undefined} />
+          )}
+
+          {/* Room Types - only for hotels in edit mode */}
+          {isEdit && form.type === 'hotel' && (
+            <RoomTypesList accommodationId={id!} partnerId={partnerId || undefined} currency={form.currency} />
           )}
 
           {/* General Info */}
@@ -246,6 +253,15 @@ const AccommodationFormPage = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Price Tiers - degressive pricing */}
+          {isEdit && (
+            <PriceTiersList
+              accommodationId={id!}
+              basePrice={form.price_per_night}
+              currency={form.currency}
+            />
+          )}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => navigate('/accommodation-dashboard/list')}>Cancel</Button>

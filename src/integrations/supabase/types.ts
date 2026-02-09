@@ -30,6 +30,7 @@ export type Database = {
           id: string
           notes: string | null
           partner_id: string
+          room_id: string | null
           status: string
           total_amount: number
           total_nights: number
@@ -50,6 +51,7 @@ export type Database = {
           id?: string
           notes?: string | null
           partner_id: string
+          room_id?: string | null
           status?: string
           total_amount?: number
           total_nights?: number
@@ -70,6 +72,7 @@ export type Database = {
           id?: string
           notes?: string | null
           partner_id?: string
+          room_id?: string | null
           status?: string
           total_amount?: number
           total_nights?: number
@@ -90,6 +93,13 @@ export type Database = {
             referencedRelation: "partners"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "accommodation_bookings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_rooms"
+            referencedColumns: ["id"]
+          },
         ]
       }
       accommodation_calendar: {
@@ -101,6 +111,7 @@ export type Database = {
           id: string
           note: string | null
           partner_id: string
+          room_id: string | null
           source: string
           status: string
           updated_at: string
@@ -113,6 +124,7 @@ export type Database = {
           id?: string
           note?: string | null
           partner_id: string
+          room_id?: string | null
           source?: string
           status?: string
           updated_at?: string
@@ -125,6 +137,7 @@ export type Database = {
           id?: string
           note?: string | null
           partner_id?: string
+          room_id?: string | null
           source?: string
           status?: string
           updated_at?: string
@@ -142,6 +155,13 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_calendar_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -497,6 +517,67 @@ export type Database = {
           },
         ]
       }
+      accommodation_price_tiers: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          currency: string
+          id: string
+          min_nights: number
+          partner_id: string
+          price_per_night: number
+          room_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          min_nights?: number
+          partner_id: string
+          price_per_night?: number
+          room_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          min_nights?: number
+          partner_id?: string
+          price_per_night?: number
+          room_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_price_tiers_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_price_tiers_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_price_tiers_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_reminder_logs: {
         Row: {
           booking_id: string
@@ -528,6 +609,123 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "accommodation_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_room_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          file_path: string | null
+          id: string
+          image_url: string
+          partner_id: string
+          room_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          file_path?: string | null
+          id?: string
+          image_url: string
+          partner_id: string
+          room_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          file_path?: string | null
+          id?: string
+          image_url?: string
+          partner_id?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_room_images_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_room_images_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_rooms: {
+        Row: {
+          accommodation_id: string
+          amenities: Json
+          bed_type: string
+          capacity: number
+          created_at: string
+          currency: string
+          description: string | null
+          display_order: number
+          id: string
+          minimum_nights: number
+          name: string
+          partner_id: string
+          price_per_night: number
+          quantity: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          amenities?: Json
+          bed_type?: string
+          capacity?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          minimum_nights?: number
+          name: string
+          partner_id: string
+          price_per_night?: number
+          quantity?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          amenities?: Json
+          bed_type?: string
+          capacity?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          minimum_nights?: number
+          name?: string
+          partner_id?: string
+          price_per_night?: number
+          quantity?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_rooms_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_rooms_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
