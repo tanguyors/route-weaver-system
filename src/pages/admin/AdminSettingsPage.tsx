@@ -92,16 +92,12 @@ const AdminSettingsPage = () => {
         <div>
           <h1 className="text-3xl font-bold">Platform Settings</h1>
           <p className="text-muted-foreground">
-            Manage global platform settings, commission rates, and payment configurations
+            Manage global platform settings and payment configurations
           </p>
         </div>
 
-        <Tabs defaultValue="commission" className="space-y-4">
+        <Tabs defaultValue="payments" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="commission" className="flex items-center gap-2">
-              <Percent className="h-4 w-4" />
-              Commission
-            </TabsTrigger>
             <TabsTrigger value="payments" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               Payment Providers
