@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from './useUserRole';
 
-export type ModuleType = 'boat' | 'activity';
+export type ModuleType = 'boat' | 'activity' | 'accommodation';
 export type ModuleStatus = 'active' | 'pending' | 'disabled';
 
 export interface PartnerModule {

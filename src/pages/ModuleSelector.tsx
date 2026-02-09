@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Ship, Compass, Clock } from 'lucide-react';
+import { Ship, Compass, Clock, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePartnerModules } from '@/hooks/usePartnerModules';
@@ -12,12 +12,14 @@ const ModuleSelector = () => {
   const { activeModules, loading: modulesLoading } = usePartnerModules();
 
   // Store last choice
-  const handleSelectModule = (module: 'boat' | 'activity') => {
+  const handleSelectModule = (module: 'boat' | 'activity' | 'accommodation') => {
     localStorage.setItem('lastModuleChoice', module);
     if (module === 'boat') {
       navigate('/dashboard');
-    } else {
+    } else if (module === 'activity') {
       navigate('/activity-dashboard');
+    } else {
+      navigate('/accommodation-dashboard');
     }
   };
 
@@ -33,19 +35,23 @@ const ModuleSelector = () => {
     if (activeModules.length === 1) {
       if (activeModules[0] === 'boat') {
         navigate('/dashboard');
-      } else {
+      } else if (activeModules[0] === 'activity') {
         navigate('/activity-dashboard');
+      } else {
+        navigate('/accommodation-dashboard');
       }
       return;
     }
 
-    // Check for last choice if both modules active
-    if (activeModules.length === 2) {
+    // Check for last choice if multiple modules active
+    if (activeModules.length >= 2) {
       const lastChoice = localStorage.getItem('lastModuleChoice');
       if (lastChoice === 'boat' && activeModules.includes('boat')) {
         navigate('/dashboard');
       } else if (lastChoice === 'activity' && activeModules.includes('activity')) {
         navigate('/activity-dashboard');
+      } else if (lastChoice === 'accommodation' && activeModules.includes('accommodation')) {
+        navigate('/accommodation-dashboard');
       }
     }
   }, [role, activeModules, roleLoading, modulesLoading, navigate]);
@@ -130,6 +136,28 @@ const ModuleSelector = () => {
               <CardContent>
                 <Button className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
                   Enter Activity Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeModules.includes('accommodation') && (
+            <Card 
+              className="cursor-pointer hover:border-primary transition-all hover:shadow-lg group"
+              onClick={() => handleSelectModule('accommodation')}
+            >
+              <CardHeader className="text-center">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Home className="w-10 h-10 text-white" />
+                </div>
+                <CardTitle>Accommodation Dashboard</CardTitle>
+                <CardDescription>
+                  Manage your villas, hotels, guesthouses, and rental properties
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white">
+                  Enter Accommodation Dashboard
                 </Button>
               </CardContent>
             </Card>
