@@ -14,7 +14,7 @@ interface DashboardOption {
   label: string;
   href: string;
   icon: React.ElementType;
-  module?: string;
+  module?: ModuleType;
   adminOnly?: boolean;
 }
 
