@@ -21,7 +21,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface PartnerModule {
   id?: string;
-  module_type: 'boat' | 'activity';
+  module_type: 'boat' | 'activity' | 'accommodation';
   status: 'active' | 'pending' | 'disabled';
 }
 

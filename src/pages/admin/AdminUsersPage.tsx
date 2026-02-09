@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 
 interface PartnerModule {
-  module_type: 'boat' | 'activity';
+  module_type: 'boat' | 'activity' | 'accommodation';
   status: 'active' | 'pending' | 'disabled';
 }
 
