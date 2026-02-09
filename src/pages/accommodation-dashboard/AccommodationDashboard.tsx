@@ -1,8 +1,18 @@
+import { useEffect, useState } from 'react';
 import AccommodationDashboardLayout from '@/components/layouts/AccommodationDashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Home, Calendar, BookOpen, TrendingUp } from 'lucide-react';
+import { useAccommodationBookingsData, AccommodationBooking } from '@/hooks/useAccommodationBookingsData';
+import { format } from 'date-fns';
 
 const AccommodationDashboard = () => {
+  const { stats, loading, getUpcomingBookings } = useAccommodationBookingsData();
+  const [upcoming, setUpcoming] = useState<AccommodationBooking[]>([]);
+
+  useEffect(() => {
+    getUpcomingBookings(5).then(setUpcoming);
+  }, [getUpcomingBookings]);
+
   return (
     <AccommodationDashboardLayout>
       <div className="space-y-6">
@@ -18,7 +28,7 @@ const AccommodationDashboard = () => {
               <Home className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{loading ? '—' : stats.totalProperties}</div>
               <p className="text-xs text-muted-foreground">Active accommodations</p>
             </CardContent>
           </Card>
@@ -28,7 +38,7 @@ const AccommodationDashboard = () => {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{loading ? '—' : stats.nightsBooked}</div>
               <p className="text-xs text-muted-foreground">This month</p>
             </CardContent>
           </Card>
@@ -38,8 +48,8 @@ const AccommodationDashboard = () => {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Active bookings</p>
+              <div className="text-2xl font-bold">{loading ? '—' : stats.activeBookings}</div>
+              <p className="text-xs text-muted-foreground">Confirmed this month</p>
             </CardContent>
           </Card>
           <Card>
@@ -48,20 +58,45 @@ const AccommodationDashboard = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">IDR 0</div>
+              <div className="text-2xl font-bold">IDR {loading ? '—' : stats.revenue.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">This month</p>
             </CardContent>
           </Card>
         </div>
 
+        {/* Upcoming Bookings or Empty State */}
         <Card>
-          <CardContent className="flex items-center justify-center h-48 border-2 border-dashed border-border rounded-lg mt-6">
-            <div className="text-center">
-              <Home className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                Start by adding your first accommodation
-              </p>
-            </div>
+          <CardHeader>
+            <CardTitle className="text-lg">Upcoming Bookings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {upcoming.length === 0 ? (
+              <div className="flex items-center justify-center h-32 border-2 border-dashed border-border rounded-lg">
+                <div className="text-center">
+                  <Home className="w-10 h-10 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-muted-foreground text-sm">
+                    {stats.totalProperties === 0
+                      ? 'Start by adding your first accommodation'
+                      : 'No upcoming bookings'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {upcoming.map(b => (
+                  <div key={b.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{b.guest_name}</p>
+                      <p className="text-sm text-muted-foreground">{b.accommodation?.name}</p>
+                    </div>
+                    <div className="text-right text-sm">
+                      <p>{format(new Date(b.checkin_date), 'MMM d')} → {format(new Date(b.checkout_date), 'MMM d, yyyy')}</p>
+                      <p className="text-muted-foreground">{b.total_nights} night{b.total_nights > 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
