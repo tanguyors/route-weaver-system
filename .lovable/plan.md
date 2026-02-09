@@ -1,105 +1,140 @@
 
-
-# Feature 5 : Integration Admin pour Accommodation
+# Feature 6 : Codes de reduction Accommodation
 
 ## Vue d'ensemble
 
-Le panel Admin ne voit actuellement que les donnees du module Boat. Il faut integrer les donnees Accommodation pour que l'admin ait une vue complete de la plateforme :
-- Voir les reservations accommodation dans le dashboard admin
-- Suivre les commissions accommodation
-- Voir la liste des reservations accommodation
-- Avoir des statistiques globales incluant tous les modules
+Ajouter un systeme de codes promo et reductions automatiques dedie au module Accommodation. Le systeme sera plus simple que celui du module Boat car les hebergements n'ont pas de concepts de trips/routes/schedules. Les categories de reduction seront adaptees au contexte accommodation (reduction par nuit, sejour minimum, early bird, last minute, etc.).
 
 ---
 
-## 5.1 Mise a jour du Admin Dashboard
+## 6.1 Migration SQL : Tables accommodation_discounts et accommodation_discount_usage
 
-**Fichier** : `src/hooks/useAdminDashboardData.ts`
+Deux nouvelles tables dediees au module accommodation.
 
-Le hook actuel ne compte que les `bookings` (boat) et les `commission_records` (boat). Il faut ajouter :
-- Comptage des `accommodation_bookings` dans le total bookings
-- Somme des `accommodation_commission_records.platform_fee_amount` dans le platform revenue
-- Ajout des reservations accommodation recentes dans l'activite recente
+```text
++----------------------------------+       +----------------------------------+
+| accommodation_discounts          |       | accommodation_discount_usage     |
++----------------------------------+       +----------------------------------+
+| id (uuid PK)                    |       | id (uuid PK)                    |
+| partner_id (uuid FK)             |       | discount_id (uuid FK)            |
+| code (text, nullable)            |       | booking_id (uuid FK, nullable)   |
+| type (text: promo_code/automatic)|       | customer_email (text, nullable)  |
+| category (text)                  |       | customer_phone (text, nullable)  |
+| discount_value (numeric)         |       | discounted_amount (numeric)      |
+| discount_value_type (text: %/fix)|       | partner_id (uuid)                |
+| book_start_date (date, nullable) |       | used_at (timestamptz)            |
+| book_end_date (date, nullable)   |       +----------------------------------+
+| checkin_start_date (date, null.) |
+| checkin_end_date (date, nullable)|
+| minimum_spend (numeric)         |
+| min_nights (integer, nullable)   |   <-- specifique accommodation
+| applicable_accommodation_ids     |   <-- filtre par propriete
+| individual_use_only (boolean)    |
+| usage_limit (integer, nullable)  |
+| limit_per_customer (integer)     |
+| usage_count (integer, default 0) |
+| total_discounted_amount (numeric)|
+| status (text: active/inactive)   |
+| created_at, updated_at           |
++----------------------------------+
+```
+
+**Categories adaptees a l'accommodation** :
+- `booking_fixed` : Montant fixe sur la reservation
+- `booking_percent` : Pourcentage sur la reservation
+- `per_night_fixed` : Montant fixe par nuit
+- `per_night_percent` : Pourcentage par nuit
+- `early_bird` : Reduction si reserve X jours avant le check-in
+- `last_minute` : Reduction si reserve proche du check-in
+- `long_stay` : Reduction pour sejours de X nuits minimum
+
+Champ specifique : `early_bird_days` (nombre de jours avant check-in pour early bird) et `last_minute_days` (pour last minute).
+
+**Politiques RLS** :
+- Les partenaires ne voient que leurs propres reductions (via `partner_id` + `partner_users`)
+- Le service role a un acces complet
+
+---
+
+## 6.2 Hook : `useAccommodationDiscountsData`
+
+Nouveau hook repliquant le pattern de `useDiscountsData` mais adapte au module accommodation.
+
+**Fichier** : `src/hooks/useAccommodationDiscountsData.ts` (nouveau)
+
+**Fonctionnalites** :
+- CRUD complet sur `accommodation_discounts`
+- Fetch des usages depuis `accommodation_discount_usage`
+- Toggle de statut (active/inactive)
+- Categories specifiques accommodation (ACCOM_DISCOUNT_CATEGORIES)
+- Audit logging via `audit_logs`
+
+---
+
+## 6.3 Page : `AccommodationDiscountsPage`
+
+Nouvelle page dans le dashboard accommodation, repliquant le pattern de la page `DiscountsPage` du module boat.
+
+**Fichier** : `src/pages/accommodation-dashboard/AccommodationDiscountsPage.tsx` (nouveau)
+
+**Structure** :
+- Cartes KPI : Total, Active, Uses, Amount discounted
+- Onglets : "Promo Codes" / "Automatic"
+- Liste avec actions : Edit, Delete, Toggle Status, View Usage
+- Dialog de creation/edition adapte aux categories accommodation
+- Modal d'historique d'utilisation
+
+Le formulaire sera integre directement dans la page (dialog) avec les champs specifiques par categorie :
+- Pour `early_bird` : champ "Days before check-in"
+- Pour `last_minute` : champ "Days before check-in"
+- Pour `long_stay` : champ "Minimum nights"
+- Pour `per_night_*` : le montant s'applique par nuit
+- Option de filtrage par accommodation specifique
+
+---
+
+## 6.4 Application du discount lors du booking
+
+Modification de `AccommodationBookingsPage.tsx` pour permettre l'application d'un code promo lors de la creation d'un booking.
 
 **Changements** :
-- Ajouter des requetes paralleles pour `accommodation_bookings` (count) et `accommodation_commission_records` (sum platform_fee_amount)
-- Ajouter les reservations accommodation recentes dans le flux d'activite (type "accommodation_booking")
-- Fusionner les totaux : `totalBookings = boatBookings + accommodationBookings`, `platformRevenue = boatCommissions + accommodationCommissions`
+- Ajouter un champ "Promo Code" dans le dialog de creation de booking
+- Bouton "Apply" pour verifier et appliquer le code
+- Affichage du montant de reduction et du nouveau total
+- A la confirmation : enregistrer l'usage dans `accommodation_discount_usage` et mettre a jour `usage_count` + `total_discounted_amount` dans `accommodation_discounts`
 
-**Fichier** : `src/pages/admin/AdminDashboard.tsx`
-
-- Ajouter une icone pour le type "accommodation_booking" dans `ActivityIcon`
-
----
-
-## 5.2 Page Admin : Reservations Accommodation
-
-**Fichier** : `src/pages/admin/AdminAccommodationBookingsPage.tsx` (nouveau)
-
-Page permettant a l'admin de voir toutes les reservations accommodation de tous les partenaires.
-
-**Structure** :
-- Filtres : partenaire, statut, canal, dates
-- Tableau avec colonnes : Date, Guest, Property, Partner, Check-in, Check-out, Nights, Amount, Status
-- Badge de statut colore (confirmed = vert, cancelled = rouge, completed = bleu)
+La verification du code promo inclut :
+- Code actif et dans la periode de validite (book dates + checkin dates)
+- Usage limit non atteinte
+- Minimum spend respecte
+- Min nights respecte
+- Accommodation applicable (si filtre)
 
 ---
 
-## 5.3 Page Admin : Commissions Accommodation
+## 6.5 Navigation et routes
 
-**Fichier** : `src/pages/admin/AdminAccommodationCommissionsPage.tsx` (nouveau)
-
-Page repliquant le pattern de `AdminCommissionsPage` mais pour les donnees accommodation.
-
-**Structure** :
-- KPI Cards : Platform Revenue, Gross Volume, Partner Earnings, Transactions count
-- Filtres : partenaire, periode, dates custom
-- Onglets :
-  - "By Partner" : regroupement par partenaire avec totaux
-  - "By Day" : regroupement quotidien
-  - "Payment History" : liste des `accommodation_payments`
-  - "Commission Details" : liste des `accommodation_commission_records`
-- Export CSV pour paiements et commissions
-
----
-
-## 5.4 Navigation Admin
-
-**Fichier** : `src/components/layouts/DashboardLayout.tsx`
-
-Ajouter dans `adminNavItems` :
-- "Accom. Bookings" (icone Home, href `/admin/accommodation-bookings`)
-- "Accom. Commissions" (icone Percent, href `/admin/accommodation-commissions`)
-
-Ces items s'ajoutent entre "Commissions" et "Withdrawals" dans le menu admin.
+**Fichier** : `src/components/layouts/AccommodationDashboardLayout.tsx`
+- Ajouter "Discounts" dans la navigation (icone Tag, entre Bookings et iCal Sync)
 
 **Fichier** : `src/App.tsx`
-
-Ajouter les routes :
-- `/admin/accommodation-bookings` vers `AdminAccommodationBookingsPage`
-- `/admin/accommodation-commissions` vers `AdminAccommodationCommissionsPage`
+- Ajouter la route `/accommodation-dashboard/discounts`
 
 ---
 
 ## Resume technique
 
+### Migration SQL (1)
+- Tables `accommodation_discounts` + `accommodation_discount_usage` avec RLS et index
+
 ### Nouveaux fichiers (2)
-- `src/pages/admin/AdminAccommodationBookingsPage.tsx` : liste admin de toutes les reservations accommodation
-- `src/pages/admin/AdminAccommodationCommissionsPage.tsx` : commissions et paiements accommodation pour l'admin
+- `src/hooks/useAccommodationDiscountsData.ts` : hook CRUD + validation
+- `src/pages/accommodation-dashboard/AccommodationDiscountsPage.tsx` : page complete avec formulaire, liste, usage modal
 
 ### Fichiers modifies (3)
-- `src/hooks/useAdminDashboardData.ts` : ajouter les compteurs accommodation (bookings + commissions) et les activites recentes
-- `src/components/layouts/DashboardLayout.tsx` : ajouter 2 items dans la navigation admin
-- `src/App.tsx` : ajouter 2 routes admin accommodation
+- `src/pages/accommodation-dashboard/AccommodationBookingsPage.tsx` : champ promo code dans le dialog de creation
+- `src/components/layouts/AccommodationDashboardLayout.tsx` : nav item "Discounts"
+- `src/App.tsx` : route `/accommodation-dashboard/discounts`
 
-### Aucune migration SQL necessaire
-Les tables `accommodation_bookings`, `accommodation_payments` et `accommodation_commission_records` existent deja avec les bonnes politiques RLS. L'admin (via son role) a deja acces a toutes les donnees.
-
-### Infrastructure reutilisee
-- Pattern identique a `AdminCommissionsPage` pour la page commissions accommodation
-- Pattern identique a `AdminDashboard` pour les stats fusionnees
-- Composants UI existants (Card, Table, Badge, Tabs, Select)
-
-### Etape suivante apres Feature 5
-**Feature 6 : Codes de reduction Accommodation** - Ajouter un systeme de codes promo/reduction specifique au module accommodation (table `accommodation_discounts`, gestion dans le dashboard partenaire, application lors de la creation de booking).
-
+### Etape suivante apres Feature 6
+**Feature 7 : Widget de reservation Accommodation** - Creer un widget public permettant aux visiteurs de rechercher des disponibilites et reserver directement un hebergement (similaire au widget de reservation bateau mais adapte aux sejours).
