@@ -49,6 +49,8 @@ import AccommodationReportsPage from "./pages/accommodation-dashboard/Accommodat
 import AccommodationTransactionsPage from "./pages/accommodation-dashboard/AccommodationTransactionsPage";
 import AccommodationSettingsPage from "./pages/accommodation-dashboard/AccommodationSettingsPage";
 import AccommodationDiscountsPage from "./pages/accommodation-dashboard/AccommodationDiscountsPage";
+import AccommodationWidgetConfigPage from "./pages/accommodation-dashboard/AccommodationWidgetPage";
+import AccommodationWidgetPublicPage from "./pages/accommodation-widget/AccommodationWidgetPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -88,6 +90,9 @@ const App = () => (
             <Route path="/book-new" element={<WidgetBookingNew />} />
             <Route path="/modify-ticket" element={<ModifyTicket />} />
             <Route path="/pay/:token" element={<PaymentPage />} />
+            
+            {/* Accommodation Widget Route (Public) */}
+            <Route path="/accommodation/:widgetKey" element={<AccommodationWidgetPublicPage />} />
             
             {/* Activity Widget Routes (Public) */}
             <Route path="/activity-widget" element={<ActivityWidgetListPage />} />
@@ -140,6 +145,7 @@ const App = () => (
             <Route path="/accommodation-dashboard/bookings" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationBookingsPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/discounts" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationDiscountsPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/ical-sync" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationIcalSyncPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/widget" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationWidgetConfigPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/reports" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationReportsPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/transactions" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationTransactionsPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/settings" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationSettingsPage /></ModuleProtectedRoute>} />
