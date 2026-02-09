@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.public-config]
 verify_jwt = false
+
+[functions.generate-ical-export]
+verify_jwt = false
+
+[functions.sync-ical-imports]
+verify_jwt = false
