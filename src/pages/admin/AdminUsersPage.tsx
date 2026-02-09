@@ -137,15 +137,19 @@ const AdminUsersPage = () => {
             className={`gap-1 text-xs ${
               module.module_type === 'boat' 
                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' 
-                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                : module.module_type === 'activity'
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                : 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300'
             }`}
           >
             {module.module_type === 'boat' ? (
               <Ship className="w-3 h-3" />
-            ) : (
+            ) : module.module_type === 'activity' ? (
               <Compass className="w-3 h-3" />
+            ) : (
+              <Home className="w-3 h-3" />
             )}
-            {module.module_type === 'boat' ? 'Boat' : 'Activity'}
+            {module.module_type === 'boat' ? 'Boat' : module.module_type === 'activity' ? 'Activity' : 'Accommodation'}
             {module.status !== 'active' && (
               <span className="ml-1 opacity-70">({module.status})</span>
             )}
