@@ -1,93 +1,86 @@
 
 
-# Feature 1 : Photos des Accommodations
+# Feature 2 : Calendrier Multi-Proprietes
 
 ## Vue d'ensemble
 
-Ajouter la gestion de photos pour chaque propriete hebergement : upload, galerie drag-and-drop, image principale, suppression. On reutilise au maximum les patterns existants du module Activity (`useProductImagesData` + `ProductImageGallery`) en les adaptant pour les accommodations.
+Ameliorer le calendrier du module Accommodation avec deux vues :
+1. **Vue Multi-Proprietes (Gantt)** : toutes les proprietes en lignes, les jours en colonnes, avec les noms des guests affiches directement sur les reservations (barres horizontales colorees).
+2. **Vue Single Property** : la vue actuelle amelioree avec les noms des guests affiches dans les cellules des jours reserves.
 
 ---
 
-## 1.1 Migration SQL : Fonction de reorder
+## 2.1 Nouveau hook : `useMultiPropertyCalendarData`
 
-Creer une fonction RPC `reorder_accommodation_images` pour la reordonnation atomique des images (identique au pattern `reorder_product_images`).
-
-```sql
-CREATE OR REPLACE FUNCTION public.reorder_accommodation_images(
-  _accommodation_id uuid,
-  _orders jsonb
-) RETURNS void
-LANGUAGE plpgsql SECURITY DEFINER
-AS $$
-BEGIN
-  UPDATE public.accommodation_images AS ai
-  SET display_order = (o->>'display_order')::int
-  FROM jsonb_array_elements(_orders) AS o
-  WHERE ai.id = (o->>'id')::uuid
-    AND ai.accommodation_id = _accommodation_id;
-END;
-$$;
-```
-
----
-
-## 1.2 Hook : `useAccommodationImagesData`
-
-Nouveau hook qui replique la logique de `useProductImagesData` adapte pour les accommodations.
+Hook dedie pour charger les donnees calendrier de toutes les proprietes d'un partenaire sur une plage de dates.
 
 **Fonctionnalites** :
-- `images` : liste des images de l'accommodation triees par `display_order`
-- `uploadImages(files)` : upload vers le bucket `accommodation-images`, insert en base
-- `reorderImages(orders)` : reordonnation via RPC `reorder_accommodation_images`
-- `deleteImage(image)` : suppression du storage + base
-- `setMainImage(id)` : deplace une image en position 1
-- Validation : max 10 images, max 5 MB, types JPG/PNG/WEBP
+- Charge toutes les entrees `accommodation_calendar` du partenaire pour la plage visible
+- Joint les donnees `accommodation_bookings` (guest_name, checkin_date, checkout_date) via `booking_id`
+- Joint les donnees `accommodations` (name) via `accommodation_id`
+- Retourne les donnees groupees par accommodation pour faciliter le rendu Gantt
 
-**Fichier** : `src/hooks/useAccommodationImagesData.ts` (nouveau)
+**Fichier** : `src/hooks/useMultiPropertyCalendarData.ts` (nouveau)
 
 ---
 
-## 1.3 Composant : `AccommodationImageGallery`
+## 2.2 Amelioration de la vue Single Property
 
-Nouveau composant reutilisant le meme pattern que `ProductImageGallery` :
+Modifier la page `AccommodationCalendarPage.tsx` existante pour :
+- Afficher le **nom du guest** dans les cellules des jours avec statut `booked_sribooking` (en utilisant la jointure `booking_id` -> `accommodation_bookings.guest_name`)
+- Enrichir le hook `useAccommodationCalendarData` pour retourner les infos guest associees
 
-**Elements** :
-- Zone d'upload drag-and-drop (react-dropzone, deja installe)
-- Grille d'images sortable (dnd-kit, deja installe)
-- Badge "Main" sur la premiere image
-- Actions au hover : "Set Main", "Delete"
-- Dialog de confirmation pour la suppression
-- Compteur d'images (X / 10)
-
-**Fichier** : `src/components/accommodation/AccommodationImageGallery.tsx` (nouveau)
+**Modification du hook** : `useAccommodationCalendarData` - ajouter une jointure avec `accommodation_bookings` pour recuperer `guest_name` quand `booking_id` est present.
 
 ---
 
-## 1.4 Integration dans le formulaire
+## 2.3 Composant Gantt : `MultiPropertyCalendar`
 
-Ajouter le composant `AccommodationImageGallery` dans `AccommodationFormPage.tsx` :
-- Affiche uniquement en mode edition (quand l'accommodation est deja sauvegardee)
-- Positionne apres la section "General Information"
-- Passe `accommodationId` et `partnerId` en props
+Nouveau composant qui affiche une vue timeline/Gantt :
 
-**Fichier** : `src/pages/accommodation-dashboard/AccommodationFormPage.tsx` (modifie)
+**Structure** :
+- En-tete : navigation mois (precedent/suivant) + mois/annee courant
+- Colonne gauche fixe : liste des noms des accommodations
+- Grille horizontale scrollable : 1 colonne par jour du mois
+- Barres horizontales colorees pour les reservations (bleu = Sribooking, orange = externe, rouge = bloque)
+- Le nom du guest est affiche dans la barre de reservation
+- Les jours disponibles sont cliquables (meme logique de block/unblock que la vue single)
+
+**Elements visuels** :
+- Couleurs coherentes avec la vue single (vert = disponible, bleu = booked sribooking, orange = booked external, rouge = bloque)
+- Les barres de reservation s'etendent sur plusieurs jours (check-in a check-out)
+- Texte du nom du guest tronque si la barre est trop courte
+- Ligne de "today" en surbrillance
+
+**Fichier** : `src/components/accommodation/MultiPropertyCalendar.tsx` (nouveau)
+
+---
+
+## 2.4 Integration dans la page Calendar
+
+Modifier `AccommodationCalendarPage.tsx` pour ajouter un toggle entre les deux vues :
+
+**Changements** :
+- Ajouter un bouton toggle "Single / Multi" en haut de la page
+- Vue "Single" : la vue actuelle (1 propriete, grille mensuelle) avec les noms de guests ajoutes
+- Vue "Multi" : le nouveau composant `MultiPropertyCalendar` (toutes les proprietes, vue Gantt)
+- Par defaut : vue Multi si plus d'1 propriete, sinon vue Single
 
 ---
 
 ## Resume technique
 
-### Migration SQL (1)
-- Fonction `reorder_accommodation_images` (reorder atomique)
-
 ### Nouveaux fichiers (2)
-- `src/hooks/useAccommodationImagesData.ts`
-- `src/components/accommodation/AccommodationImageGallery.tsx`
+- `src/hooks/useMultiPropertyCalendarData.ts` (donnees multi-proprietes avec guests)
+- `src/components/accommodation/MultiPropertyCalendar.tsx` (composant Gantt)
 
-### Fichiers modifies (1)
-- `src/pages/accommodation-dashboard/AccommodationFormPage.tsx` (ajout galerie)
+### Fichiers modifies (2)
+- `src/hooks/useAccommodationCalendarData.ts` (ajout jointure guest_name)
+- `src/pages/accommodation-dashboard/AccommodationCalendarPage.tsx` (toggle vues + noms guests)
 
-### Infrastructure existante reutilisee
-- Bucket storage `accommodation-images` (deja cree, public, avec RLS)
-- Table `accommodation_images` (deja creee avec RLS)
-- Packages `react-dropzone` et `@dnd-kit/*` (deja installes)
+### Pas de migration SQL
+Les donnees necessaires (guest_name via booking_id) existent deja dans les tables existantes.
+
+### Pas de nouvelle dependance
+Tout est fait avec CSS Grid/Flexbox natif et les composants UI existants.
 
