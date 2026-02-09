@@ -1,175 +1,85 @@
 
 
-# Phase 3 & Phase 4 - iCal Bidirectionnel + Bookings Accommodation
+# Phase 5 - Reports & Settings Accommodation
 
 ## Vue d'ensemble
 
-Ce plan couvre les deux phases restantes du module Accommodation :
-- **Phase 3** : Synchronisation iCal bidirectionnelle (export + import + CRON)
-- **Phase 4** : Gestion des reservations (online/offline) + Dashboard dynamique
+Les deux derniers placeholders du module Accommodation : la page Reports (analytics de performance) et la page Settings (configuration business partagee avec le partner existant).
 
 ---
 
-## Phase 3 - iCal Bidirectionnel
+## 5.1 Page Reports (refonte complete)
 
-### 3.1 Edge Function : `generate-ical-export`
+Remplacer le placeholder actuel par une page fonctionnelle avec des metriques reelles basees sur les reservations.
 
-Nouvelle backend function qui genere un fichier `.ics` a partir des donnees du calendrier d'une accommodation.
-
-**Endpoint** : `GET /generate-ical-export?token={ical_token}`
-
-**Logique** :
-1. Recevoir le `ical_token` (UUID) en query param
-2. Trouver l'accommodation correspondante via la table `accommodations.ical_token`
-3. Lire toutes les entrees `accommodation_calendar` avec status `booked_sribooking`, `booked_external` ou `blocked`
-4. Generer un fichier iCalendar (.ics) conforme RFC 5545 avec :
-   - `VCALENDAR` header (prodid Sribooking)
-   - Un `VEVENT` par date ou plage de dates consecutives
-   - `DTSTART` / `DTEND` en format DATE (pas DATETIME, convention hebergement)
-   - `SUMMARY` : "Booked - Sribooking" ou "Blocked"
-5. Retourner avec `Content-Type: text/calendar`
-
-**Fichiers** :
-- `supabase/functions/generate-ical-export/index.ts` (nouveau)
-- `supabase/config.toml` (ajouter `[functions.generate-ical-export]` avec `verify_jwt = false`)
-
-### 3.2 Edge Function : `sync-ical-imports`
-
-Backend function qui importe les calendriers iCal externes et met a jour le calendrier interne.
-
-**Endpoint** : `POST /sync-ical-imports` (appele manuellement ou par CRON)
-
-**Logique** :
-1. Lister tous les `accommodation_ical_imports` avec `is_active = true`
-2. Pour chaque import :
-   - Fetch l'URL iCal externe
-   - Parser les events VEVENT (DTSTART/DTEND)
-   - Supprimer les anciennes entrees `accommodation_calendar` de source correspondante (airbnb/booking/other) pour cette accommodation
-   - Inserer les nouvelles dates avec status `booked_external` et la source appropriee
-   - Mettre a jour `last_sync_at`, `last_sync_status`, `last_sync_error`
-3. Gerer les erreurs par import (un echec ne bloque pas les autres)
-
-**Fichiers** :
-- `supabase/functions/sync-ical-imports/index.ts` (nouveau)
-- `supabase/config.toml` (ajouter `[functions.sync-ical-imports]` avec `verify_jwt = false`)
-
-### 3.3 Hook : `useAccommodationIcalData`
-
-Nouveau hook pour gerer les imports iCal cote frontend.
+### Nouveau hook : `useAccommodationReportsData`
 
 **Fonctionnalites** :
-- `icalImports` : liste des imports pour une accommodation
-- `createIcalImport(data)` : ajouter un lien iCal externe
-- `updateIcalImport(id, data)` : modifier un import
-- `deleteIcalImport(id)` : supprimer un import
-- `toggleIcalImport(id)` : activer/desactiver
-- `triggerSync(accommodationId)` : declencher une synchro manuelle via la backend function
+- Filtres par plage de dates (dateFrom / dateTo)
+- `summary` : metriques cles calculees a partir de `accommodation_bookings`
+  - Revenue totale (confirmed + completed)
+  - Nombre de reservations confirmees
+  - Nuits totales reservees
+  - Taux d'occupation (nuits reservees / nuits disponibles x nombre de proprietes)
+  - Valeur moyenne par reservation
+- `revenueByAccommodation` : ventilation du revenu et des reservations par propriete (top properties)
+- `bookingsByChannel` : repartition par canal (walk-in, whatsapp, other)
+- `bookingsByStatus` : repartition par statut (confirmed, cancelled, completed)
 
-**Fichier** : `src/hooks/useAccommodationIcalData.ts` (nouveau)
+**Fichier** : `src/hooks/useAccommodationReportsData.ts` (nouveau)
 
-### 3.4 Page iCal Sync (refonte complete)
-
-Remplacer le placeholder actuel par une page fonctionnelle avec :
-
-**Section 1 - Export iCal (en haut)** :
-- Selecteur d'accommodation
-- Champ en lecture seule avec le lien iCal permanent : `{SUPABASE_URL}/functions/v1/generate-ical-export?token={ical_token}`
-- Bouton "Copy Link"
-- Bloc pedagogique inline :
-  - Titre : "Connect Sribooking with Airbnb / Booking"
-  - Etapes : 1. Ouvrir Airbnb > 2. Calendar > Import > 3. Coller le lien
-  - Note : "This is done once only. Sribooking keeps everything in sync."
-
-**Section 2 - Import iCal (en bas)** :
-- Liste des imports existants avec : plateforme, URL (tronquee), statut derniere synchro, date derniere synchro, toggle actif/inactif
-- Bouton "Add iCal Import" ouvrant un dialogue avec :
-  - Select plateforme (Airbnb / Booking.com / Other)
-  - Champ URL iCal
-- Bouton "Sync Now" pour declencher une synchro manuelle
-- Indicateur de statut (OK / Error) avec message d'erreur si applicable
-
-**Fichier** : `src/pages/accommodation-dashboard/AccommodationIcalSyncPage.tsx` (refonte)
-
----
-
-## Phase 4 - Bookings + Dashboard Dynamique
-
-### 4.1 Hook : `useAccommodationBookingsData`
-
-Nouveau hook pour gerer les reservations accommodation.
-
-**Fonctionnalites** :
-- `bookings` : liste des reservations avec filtre par accommodation, statut, date
-- `createBooking(data)` : creer une reservation avec blocage automatique du calendrier
-  - Verifier que toutes les dates sont disponibles
-  - Inserer la reservation
-  - Creer les entrees `accommodation_calendar` pour chaque nuit (checkin a checkout-1) avec status `booked_sribooking`
-- `updateBookingStatus(id, status)` : confirmer, annuler, completer
-  - Si annulation : supprimer les entrees calendrier associees
-- `stats` : statistiques pour le dashboard (total bookings, revenue, nights booked)
-
-**Fichier** : `src/hooks/useAccommodationBookingsData.ts` (nouveau)
-
-### 4.2 Page Bookings (refonte complete)
-
-Remplacer le placeholder par une page fonctionnelle :
+### Page Reports
 
 **Elements** :
-- Bouton "New Booking" (reservation offline/manuelle)
-- Filtres : accommodation, statut (all/confirmed/cancelled/completed), canal, plage de dates
-- Tableau : Guest Name, Accommodation, Check-in, Check-out, Nights, Total, Channel, Status, Actions
-- Badges de statut colores (confirmed=vert, cancelled=rouge, draft=gris, completed=bleu)
-- Actions par ligne : View details, Confirm, Cancel
+- Filtres en haut : plage de dates (From / To) avec valeurs par defaut (30 derniers jours)
+- 5 cartes KPI : Revenue, Bookings confirmes, Nuits reservees, Taux d'occupation, Valeur moyenne
+- Tableau "Top Properties" : nom de la propriete, nombre de reservations, nuits, revenu
+- Deux graphiques simples via recharts :
+  - Repartition par canal (PieChart ou BarChart horizontal)
+  - Repartition par statut (PieChart)
 
-**Dialogue "New Booking"** :
-- Select accommodation
-- Dates check-in / check-out (avec validation disponibilite)
-- Infos guest : nom, email, telephone, nombre de guests
-- Canal : Walk-in, WhatsApp, Other
-- Prix total (auto-calcule : nights x price_per_night, modifiable)
-- Notes
-- Bouton Create
+**Fichier** : `src/pages/accommodation-dashboard/AccommodationReportsPage.tsx` (refonte)
 
-**Fichier** : `src/pages/accommodation-dashboard/AccommodationBookingsPage.tsx` (refonte)
+---
 
-### 4.3 Dashboard Dynamique (refonte)
+## 5.2 Page Settings (refonte complete)
 
-Remplacer les valeurs statiques "0" par des donnees reelles :
+Le module Accommodation reutilise les informations business du partenaire existant (table `partners` et `partner_settings`). La page Settings doit permettre la gestion de ces infos, adaptee au contexte hebergement.
 
-**Cartes de stats** :
-- Total Properties : nombre d'accommodations actives
-- Nights Booked : total de nuits reservees ce mois
-- Bookings : nombre de reservations actives (confirmed)
-- Revenue : somme des montants des reservations confirmees ce mois
+### Approche
 
-**Section inferieure** :
-- Prochaines reservations (5 max) avec nom du guest, accommodation, dates
-- Ou message "Start by adding your first accommodation" si aucune accommodation
+Reutiliser le hook `useSettingsData` existant (deja utilise par les dashboards Boat et Activity). Pas de nouveau hook necessaire.
 
-**Fichier** : `src/pages/accommodation-dashboard/AccommodationDashboard.tsx` (refonte)
+### Page Settings
+
+**Structure avec 3 onglets** :
+1. **Business** : Meme formulaire que les autres dashboards (Business Info + Contact + Banking), reutilisant `useSettingsData`
+2. **Cancellation** : Politique d'annulation (reutiliser `CancellationSettingsForm`)
+3. **Team** : Gestion du personnel (reutiliser `StaffList`)
+
+On n'inclut pas les onglets Tickets, Payments online, Terms ou Notifications car ils sont specifiques aux modules Boat/Activity et non pertinents pour l'Accommodation (pas de billets, pas de paiement en ligne pour le moment).
+
+**Fichier** : `src/pages/accommodation-dashboard/AccommodationSettingsPage.tsx` (refonte)
 
 ---
 
 ## Resume technique
 
-### Nouveaux fichiers (5)
-- `supabase/functions/generate-ical-export/index.ts`
-- `supabase/functions/sync-ical-imports/index.ts`
-- `src/hooks/useAccommodationIcalData.ts`
-- `src/hooks/useAccommodationBookingsData.ts`
+### Nouveaux fichiers (1)
+- `src/hooks/useAccommodationReportsData.ts`
 
-### Fichiers modifies (4)
-- `supabase/config.toml` (2 nouvelles entrees functions)
-- `src/pages/accommodation-dashboard/AccommodationIcalSyncPage.tsx` (refonte complete)
-- `src/pages/accommodation-dashboard/AccommodationBookingsPage.tsx` (refonte complete)
-- `src/pages/accommodation-dashboard/AccommodationDashboard.tsx` (refonte complete)
+### Fichiers modifies (2)
+- `src/pages/accommodation-dashboard/AccommodationReportsPage.tsx` (refonte complete)
+- `src/pages/accommodation-dashboard/AccommodationSettingsPage.tsx` (refonte complete)
 
 ### Pas de migration SQL
-Toutes les tables necessaires existent deja (`accommodation_calendar`, `accommodation_ical_imports`, `accommodation_bookings`). Aucune modification de schema.
+Toutes les donnees necessaires existent deja dans les tables `accommodation_bookings`, `accommodations`, `partners`, et `partner_settings`.
 
-### Points de securite
-- L'export iCal est public mais protege par UUID non listable (token unique par accommodation)
-- Le sync iCal utilise le service role key (backend only)
-- Les reservations respectent les RLS policies existantes (partner voit uniquement ses donnees)
-- La creation de booking verifie la disponibilite avant insertion pour prevenir les doubles reservations
+### Pas de nouvelle edge function
+Les reports se calculent cote client a partir des donnees existantes.
+
+### Dependances reutilisees
+- `recharts` (deja installe) pour les graphiques
+- `useSettingsData` pour la page Settings
+- `CancellationSettingsForm` et `StaffList` pour les onglets Settings
 
