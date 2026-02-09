@@ -160,26 +160,28 @@ const AccommodationFormPage = () => {
             </CardContent>
           </Card>
 
-          {/* Capacity */}
-          <Card>
-            <CardHeader><CardTitle>Capacity</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Max Guests</Label>
-                  <Input type="number" min={1} value={form.capacity} onChange={e => setForm(p => ({ ...p, capacity: Number(e.target.value) }))} />
+          {/* Capacity - only for non-hotel types (hotels manage capacity per room) */}
+          {form.type !== 'hotel' && (
+            <Card>
+              <CardHeader><CardTitle>Capacity</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Max Guests</Label>
+                    <Input type="number" min={1} value={form.capacity} onChange={e => setForm(p => ({ ...p, capacity: Number(e.target.value) }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bedrooms</Label>
+                    <Input type="number" min={0} value={form.bedrooms} onChange={e => setForm(p => ({ ...p, bedrooms: Number(e.target.value) }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bathrooms</Label>
+                    <Input type="number" min={0} value={form.bathrooms} onChange={e => setForm(p => ({ ...p, bathrooms: Number(e.target.value) }))} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Bedrooms</Label>
-                  <Input type="number" min={0} value={form.bedrooms} onChange={e => setForm(p => ({ ...p, bedrooms: Number(e.target.value) }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Bathrooms</Label>
-                  <Input type="number" min={0} value={form.bathrooms} onChange={e => setForm(p => ({ ...p, bathrooms: Number(e.target.value) }))} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Amenities */}
           <Card>
