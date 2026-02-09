@@ -300,7 +300,7 @@ const AdminPartnersPage = () => {
         onOpenChange={(open) => !open && setSelectedPartner(null)}
         onPartnerUpdated={handlePartnerUpdated}
       />
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

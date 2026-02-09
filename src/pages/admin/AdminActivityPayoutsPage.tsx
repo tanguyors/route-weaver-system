@@ -245,7 +245,7 @@ const AdminActivityPayoutsPage = () => {
         onClose={() => setShowGenerateModal(false)}
         partners={partners}
       />
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

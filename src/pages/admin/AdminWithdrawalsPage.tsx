@@ -417,7 +417,7 @@ const AdminWithdrawalsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

@@ -263,7 +263,7 @@ const AdminSettingsPage = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

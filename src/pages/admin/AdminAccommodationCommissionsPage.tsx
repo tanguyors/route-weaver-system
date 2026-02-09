@@ -453,7 +453,7 @@ const AdminAccommodationCommissionsPage = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 
