@@ -89,6 +89,11 @@ export const useAccommodationWidgetData = (widgetKey: string | null) => {
         }
       );
 
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Backend returned an unexpected response. Please try again later.');
+      }
+
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || 'Failed to load widget data');
