@@ -2,7 +2,7 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Plus, Search, MoreHorizontal, Shield, Building2, Ship, Compass, Filter } from 'lucide-react';
+import { Users, Plus, Search, MoreHorizontal, Shield, Building2, Ship, Compass, Filter, Home } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 
 interface PartnerModule {
-  module_type: 'boat' | 'activity';
+  module_type: 'boat' | 'activity' | 'accommodation';
   status: 'active' | 'pending' | 'disabled';
 }
 
@@ -79,7 +79,7 @@ const AdminUsersPage = () => {
         const modules = partnerUser 
           ? (partnerModules?.filter(pm => pm.partner_id === partnerUser.partner_id) || []).map(m => ({
               id: m.id,
-              module_type: m.module_type as 'boat' | 'activity',
+              module_type: m.module_type as 'boat' | 'activity' | 'accommodation',
               status: m.status as 'active' | 'pending' | 'disabled'
             }))
           : [];
@@ -108,10 +108,11 @@ const AdminUsersPage = () => {
     if (moduleFilter !== 'all') {
       const hasBoat = user.modules.some(m => m.module_type === 'boat');
       const hasActivity = user.modules.some(m => m.module_type === 'activity');
+      const hasAccommodation = user.modules.some(m => m.module_type === 'accommodation');
       
       if (moduleFilter === 'boat' && !hasBoat) return false;
       if (moduleFilter === 'activity' && !hasActivity) return false;
-      if (moduleFilter === 'both' && !(hasBoat && hasActivity)) return false;
+      if (moduleFilter === 'accommodation' && !hasAccommodation) return false;
       if (moduleFilter === 'none' && user.modules.length > 0) return false;
     }
 
@@ -136,15 +137,19 @@ const AdminUsersPage = () => {
             className={`gap-1 text-xs ${
               module.module_type === 'boat' 
                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' 
-                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                : module.module_type === 'activity'
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                : 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300'
             }`}
           >
             {module.module_type === 'boat' ? (
               <Ship className="w-3 h-3" />
-            ) : (
+            ) : module.module_type === 'activity' ? (
               <Compass className="w-3 h-3" />
+            ) : (
+              <Home className="w-3 h-3" />
             )}
-            {module.module_type === 'boat' ? 'Boat' : 'Activity'}
+            {module.module_type === 'boat' ? 'Boat' : module.module_type === 'activity' ? 'Activity' : 'Accommodation'}
             {module.status !== 'active' && (
               <span className="ml-1 opacity-70">({module.status})</span>
             )}
@@ -186,9 +191,9 @@ const AdminUsersPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Modules</SelectItem>
-                    <SelectItem value="boat">Boat Only</SelectItem>
-                    <SelectItem value="activity">Activity Only</SelectItem>
-                    <SelectItem value="both">Boat + Activity</SelectItem>
+                    <SelectItem value="boat">Boat</SelectItem>
+                    <SelectItem value="activity">Activity</SelectItem>
+                    <SelectItem value="accommodation">Accommodation</SelectItem>
                     <SelectItem value="none">No Modules</SelectItem>
                   </SelectContent>
                 </Select>
