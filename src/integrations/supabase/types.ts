@@ -3476,6 +3476,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      reorder_accommodation_images: {
+        Args: { _accommodation_id: string; _orders: Json }
+        Returns: undefined
+      }
       reorder_product_images: {
         Args: { _orders: Json; _product_id: string }
         Returns: undefined
