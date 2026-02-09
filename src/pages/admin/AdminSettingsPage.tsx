@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Percent, CreditCard, Globe, Save } from 'lucide-react';
+import { Loader2, CreditCard, Globe, Save } from 'lucide-react';
 import { useAdminSettingsData } from '@/hooks/useAdminSettingsData';
 
 const PAYMENT_PROVIDERS = [
