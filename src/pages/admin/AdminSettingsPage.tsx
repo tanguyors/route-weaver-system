@@ -108,52 +108,6 @@ const AdminSettingsPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Commission Tab */}
-          <TabsContent value="commission">
-            <Card>
-              <CardHeader>
-                <CardTitle>Platform Commission Rate</CardTitle>
-                <CardDescription>
-                  Set the default commission rate charged to partners on each booking
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-end gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="commission">Commission Rate (%)</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="commission"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.5"
-                        value={commissionPercent}
-                        onChange={(e) => setCommissionPercent(parseFloat(e.target.value) || 0)}
-                        className="w-32"
-                      />
-                      <span className="text-muted-foreground">%</span>
-                    </div>
-                  </div>
-                  <Button onClick={handleSaveCommission} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save
-                  </Button>
-                </div>
-
-                <div className="rounded-lg bg-muted p-4">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Example:</strong> For a booking of IDR 1,000,000 with a {commissionPercent}% commission rate:
-                  </p>
-                  <ul className="mt-2 text-sm space-y-1">
-                    <li>• Platform fee: IDR {((1000000 * commissionPercent) / 100).toLocaleString()}</li>
-                    <li>• Partner receives: IDR {(1000000 - (1000000 * commissionPercent) / 100).toLocaleString()}</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Payment Providers Tab */}
           <TabsContent value="payments">
             <Card>
