@@ -39,6 +39,14 @@ import ActivityBillingSettingsPage from "./pages/activity-dashboard/ActivityBill
 import ActivityWidgetConfigPage from "./pages/activity-dashboard/ActivityWidgetConfigPage";
 import ActivitySettingsPage from "./pages/activity-dashboard/ActivitySettingsPage";
 import ActivityCheckinPage from "./pages/activity-dashboard/ActivityCheckinPage";
+import AccommodationDashboard from "./pages/accommodation-dashboard/AccommodationDashboard";
+import AccommodationListPage from "./pages/accommodation-dashboard/AccommodationListPage";
+import AccommodationFormPage from "./pages/accommodation-dashboard/AccommodationFormPage";
+import AccommodationCalendarPage from "./pages/accommodation-dashboard/AccommodationCalendarPage";
+import AccommodationBookingsPage from "./pages/accommodation-dashboard/AccommodationBookingsPage";
+import AccommodationIcalSyncPage from "./pages/accommodation-dashboard/AccommodationIcalSyncPage";
+import AccommodationReportsPage from "./pages/accommodation-dashboard/AccommodationReportsPage";
+import AccommodationSettingsPage from "./pages/accommodation-dashboard/AccommodationSettingsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -118,6 +126,18 @@ const App = () => (
             <Route path="/activity-dashboard/widget" element={<ModuleProtectedRoute requiredModule="activity"><ActivityWidgetConfigPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/settings" element={<ModuleProtectedRoute requiredModule="activity"><ActivitySettingsPage /></ModuleProtectedRoute>} />
             <Route path="/activity-dashboard/checkin" element={<ModuleProtectedRoute requiredModule="activity"><ActivityCheckinPage /></ModuleProtectedRoute>} />
+            
+            {/* Accommodation Partner Dashboard Routes */}
+            <Route path="/accommodation-dashboard" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationDashboard /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/list" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationListPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/accommodations/new" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationFormPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/accommodations/:id" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationFormPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/calendar" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationCalendarPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/bookings" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationBookingsPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/ical-sync" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationIcalSyncPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/reports" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationReportsPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/settings" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationSettingsPage /></ModuleProtectedRoute>} />
+            
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/partners" element={<ProtectedRoute><AdminPartnersPage /></ProtectedRoute>} />

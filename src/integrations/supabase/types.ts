@@ -14,6 +14,326 @@ export type Database = {
   }
   public: {
     Tables: {
+      accommodation_bookings: {
+        Row: {
+          accommodation_id: string
+          cancelled_at: string | null
+          channel: string
+          checkin_date: string
+          checkout_date: string
+          created_at: string
+          currency: string
+          guest_email: string | null
+          guest_name: string
+          guest_phone: string | null
+          guests_count: number
+          id: string
+          notes: string | null
+          partner_id: string
+          status: string
+          total_amount: number
+          total_nights: number
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          cancelled_at?: string | null
+          channel?: string
+          checkin_date: string
+          checkout_date: string
+          created_at?: string
+          currency?: string
+          guest_email?: string | null
+          guest_name: string
+          guest_phone?: string | null
+          guests_count?: number
+          id?: string
+          notes?: string | null
+          partner_id: string
+          status?: string
+          total_amount?: number
+          total_nights?: number
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          cancelled_at?: string | null
+          channel?: string
+          checkin_date?: string
+          checkout_date?: string
+          created_at?: string
+          currency?: string
+          guest_email?: string | null
+          guest_name?: string
+          guest_phone?: string | null
+          guests_count?: number
+          id?: string
+          notes?: string | null
+          partner_id?: string
+          status?: string
+          total_amount?: number
+          total_nights?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_bookings_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_bookings_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_calendar: {
+        Row: {
+          accommodation_id: string
+          booking_id: string | null
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          partner_id: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          booking_id?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          note?: string | null
+          partner_id: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          booking_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          partner_id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_calendar_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_calendar_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_ical_imports: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          ical_url: string
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          last_sync_error: string | null
+          last_sync_status: string | null
+          partner_id: string
+          platform_name: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          ical_url: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          partner_id: string
+          platform_name?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          ical_url?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          partner_id?: string
+          platform_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_ical_imports_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_ical_imports_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_images: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          display_order: number
+          file_path: string | null
+          id: string
+          image_url: string
+          partner_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          display_order?: number
+          file_path?: string | null
+          id?: string
+          image_url: string
+          partner_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          display_order?: number
+          file_path?: string | null
+          id?: string
+          image_url?: string
+          partner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_images_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_images_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodations: {
+        Row: {
+          address: string | null
+          amenities: Json | null
+          bathrooms: number
+          bedrooms: number
+          capacity: number
+          checkin_time: string | null
+          checkout_time: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          ical_token: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          minimum_nights: number
+          name: string
+          partner_id: string
+          price_per_night: number
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          amenities?: Json | null
+          bathrooms?: number
+          bedrooms?: number
+          capacity?: number
+          checkin_time?: string | null
+          checkout_time?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          ical_token?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          minimum_nights?: number
+          name: string
+          partner_id: string
+          price_per_night?: number
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          amenities?: Json | null
+          bathrooms?: number
+          bedrooms?: number
+          capacity?: number
+          checkin_time?: string | null
+          checkout_time?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          ical_token?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          minimum_nights?: number
+          name?: string
+          partner_id?: string
+          price_per_night?: number
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodations_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_availability_days: {
         Row: {
           capacity_override: number | null
@@ -3265,7 +3585,7 @@ export type Database = {
       duration_unit: "hour" | "day"
       guest_form_apply_type: "per_participant" | "per_booking"
       module_status: "active" | "pending" | "disabled"
-      module_type: "boat" | "activity"
+      module_type: "boat" | "activity" | "accommodation"
       partner_status: "pending" | "active" | "suspended"
       partner_user_role: "PARTNER_OWNER" | "PARTNER_STAFF"
       partner_user_status: "active" | "inactive"
@@ -3457,7 +3777,7 @@ export const Constants = {
       duration_unit: ["hour", "day"],
       guest_form_apply_type: ["per_participant", "per_booking"],
       module_status: ["active", "pending", "disabled"],
-      module_type: ["boat", "activity"],
+      module_type: ["boat", "activity", "accommodation"],
       partner_status: ["pending", "active", "suspended"],
       partner_user_role: ["PARTNER_OWNER", "PARTNER_STAFF"],
       partner_user_status: ["active", "inactive"],

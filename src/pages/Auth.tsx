@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Ship, ArrowLeft, Compass, Mail } from 'lucide-react';
+import { Ship, ArrowLeft, Compass, Mail, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 const nameSchema = z.string().min(2, 'Full name is required').max(100, 'Name is too long');
 
-type ModuleType = 'boat' | 'activity';
+type ModuleType = 'boat' | 'activity' | 'accommodation';
 
 // Sanitize string input
 const sanitizeInput = (input: string): string => {
@@ -345,6 +345,32 @@ const Auth = () => {
                             </div>
                             <p className="text-sm text-muted-foreground mt-1">
                               Manage tours, excursions, and experience bookings
+                            </p>
+                          </div>
+                        </label>
+
+                        {/* Accommodation Module */}
+                        <label
+                          htmlFor="module-accommodation"
+                          className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                            selectedModules.includes('accommodation')
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-muted-foreground/50'
+                          }`}
+                        >
+                          <Checkbox
+                            id="module-accommodation"
+                            checked={selectedModules.includes('accommodation')}
+                            onCheckedChange={() => handleModuleToggle('accommodation')}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Home className="w-5 h-5 text-primary" />
+                              <span className="font-medium">Accommodation Provider</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Manage villas, hotels, guesthouses, and rentals
                             </p>
                           </div>
                         </label>

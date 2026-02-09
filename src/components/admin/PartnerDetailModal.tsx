@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Building2, Mail, Phone, Calendar, Ship, Compass, 
+  Building2, Mail, Phone, Calendar, Ship, Compass, Home,
   CheckCircle, XCircle, Clock, Save, Percent, Globe, MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -39,7 +39,7 @@ import {
 
 interface PartnerModule {
   id: string;
-  module_type: 'boat' | 'activity';
+  module_type: 'boat' | 'activity' | 'accommodation';
   status: 'active' | 'pending' | 'disabled';
   created_at: string;
   updated_at: string;
@@ -342,11 +342,13 @@ const PartnerDetailModal = ({ partner, open, onOpenChange, onPartnerUpdated }: P
                           <div className="flex items-center gap-2">
                             {module.module_type === 'boat' ? (
                               <Ship className="w-4 h-4 text-blue-600" />
+                            ) : module.module_type === 'accommodation' ? (
+                              <Home className="w-4 h-4 text-violet-600" />
                             ) : (
                               <Compass className="w-4 h-4 text-emerald-600" />
                             )}
                             <span className="font-medium">
-                              {module.module_type === 'boat' ? 'Boat' : 'Activity'}
+                              {module.module_type === 'boat' ? 'Boat' : module.module_type === 'accommodation' ? 'Accommodation' : 'Activity'}
                             </span>
                           </div>
                         </TableCell>

@@ -36,8 +36,8 @@ const ModuleProtectedRoute = ({ children, requiredModule }: ModuleProtectedRoute
 
   // Check if partner has the required active module
   if (!hasActiveModule(requiredModule)) {
-    const moduleName = requiredModule === 'boat' ? 'Boat' : 'Activity';
-    return <ModuleNotEnabled moduleName={moduleName} />;
+    const moduleNames: Record<string, string> = { boat: 'Boat', activity: 'Activity', accommodation: 'Accommodation' };
+    return <ModuleNotEnabled moduleName={moduleNames[requiredModule] || requiredModule} />;
   }
 
   return <>{children}</>;
