@@ -15,11 +15,12 @@ import {
   X,
   Building2,
   Wallet,
-  ArrowLeftRight,
   Settings,
   Wrench,
   Home,
   ShieldCheck,
+  Compass,
+  Anchor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DashboardSwitcher from '@/components/layouts/DashboardSwitcher';
