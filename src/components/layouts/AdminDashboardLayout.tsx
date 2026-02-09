@@ -15,11 +15,12 @@ import {
   X,
   Building2,
   Wallet,
-  ArrowLeftRight,
   Settings,
   Wrench,
   Home,
   ShieldCheck,
+  Compass,
+  Anchor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DashboardSwitcher from '@/components/layouts/DashboardSwitcher';
@@ -34,21 +35,51 @@ interface NavItem {
   icon: React.ElementType;
 }
 
-const adminNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { label: 'All Bookings', href: '/admin/bookings', icon: BookOpen },
-  { label: 'Commissions', href: '/admin/commissions', icon: Wallet },
-  { label: 'Accom. Bookings', href: '/admin/accommodation-bookings', icon: Building2 },
-  { label: 'Accom. Commissions', href: '/admin/accommodation-commissions', icon: Building2 },
-  { label: 'Activity Commissions', href: '/admin/activity-commissions', icon: Wallet },
-  { label: 'Activity Invoices', href: '/admin/activity-invoices', icon: BookOpen },
-  { label: 'Activity Payouts', href: '/admin/activity-payouts', icon: CreditCard },
-  { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard },
-  { label: 'Partners', href: '/admin/partners', icon: Building2 },
-  { label: 'Users', href: '/admin/users', icon: Users },
-  { label: 'Ports', href: '/admin/ports', icon: Ship },
-  { label: 'Facilities', href: '/admin/facilities', icon: Wrench },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+interface NavGroup {
+  label: string;
+  icon: React.ElementType;
+  items: NavItem[];
+}
+
+const adminNavGroups: NavGroup[] = [
+  {
+    label: 'Global',
+    icon: ShieldCheck,
+    items: [
+      { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+      { label: 'Partners', href: '/admin/partners', icon: Building2 },
+      { label: 'Users', href: '/admin/users', icon: Users },
+      { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard },
+      { label: 'Settings', href: '/admin/settings', icon: Settings },
+    ],
+  },
+  {
+    label: 'Boat',
+    icon: Ship,
+    items: [
+      { label: 'Bookings', href: '/admin/bookings', icon: BookOpen },
+      { label: 'Commissions', href: '/admin/commissions', icon: Wallet },
+      { label: 'Ports', href: '/admin/ports', icon: Anchor },
+      { label: 'Facilities', href: '/admin/facilities', icon: Wrench },
+    ],
+  },
+  {
+    label: 'Activity',
+    icon: Compass,
+    items: [
+      { label: 'Commissions', href: '/admin/activity-commissions', icon: Wallet },
+      { label: 'Invoices', href: '/admin/activity-invoices', icon: BookOpen },
+      { label: 'Payouts', href: '/admin/activity-payouts', icon: CreditCard },
+    ],
+  },
+  {
+    label: 'Accommodation',
+    icon: Home,
+    items: [
+      { label: 'Bookings', href: '/admin/accommodation-bookings', icon: BookOpen },
+      { label: 'Commissions', href: '/admin/accommodation-commissions', icon: Wallet },
+    ],
+  },
 ];
 
 const AdminDashboardLayout = ({ children }: AdminDashboardLayoutProps) => {
@@ -114,26 +145,31 @@ const AdminDashboardLayout = ({ children }: AdminDashboardLayoutProps) => {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4 px-3">
-            <div className="px-3 mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Administration
-              </span>
-            </div>
-            {adminNavItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1',
-                  isActive(item.href)
-                    ? 'bg-amber-600 text-white'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.label}
-              </Link>
+            {adminNavGroups.map((group) => (
+              <div key={group.label} className="mb-4">
+                <div className="flex items-center gap-2 px-3 mb-2">
+                  <group.icon className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {group.label}
+                  </span>
+                </div>
+                {group.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-0.5',
+                      isActive(item.href)
+                        ? 'bg-amber-600 text-white'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
             ))}
           </nav>
 
