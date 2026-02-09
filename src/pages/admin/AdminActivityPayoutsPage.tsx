@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import AdminDashboardLayout from '@/components/layouts/AdminDashboardLayout';
 import { useActivityPayoutsData } from '@/hooks/useActivityPayoutsData';
 import { supabase } from '@/integrations/supabase/client';
 import {

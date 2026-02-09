@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import AdminDashboardLayout from '@/components/layouts/AdminDashboardLayout';
 import { useActivityInvoicesData, exportInvoicesCsv, exportBookingLinesCsv } from '@/hooks/useActivityInvoicesData';
 import { supabase } from '@/integrations/supabase/client';
 import {
