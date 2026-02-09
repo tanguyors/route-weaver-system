@@ -189,7 +189,7 @@ const AdminWithdrawalsPage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <AdminDashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div>
