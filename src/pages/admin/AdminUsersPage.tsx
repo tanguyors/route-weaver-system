@@ -292,7 +292,7 @@ const AdminUsersPage = () => {
         open={!!selectedUser}
         onOpenChange={(open) => !open && setSelectedUser(null)}
       />
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

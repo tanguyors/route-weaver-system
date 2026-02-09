@@ -195,7 +195,7 @@ const AdminAccommodationBookingsPage = () => {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

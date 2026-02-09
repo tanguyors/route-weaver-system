@@ -318,7 +318,7 @@ const AdminPortsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

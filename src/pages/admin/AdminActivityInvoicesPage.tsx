@@ -351,7 +351,7 @@ const AdminActivityInvoicesPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

@@ -306,7 +306,7 @@
            </AlertDialogFooter>
          </AlertDialogContent>
        </AlertDialog>
-     </DashboardLayout>
+     </AdminDashboardLayout>
    );
  };
  
