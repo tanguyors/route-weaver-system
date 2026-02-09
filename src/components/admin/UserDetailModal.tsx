@@ -359,89 +359,71 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
                     </div>
                   </div>
                   {/* Modules */}
-                  {user.modules && user.modules.length > 0 && (
-                    <div className="space-y-2 col-span-2">
-                      <p className="text-xs text-muted-foreground">Modules</p>
-                      <div className="space-y-2">
-                        {user.modules.map((module, idx) => (
-                          <div key={idx} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50">
-                            <Badge 
-                              variant={module.status === 'active' ? 'default' : module.status === 'pending' ? 'secondary' : 'outline'}
-                              className={`gap-1 ${
-                                module.module_type === 'boat' 
-                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' 
-                                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                              }`}
-                            >
-                              {module.module_type === 'boat' ? <Ship className="w-3 h-3" /> : <Compass className="w-3 h-3" />}
-                              {module.module_type === 'boat' ? 'Boat' : 'Activity'}
-                              <span className="opacity-70">({module.status})</span>
-                            </Badge>
-                            
-                            {/* Action buttons for pending modules */}
-                            {module.status === 'pending' && module.id && (
-                              <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="h-7 px-2 bg-green-600 hover:bg-green-700"
-                                  onClick={() => updateModuleStatusMutation.mutate({ moduleId: module.id!, newStatus: 'active' })}
-                                  disabled={updateModuleStatusMutation.isPending}
-                                >
-                                  {updateModuleStatusMutation.isPending ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <Check className="w-3 h-3 mr-1" />
-                                      Approve
-                                    </>
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-7 px-2"
-                                  onClick={() => updateModuleStatusMutation.mutate({ moduleId: module.id!, newStatus: 'disabled' })}
-                                  disabled={updateModuleStatusMutation.isPending}
-                                >
-                                  {updateModuleStatusMutation.isPending ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <X className="w-3 h-3 mr-1" />
-                                      Reject
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                            )}
-                            
-                            {/* Action button for active/disabled modules */}
-                            {module.status !== 'pending' && module.id && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 px-2"
-                                onClick={() => updateModuleStatusMutation.mutate({ 
-                                  moduleId: module.id!, 
-                                  newStatus: module.status === 'active' ? 'disabled' : 'active' 
-                                })}
-                                disabled={updateModuleStatusMutation.isPending}
-                              >
-                                {updateModuleStatusMutation.isPending ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : module.status === 'active' ? (
-                                  'Disable'
-                                ) : (
-                                  'Enable'
-                                )}
+                  <div className="space-y-2 col-span-2">
+                    <p className="text-xs text-muted-foreground">Modules</p>
+                    <div className="space-y-2">
+                      {(user.modules || []).map((module, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50">
+                          <Badge 
+                            variant={module.status === 'active' ? 'default' : module.status === 'pending' ? 'secondary' : 'outline'}
+                            className={`gap-1 ${
+                              module.module_type === 'boat' 
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' 
+                                : module.module_type === 'activity'
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                : 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300'
+                            }`}
+                          >
+                            {module.module_type === 'boat' ? <Ship className="w-3 h-3" /> : module.module_type === 'activity' ? <Compass className="w-3 h-3" /> : <Home className="w-3 h-3" />}
+                            {module.module_type === 'boat' ? 'Boat' : module.module_type === 'activity' ? 'Activity' : 'Accommodation'}
+                            <span className="opacity-70">({module.status})</span>
+                          </Badge>
+                          
+                          {module.status === 'pending' && module.id && (
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="default" className="h-7 px-2 bg-green-600 hover:bg-green-700"
+                                onClick={() => updateModuleStatusMutation.mutate({ moduleId: module.id!, newStatus: 'active' })}
+                                disabled={updateModuleStatusMutation.isPending}>
+                                {updateModuleStatusMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" />Approve</>}
                               </Button>
-                            )}
+                              <Button size="sm" variant="destructive" className="h-7 px-2"
+                                onClick={() => updateModuleStatusMutation.mutate({ moduleId: module.id!, newStatus: 'disabled' })}
+                                disabled={updateModuleStatusMutation.isPending}>
+                                {updateModuleStatusMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><X className="w-3 h-3 mr-1" />Reject</>}
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {module.status !== 'pending' && module.id && (
+                            <Button size="sm" variant="outline" className="h-7 px-2"
+                              onClick={() => updateModuleStatusMutation.mutate({ moduleId: module.id!, newStatus: module.status === 'active' ? 'disabled' : 'active' })}
+                              disabled={updateModuleStatusMutation.isPending}>
+                              {updateModuleStatusMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : module.status === 'active' ? 'Disable' : 'Enable'}
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {/* Add missing modules */}
+                      {(() => {
+                        const existingTypes = (user.modules || []).map(m => m.module_type);
+                        const missingModules = (['boat', 'activity', 'accommodation'] as const).filter(t => !existingTypes.includes(t));
+                        if (missingModules.length === 0) return null;
+                        return (
+                          <div className="flex gap-2 pt-1">
+                            {missingModules.map(type => (
+                              <Button key={type} size="sm" variant="outline" className="h-7 px-2 gap-1"
+                                onClick={() => addModuleMutation.mutate(type)}
+                                disabled={addModuleMutation.isPending}>
+                                <Plus className="w-3 h-3" />
+                                Add {type === 'boat' ? 'Boat' : type === 'activity' ? 'Activity' : 'Accommodation'}
+                              </Button>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })()}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
