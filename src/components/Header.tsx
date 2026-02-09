@@ -1,4 +1,4 @@
-import { Menu, X, LayoutDashboard, ChevronDown, Shield, Anchor, Compass } from "lucide-react";
+import { Menu, X, LayoutDashboard, ChevronDown, Shield, Anchor, Compass, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -22,7 +22,8 @@ const Header = () => {
   const isAdmin = role === 'admin';
   const hasBoatModule = activeModules.includes('boat');
   const hasActivityModule = activeModules.includes('activity');
-  const hasDashboardAccess = isAdmin || hasBoatModule || hasActivityModule;
+  const hasAccommodationModule = activeModules.includes('accommodation');
+  const hasDashboardAccess = isAdmin || hasBoatModule || hasActivityModule || hasAccommodationModule;
 
   const navLinks = [
     { name: "Home", href: "#" },
@@ -65,6 +66,14 @@ const Header = () => {
             <Link to="/activity-dashboard" className="flex items-center cursor-pointer">
               <Compass className="w-4 h-4 mr-2" />
               Dashboard Activity
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {hasAccommodationModule && (
+          <DropdownMenuItem asChild>
+            <Link to="/accommodation-dashboard" className="flex items-center cursor-pointer">
+              <Home className="w-4 h-4 mr-2" />
+              Dashboard Accommodation
             </Link>
           </DropdownMenuItem>
         )}
