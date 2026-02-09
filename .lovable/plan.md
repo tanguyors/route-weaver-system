@@ -1,145 +1,191 @@
 
+# Module Accommodation - Plan d'implementation
 
-# Plan : Système de Templates de Notifications Personnalisables
-
-## Objectif
-Permettre aux partenaires de personnaliser les messages Email et WhatsApp envoyés aux clients et à leur équipe pour les rappels de pickup, via une interface dans les paramètres.
+Ce projet est tres volumineux. Pour garantir la qualite et eviter les erreurs, l'implementation sera decoupee en **4 phases** progressives. Ce plan couvre la **Phase 1** (fondations) et la **Phase 2** (CRUD hebergements + calendrier), qui constituent le coeur fonctionnel minimum viable.
 
 ---
 
-## Architecture proposée
+## Vue d'ensemble des phases
 
 ```text
-+------------------+     +------------------------+     +----------------------+
-|   Settings UI    | --> |  notification_templates |     | send-pickup-reminders|
-|   (Dashboard)    |     |     (Database)          | <-- |   Edge Function      |
-+------------------+     +------------------------+     +----------------------+
+Phase 1 - Fondations (cette iteration)
+  Base de donnees + integration module_type + routing + layout
+
+Phase 2 - CRUD Accommodations + Calendar
+  Formulaire creation/edition + calendrier interne + blocage dates
+
+Phase 3 - iCal Bidirectionnel
+  Export iCal + Import iCal + Edge function CRON sync
+
+Phase 4 - Bookings + Rates + Widget
+  Reservations online/offline + tarifs + widget public
 ```
 
 ---
 
-## Étape 1 : Nouvelle table en base de données
+## Phase 1 - Fondations
 
-**Table : `notification_templates`**
+### 1.1 Base de donnees (Migration SQL)
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid | Clé primaire |
-| partner_id | uuid | Référence au partenaire |
-| template_type | text | 'pickup_reminder_email_customer', 'pickup_reminder_email_partner', 'pickup_reminder_whatsapp_customer', 'pickup_reminder_whatsapp_partner' |
-| subject | text | Sujet de l'email (null pour WhatsApp) |
-| content | text | Contenu du template avec variables placeholders |
-| is_active | boolean | Template actif ou non |
-| created_at | timestamp | Date de création |
-| updated_at | timestamp | Date de modification |
+**Ajout de la valeur `accommodation` dans l'enum `module_type`** pour que le systeme de modules existant (`partner_modules`) supporte le nouveau type.
 
-**Contrainte :** Un seul template par type par partenaire (UNIQUE sur `partner_id` + `template_type`)
+**Nouvelles tables :**
 
----
+- **`accommodations`** : table principale des hebergements
+  - `id` (uuid, PK)
+  - `partner_id` (uuid, FK partners)
+  - `name` (text, NOT NULL)
+  - `type` (text : villa, hotel, guesthouse, homestay, apartment)
+  - `description` (text)
+  - `capacity` (integer, max guests)
+  - `bedrooms` (integer)
+  - `bathrooms` (integer)
+  - `amenities` (jsonb, tableau de strings : WiFi, AC, Pool, etc.)
+  - `address` (text)
+  - `city` (text)
+  - `country` (text, default 'Indonesia')
+  - `latitude` / `longitude` (numeric, nullable)
+  - `status` (text : draft / active / inactive, default 'draft')
+  - `price_per_night` (numeric, default 0)
+  - `minimum_nights` (integer, default 1)
+  - `checkin_time` (time, default '14:00')
+  - `checkout_time` (time, default '11:00')
+  - `ical_token` (uuid, unique, pour export iCal securise)
+  - `created_at`, `updated_at`
 
-## Étape 2 : Variables disponibles dans les templates
+- **`accommodation_images`** : galerie photos
+  - `id`, `accommodation_id` (FK), `partner_id` (FK), `image_url`, `display_order`, `created_at`
 
-Les partenaires pourront utiliser ces placeholders qui seront remplacés automatiquement :
+- **`accommodation_calendar`** : etats jour par jour
+  - `id`, `accommodation_id` (FK), `partner_id` (FK), `date` (date), `status` (available / booked_sribooking / booked_external / blocked), `source` (text : sribooking / airbnb / booking / manual / other), `booking_id` (uuid, nullable), `note` (text), `created_at`, `updated_at`
+  - Contrainte unique : `(accommodation_id, date)`
 
-| Variable | Description |
-|----------|-------------|
-| `{{customer_name}}` | Nom du client |
-| `{{pickup_date}}` | Date du pickup (ex: Lundi 5 février 2026) |
-| `{{pickup_time}}` | Heure du pickup (ex: 08:30) |
-| `{{pickup_location}}` | Adresse/hôtel de pickup |
-| `{{pickup_area}}` | Zone de pickup (ville) |
-| `{{vehicle_type}}` | Type de véhicule (Voiture/Bus) |
-| `{{origin_port}}` | Port de départ |
-| `{{destination_port}}` | Port d'arrivée |
-| `{{departure_time}}` | Heure de départ du ferry |
-| `{{partner_name}}` | Nom du partenaire |
-| `{{partner_phone}}` | Téléphone du partenaire |
-| `{{customer_phone}}` | Téléphone du client (pour les messages partenaire) |
-| `{{booking_ref}}` | Référence de réservation |
-| `{{hours_before}}` | "24 heures" ou "12 heures" |
+- **`accommodation_ical_imports`** : liens iCal externes
+  - `id`, `accommodation_id` (FK), `partner_id` (FK), `platform_name` (text : airbnb / booking / other), `ical_url` (text), `is_active` (boolean, default true), `last_sync_at` (timestamptz), `last_sync_status` (text : ok / error), `last_sync_error` (text), `created_at`, `updated_at`
 
----
+- **`accommodation_bookings`** : reservations
+  - `id`, `accommodation_id` (FK), `partner_id` (FK), `checkin_date`, `checkout_date`, `guest_name`, `guest_email`, `guest_phone`, `guests_count`, `total_nights`, `total_amount`, `currency` (default 'IDR'), `status` (draft / confirmed / cancelled / completed), `channel` (online / offline_walkin / offline_whatsapp / offline_other), `notes`, `cancelled_at`, `created_at`, `updated_at`
 
-## Étape 3 : Interface utilisateur
+**Politiques RLS :**
+- Toutes les tables : partner voit uniquement ses donnees (via `user_belongs_to_partner`), admin voit tout
+- `accommodation_calendar` en lecture publique uniquement pour les lignes liees a une accommodation active (pour le futur widget)
+- iCal export endpoint : acces public via token UUID (pas de RLS, c'est une edge function)
 
-**Nouvelle section dans Paramètres → Notifications : "Personnalisation des messages"**
+**Fonctions de base de donnees :**
+- `set_accommodation_partner()` : trigger pour auto-remplir `partner_id` sur les sous-tables
+- `partner_has_module('accommodation')` : deja gere par la fonction existante apres ajout enum
 
-Composant avec 4 onglets :
-1. **Email Client** - Éditeur HTML simplifié avec sujet
-2. **Email Partenaire** - Éditeur HTML simplifié avec sujet
-3. **WhatsApp Client** - Éditeur texte avec preview
-4. **WhatsApp Partenaire** - Éditeur texte avec preview
+### 1.2 Mise a jour du systeme de modules
 
-Fonctionnalités :
-- Prévisualisation en temps réel avec données fictives
-- Liste des variables disponibles (clic pour insérer)
-- Bouton "Réinitialiser au template par défaut"
-- Indicateur de caractères pour WhatsApp (limite recommandée)
+Fichiers concernes :
 
----
+- **`src/hooks/usePartnerModules.ts`** : ajouter `'accommodation'` au type `ModuleType`
+- **`src/components/ModuleProtectedRoute.tsx`** : ajouter le cas `'accommodation'` pour le nom affiche
+- **`src/pages/ModuleSelector.tsx`** : ajouter la carte Accommodation (icone `Home`, gradient violet/indigo)
+- **`src/pages/Auth.tsx`** : ajouter le choix "Accommodation Provider" dans la selection de modules a l'inscription
+- **`src/components/admin/PartnerDetailModal.tsx`** : ajouter l'icone et le label pour le module accommodation
+- **`src/pages/admin/AdminPartnersPage.tsx`** : ajouter le filtre accommodation dans la liste admin
+- **`src/pages/ModuleNotEnabled.tsx`** : deja generique, pas de changement
 
-## Étape 4 : Modifications de la fonction Edge
+### 1.3 Layout et Routing
 
-La fonction `send-pickup-reminders` sera modifiée pour :
+**Nouveau fichier : `src/components/layouts/AccommodationDashboardLayout.tsx`**
+- Meme structure que `ActivityDashboardLayout` avec :
+  - Icone : `Home` (lucide)
+  - Gradient : violet/indigo (`from-violet-500 to-indigo-600`)
+  - Menu lateral : Dashboard, Accommodations, Calendar, Bookings, iCal Sync, Reports, Settings
 
-1. **Charger les templates personnalisés** depuis la table `notification_templates`
-2. **Utiliser le template par défaut** si aucun template personnalisé n'existe
-3. **Remplacer les placeholders** par les valeurs réelles
-4. **Gérer le HTML** pour les emails et le texte brut pour WhatsApp
+**Nouveaux fichiers pages :**
+- `src/pages/accommodation-dashboard/AccommodationDashboard.tsx` : page d'accueil avec stats
+- `src/pages/accommodation-dashboard/AccommodationListPage.tsx` : liste des hebergements
+- `src/pages/accommodation-dashboard/AccommodationFormPage.tsx` : creation/edition
+- `src/pages/accommodation-dashboard/AccommodationCalendarPage.tsx` : calendrier
+- `src/pages/accommodation-dashboard/AccommodationBookingsPage.tsx` : reservations
+- `src/pages/accommodation-dashboard/AccommodationIcalSyncPage.tsx` : config iCal
+- `src/pages/accommodation-dashboard/AccommodationSettingsPage.tsx` : parametres
 
----
-
-## Fichiers à créer/modifier
-
-1. **Migration SQL** : Créer la table `notification_templates`
-2. **Hook** : `useNotificationTemplatesData.ts` - CRUD des templates
-3. **Composant UI** : `NotificationTemplatesEditor.tsx` - Interface d'édition
-4. **Composant UI** : `TemplatePreview.tsx` - Prévisualisation
-5. **Modification** : `NotificationSettingsForm.tsx` - Ajouter section templates
-6. **Modification** : `send-pickup-reminders/index.ts` - Charger et utiliser les templates
-
----
-
-## Templates par défaut
-
-Les templates actuels (hardcodés) seront conservés comme **templates par défaut** utilisés quand aucun template personnalisé n'existe.
+**Mise a jour de `src/App.tsx` :**
+- Ajouter toutes les routes `/accommodation-dashboard/*` protegees par `<ModuleProtectedRoute requiredModule="accommodation">`
 
 ---
 
-## Détails techniques
+## Phase 2 - CRUD Accommodations + Calendar
 
-### Structure du composant d'édition
+### 2.1 Hooks de donnees
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ 📝 Personnalisation des messages de rappel             │
-├─────────────────────────────────────────────────────────┤
-│ [Email Client] [Email Partenaire] [WA Client] [WA Part] │
-├─────────────────────────────────────────────────────────┤
-│ Sujet: ________________________________________         │
-│                                                         │
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │ Contenu du message...                               │ │
-│ │                                                     │ │
-│ │ Bonjour {{customer_name}},                          │ │
-│ │ Votre pickup est prévu pour {{pickup_date}}...      │ │
-│ └─────────────────────────────────────────────────────┘ │
-│                                                         │
-│ Variables disponibles:                                  │
-│ [customer_name] [pickup_date] [pickup_time] [...]       │
-│                                                         │
-│ ─────────── Prévisualisation ───────────                │
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │ Bonjour Jean Dupont,                                │ │
-│ │ Votre pickup est prévu pour Lundi 5 février...      │ │
-│ └─────────────────────────────────────────────────────┘ │
-│                                                         │
-│ [Réinitialiser par défaut]              [Enregistrer]   │
-└─────────────────────────────────────────────────────────┘
-```
+**Nouveaux hooks :**
+- `src/hooks/useAccommodationsData.ts` : CRUD accommodations (liste, create, update, delete, toggle status)
+- `src/hooks/useAccommodationImagesData.ts` : gestion galerie images (upload, reorder, delete)
+- `src/hooks/useAccommodationCalendarData.ts` : lecture/ecriture calendrier, blocage dates manuelles
+- `src/hooks/useAccommodationBookingsData.ts` : liste et gestion des reservations
+- `src/hooks/useAccommodationIcalData.ts` : CRUD des imports iCal
 
-### Sécurité RLS
+### 2.2 Page Liste Accommodations
 
-- Les partenaires ne peuvent voir/modifier que leurs propres templates
-- Politique SELECT, INSERT, UPDATE, DELETE avec `partner_id = auth.uid()` via la relation profiles
+- Tableau avec colonnes : Image, Nom, Type, Capacite, Prix/nuit, Statut, Actions
+- Filtres : recherche texte, type, statut
+- Actions : Edit, Duplicate, Activate/Deactivate, Delete (soft)
+- Pattern identique a `ActivityProductsPage`
 
+### 2.3 Formulaire Creation/Edition
+
+Formulaire multi-sections :
+- **Informations generales** : nom, type (select), description (textarea)
+- **Capacite** : max guests, bedrooms, bathrooms
+- **Amenities** : grille de checkboxes (WiFi, AC, Pool, Kitchen, Parking, Hot Water, TV, Garden, etc.)
+- **Localisation** : adresse, ville, pays, map (optionnel)
+- **Galerie images** : upload drag-and-drop avec reorder (meme composant que `ProductImageGallery`)
+- **Tarifs** : prix par nuit, minimum nights, check-in/check-out times
+- **Statut** : Draft / Active / Inactive
+
+### 2.4 Calendrier Interne
+
+- Vue mensuelle avec grille de jours
+- Chaque jour affiche son statut en couleur :
+  - Vert = Available
+  - Bleu = Booked (Sribooking)
+  - Orange = Booked (External iCal)
+  - Rouge = Blocked (Manual)
+- Click sur un jour ou selection de plage pour bloquer/debloquer manuellement
+- Selecteur d'accommodation en haut si le partenaire en a plusieurs
+
+---
+
+## Phase 3 (future iteration) - iCal Bidirectionnel
+
+- Edge function `generate-ical-export` : genere le fichier .ics a partir de `accommodation_calendar`
+- Edge function `sync-ical-imports` : CRON qui fetch les URLs iCal externes, parse les events, met a jour `accommodation_calendar`
+- Page UI iCal Sync avec tutorial inline, copie du lien export, gestion des imports
+- Config CRON dans `supabase/config.toml`
+
+## Phase 4 (future iteration) - Bookings + Rates
+
+- Reservations online + offline avec formulaire
+- Prevention doubles reservations via verification calendrier
+- Tarifs saisonniers (optionnel v2)
+- Widget public de reservation
+
+---
+
+## Resume des fichiers a creer/modifier
+
+**Nouveaux fichiers (environ 15) :**
+- 1 layout
+- 7 pages
+- 5 hooks
+- 1 composant formulaire
+- 1 composant galerie images (reutilisation possible)
+
+**Fichiers modifies (environ 7) :**
+- `usePartnerModules.ts` (type ModuleType)
+- `ModuleProtectedRoute.tsx` (label accommodation)
+- `ModuleSelector.tsx` (carte accommodation)
+- `Auth.tsx` (checkbox inscription)
+- `PartnerDetailModal.tsx` (icone accommodation)
+- `AdminPartnersPage.tsx` (filtre module)
+- `App.tsx` (routes)
+
+**Migration SQL :**
+- 1 migration avec : ALTER TYPE enum, 5 tables, triggers, RLS policies, mise a jour de `create_partner_with_modules`
+
+L'implementation commencera par la Phase 1 (fondations) puis enchaînera sur la Phase 2 (CRUD + calendrier) dans la meme iteration.
