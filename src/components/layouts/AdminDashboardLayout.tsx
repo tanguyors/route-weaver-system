@@ -47,7 +47,6 @@ const adminNavGroups: NavGroup[] = [
     icon: ShieldCheck,
     items: [
       { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-      { label: 'Partners', href: '/admin/partners', icon: Building2 },
       { label: 'Users', href: '/admin/users', icon: Users },
       { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard },
       { label: 'Settings', href: '/admin/settings', icon: Settings },
