@@ -99,7 +99,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [boatsOpen, setBoatsOpen] = useState(true);
   
-  const hasBothModules = activeModules.includes('boat') && activeModules.includes('activity');
   const isAdmin = role === 'admin';
   const isOnSettingsPage = location.pathname.startsWith('/dashboard/settings');
 
