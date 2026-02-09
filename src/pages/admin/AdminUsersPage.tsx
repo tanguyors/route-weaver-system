@@ -108,10 +108,11 @@ const AdminUsersPage = () => {
     if (moduleFilter !== 'all') {
       const hasBoat = user.modules.some(m => m.module_type === 'boat');
       const hasActivity = user.modules.some(m => m.module_type === 'activity');
+      const hasAccommodation = user.modules.some(m => m.module_type === 'accommodation');
       
       if (moduleFilter === 'boat' && !hasBoat) return false;
       if (moduleFilter === 'activity' && !hasActivity) return false;
-      if (moduleFilter === 'both' && !(hasBoat && hasActivity)) return false;
+      if (moduleFilter === 'accommodation' && !hasAccommodation) return false;
       if (moduleFilter === 'none' && user.modules.length > 0) return false;
     }
 
