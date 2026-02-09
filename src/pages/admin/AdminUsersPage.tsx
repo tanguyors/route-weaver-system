@@ -2,7 +2,7 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Plus, Search, MoreHorizontal, Shield, Building2, Ship, Compass, Filter } from 'lucide-react';
+import { Users, Plus, Search, MoreHorizontal, Shield, Building2, Ship, Compass, Filter, Home } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
