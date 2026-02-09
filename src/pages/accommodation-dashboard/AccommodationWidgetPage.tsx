@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AccommodationDashboardLayout from '@/components/layouts/AccommodationDashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,9 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAccommodationWidgetConfigData } from '@/hooks/useAccommodationWidgetConfigData';
+import { supabase } from '@/integrations/supabase/client';
 import WidgetDomainsForm from '@/components/widget/WidgetDomainsForm';
 import {
   Code2,
@@ -20,8 +22,11 @@ import {
   Copy,
   Check,
   Key,
+  AlertTriangle,
+  Home,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const AccommodationWidgetConfigPage = () => {
   const {
@@ -37,9 +42,24 @@ const AccommodationWidgetConfigPage = () => {
     getDirectLink,
   } = useAccommodationWidgetConfigData();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [accommodationCount, setAccommodationCount] = useState<number | null>(null);
+
+  // Check if partner has accommodations
+  useEffect(() => {
+    const checkAccommodations = async () => {
+      if (!widget) return;
+      const { count } = await supabase
+        .from('accommodations')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active');
+      setAccommodationCount(count ?? 0);
+    };
+    checkAccommodations();
+  }, [widget]);
 
   const handleCreateWidget = async () => {
     setCreating(true);
@@ -208,6 +228,23 @@ const AccommodationWidgetConfigPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {accommodationCount === 0 && (
+                    <Alert className="mb-4">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="flex items-center justify-between">
+                        <span>No active properties found. Create at least one accommodation to see the widget in action.</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="ml-4 shrink-0"
+                          onClick={() => navigate('/accommodation-dashboard/accommodations')}
+                        >
+                          <Home className="w-4 h-4 mr-1" />
+                          Add Property
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <div className="border rounded-lg overflow-hidden bg-muted/50">
                     <iframe
                       src={getDirectLink()}
