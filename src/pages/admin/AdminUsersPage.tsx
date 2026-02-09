@@ -191,9 +191,9 @@ const AdminUsersPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Modules</SelectItem>
-                    <SelectItem value="boat">Boat Only</SelectItem>
-                    <SelectItem value="activity">Activity Only</SelectItem>
-                    <SelectItem value="both">Boat + Activity</SelectItem>
+                    <SelectItem value="boat">Boat</SelectItem>
+                    <SelectItem value="activity">Activity</SelectItem>
+                    <SelectItem value="accommodation">Accommodation</SelectItem>
                     <SelectItem value="none">No Modules</SelectItem>
                   </SelectContent>
                 </Select>
