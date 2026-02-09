@@ -1,196 +1,130 @@
 
-# Refonte du Module Accommodation : Niveau Booking.com / Airbnb
 
-## Contexte
+# Implementation: Room Types, Degressive Pricing, and Widget Upgrade
 
-Le module actuel traite chaque hebergement comme une entite unique et plate. Cela fonctionne pour les villas, mais pas pour les hotels qui ont plusieurs types de chambres avec des inventaires distincts. De plus, il manque un systeme de **tarification degressive** automatique (plus le sejour est long, moins cher la nuit) et le widget public necessite des ameliorations pour atteindre le niveau Booking.com.
-
----
-
-## 1. Nouvelle table : `accommodation_rooms` (types de chambres)
-
-Permet a un hotel de definir plusieurs types de chambres (Standard, Deluxe, Suite...), chacun avec son prix, sa capacite et son **stock** (nombre de chambres de ce type).
-
-**Pour les villas :** Pas de changement. Une villa n'aura simplement pas de chambres -- elle reste reservable en entier comme aujourd'hui.
-
-**Pour les hotels :** Le partenaire cree des types de chambres sous l'hebergement. Chaque type a son propre prix/nuit, capacite, stock, et photos.
-
-```text
-Table: accommodation_rooms
-- id (uuid, PK)
-- accommodation_id (FK -> accommodations)
-- partner_id (FK -> partners)
-- name (text) -- ex: "Deluxe Double", "Suite Oceanview"
-- description (text, nullable)
-- capacity (integer, default 2)
-- bed_type (text) -- ex: "double", "twin", "king", "single"
-- quantity (integer, default 1) -- nombre de chambres de ce type
-- price_per_night (numeric)
-- currency (text, default 'IDR')
-- minimum_nights (integer, default 1)
-- amenities (jsonb, default '[]')
-- status (text, default 'active')
-- display_order (integer, default 0)
-- created_at, updated_at
-```
-
-**Impact sur les bookings :** La table `accommodation_bookings` recevra une colonne nullable `room_id` (FK -> accommodation_rooms). Pour les villas, `room_id = NULL`. Pour les hotels, `room_id` identifie le type de chambre reserve.
-
-**Impact sur le calendrier :** La table `accommodation_calendar` recevra une colonne nullable `room_id`. Pour les villas, le fonctionnement reste identique (1 entree par date). Pour les hotels, on a 1 entree par date **par chambre reservee**, et la disponibilite est calculee en comparant le nombre d'entrees "booked" avec le `quantity` du type de chambre.
+The database migration is already complete (3 new tables + 2 columns added). This plan covers all the code changes needed to bring the module to Booking.com level.
 
 ---
 
-## 2. Nouvelle table : `accommodation_room_images`
+## Phase 1: New Data Hooks
 
-Photos dediees par type de chambre, meme pattern que `accommodation_images`.
+### 1.1 - Create `useAccommodationRoomsData.ts`
+Full CRUD hook for `accommodation_rooms` table, following the same pattern as `useAccommodationsData`:
+- `fetchRooms(accommodationId)` - list all room types for an accommodation
+- `createRoom(input)` - create a new room type
+- `updateRoom(id, input)` - update a room type
+- `deleteRoom(id)` - delete a room type (with cascade check)
+- Room type interface: name, description, capacity, bed_type, quantity, price_per_night, currency, minimum_nights, amenities, status, display_order
 
-```text
-Table: accommodation_room_images
-- id (uuid, PK)
-- room_id (FK -> accommodation_rooms)
-- partner_id (FK -> partners)
-- image_url (text)
-- file_path (text, nullable)
-- display_order (integer, default 0)
-- created_at
-```
-
----
-
-## 3. Nouveau systeme : Tarification degressive (`accommodation_price_tiers`)
-
-Permet au partenaire de definir des paliers de prix automatiques en fonction de la duree du sejour. S'applique a un hebergement (villa) ou a un type de chambre (hotel).
-
-```text
-Table: accommodation_price_tiers
-- id (uuid, PK)
-- accommodation_id (FK -> accommodations)
-- room_id (FK -> accommodation_rooms, nullable) -- null = s'applique a la villa entiere
-- partner_id (FK -> partners)
-- min_nights (integer) -- a partir de X nuits
-- price_per_night (numeric) -- prix/nuit pour ce palier
-- currency (text)
-- status (text, default 'active')
-- created_at, updated_at
-```
-
-**Exemple concret :**
-| Palier | Nuits min | Prix/nuit |
-|--------|-----------|-----------|
-| Base   | 1         | 150 USD   |
-| Semaine| 7         | 120 USD   |
-| Mois   | 28        | 90 USD    |
-
-Le systeme selectionne automatiquement le palier le plus avantageux dont le `min_nights` est inferieur ou egal a la duree du sejour. Ce calcul intervient avant les reductions (early bird, last minute, promo code).
+### 1.2 - Create `useAccommodationPriceTiersData.ts`
+CRUD hook for `accommodation_price_tiers` table:
+- `fetchTiers(accommodationId, roomId?)` - list price tiers
+- `saveTiers(accommodationId, roomId, tiers[])` - bulk save/replace tiers
+- `getEffectivePrice(accommodationId, roomId, nights)` - returns the best applicable price/night based on stay duration
+- Tier interface: min_nights, price_per_night, currency
 
 ---
 
-## 4. Modifications de la base existante (Migration SQL)
+## Phase 2: Accommodation Form Page Update
 
-```text
--- 1. Creer la table accommodation_rooms
--- 2. Creer la table accommodation_room_images  
--- 3. Creer la table accommodation_price_tiers
--- 4. Ajouter room_id nullable a accommodation_bookings
--- 5. Ajouter room_id nullable a accommodation_calendar
--- 6. RLS policies pour les 3 nouvelles tables (meme pattern que accommodations)
-```
+### 2.2 - Update `AccommodationFormPage.tsx`
+Add two new sections that appear **only in edit mode** (after save):
 
----
+**Room Types section (visible when type = "hotel"):**
+- Inline list of existing room types with edit/delete
+- "Add Room Type" button opening an inline form
+- Each room type shows: name, bed type, capacity, quantity (stock), price/night, status
+- Room-specific image gallery (reusing the AccommodationImageGallery pattern but for room images via a new `RoomImageGallery` component)
 
-## 5. Modifications du formulaire de creation/edition
-
-### Fichier modifie : `AccommodationFormPage.tsx`
-
-**Changements :**
-- Quand le type est **"hotel"** : afficher un onglet/section supplementaire "Room Types" permettant d'ajouter/editer/supprimer des types de chambres avec : nom, description, type de lit, capacite, quantite, prix/nuit, amenites
-- **Pour tous les types** : nouvelle section "Price Tiers" (tarification degressive) avec un tableau editable de paliers (nuits min + prix/nuit)
-- Chaque type de chambre pourra avoir sa propre galerie photos
-
-### Nouveau hook : `useAccommodationRoomsData.ts`
-- CRUD pour `accommodation_rooms` et `accommodation_room_images`
-- Meme pattern que `useAccommodationsData`
-
-### Nouveau hook : `useAccommodationPriceTiersData.ts`
-- CRUD pour `accommodation_price_tiers`
-- Fonction `getEffectivePrice(accommodationId, roomId, nights)` retournant le prix/nuit effectif
+**Price Tiers section (visible for all types):**
+- Editable table of pricing tiers
+- Columns: Min. Nights | Price/Night | Currency
+- Add/remove tier rows
+- Pre-populated with the base price as default tier (1 night = accommodation price)
+- For hotels: ability to set tiers per room type
 
 ---
 
-## 6. Mise a jour de la logique de disponibilite
+## Phase 3: Booking Logic Updates
 
-### Pour les villas (room_id = null)
-Aucun changement. 1 villa = 1 unite reservable.
+### 3.1 - Update `useAccommodationBookingsData.ts`
+- Add `room_id` to `AccommodationBooking` interface and `CreateBookingInput`
+- Update `createBooking()`: include `room_id` in insert, include `room_id` in calendar entries
+- Update availability check for hotels: instead of checking if dates are blocked, count active bookings for the room type and compare against `quantity`
+- Update `fetchBookings()` query: join `accommodation_rooms` to get room name
 
-### Pour les hotels (room_id present)
-La disponibilite d'un type de chambre pour une date donnee est :
-```text
-disponible = quantity - nombre_de_bookings_actifs_pour_cette_date
-```
-On ne bloque la date dans le calendrier que si toutes les chambres de ce type sont prises.
-
-### Fichiers impactes :
-- `accommodation-widget-data` (edge function) : retourner les rooms avec leurs disponibilites
-- `create-accommodation-booking` (edge function) : gerer room_id, verifier stock, calculer prix degressif
-- `useAccommodationWidgetData.ts` : adapter les helpers
-- `useAccommodationCalendarData.ts` : adapter pour les rooms
-- `useAccommodationBookingsData.ts` : gerer room_id
+### 3.2 - Update `useAccommodationCalendarData.ts`
+- Add `room_id` to `CalendarEntry` interface
+- Update `fetchCalendar` to also return room_id
+- Update `toggleBlock` to handle room-specific blocking
 
 ---
 
-## 7. Widget public ameliore
+## Phase 4: Dashboard Bookings Page Update
 
-### Fichier modifie : `AccommodationWidgetPage.tsx`
-
-**Nouveau flux UX :**
-
-1. **Liste des proprietes** (inchange pour les villas)
-2. **Pour un hotel** : apres selection de l'hotel, afficher la **liste des types de chambres** avec photos, prix, capacite, stock restant
-3. **Selection du type de chambre** (ou directement pour les villas)
-4. **Calendrier de disponibilites** avec les dates bloquees specifiques au room type
-5. **Tarification degressive visible** : afficher les paliers de prix a cote du calendrier ("7+ nuits : -20%", "28+ nuits : -40%")
-6. **Recapitulatif ameliore** montrant :
-   - Prix de base par nuit
-   - Prix degressif applique (si applicable)
-   - Reduction automatique (early bird, last minute, long stay)
-   - Code promo
-   - Total final
-7. **Formulaire client** et confirmation (inchange)
+### 4.1 - Update `AccommodationBookingsPage.tsx`
+- Add "Room" column in the bookings table (shows room name for hotels, empty for villas)
+- In the New Booking dialog: when the selected accommodation is a hotel, show a room type selector after accommodation selection
+- Auto-calculate price from the room's price_per_night (with degressive tiers)
+- Show available stock for the selected room type and dates
 
 ---
 
-## 8. Page dashboard "Bookings" mise a jour
+## Phase 5: Edge Functions Update
 
-### Fichier modifie : `AccommodationBookingsPage.tsx`
+### 5.1 - Update `accommodation-widget-data/index.ts`
+Add parallel queries for:
+- `accommodation_rooms` (active rooms for each accommodation)
+- `accommodation_room_images` (images for rooms)
+- `accommodation_price_tiers` (active tiers)
+Build response with rooms nested under each accommodation (only for hotels), including per-room availability calculation based on quantity vs active bookings
 
-- Afficher le nom de la chambre dans la table des reservations (si hotel)
-- Dans le formulaire de nouvelle reservation offline, permettre de selectionner un type de chambre quand l'accommodation est un hotel
+### 5.2 - Update `create-accommodation-booking/index.ts`
+- Accept `room_id` in request body
+- For hotels: validate room exists, check stock availability (quantity vs concurrent bookings per date)
+- Compute effective price using price tiers: find the tier where `min_nights <= stay_duration` with the highest `min_nights` value
+- Apply pricing priority: Tier price -> Auto discounts -> Promo code
+- Include `room_id` in booking insert and calendar entries
 
 ---
 
-## Resume technique
+## Phase 6: Public Widget Upgrade
 
-### Migration SQL (1)
-- 3 nouvelles tables : `accommodation_rooms`, `accommodation_room_images`, `accommodation_price_tiers`
-- 2 colonnes ajoutees : `room_id` sur `accommodation_bookings` et `accommodation_calendar`
-- Policies RLS associees
+### 6.1 - Update `useAccommodationWidgetData.ts`
+- Add `rooms`, `room_images`, and `price_tiers` to `AccommodationItem` interface
+- Update `isDateAvailable` and `isRangeAvailable` to accept optional `roomId`
+- For hotels with rooms: availability = `quantity - booked_count_for_date`
+- Update `calculatePrice` to use price tiers when available
+- Add `room_id` to `createBooking` params
 
-### Nouveaux fichiers (2)
+### 6.2 - Update `AccommodationWidgetPage.tsx`
+New booking flow for hotels:
+1. Property list (unchanged for villas)
+2. For hotels: after selecting the hotel, show room type cards with photos, price, capacity, bed type, and available stock
+3. After selecting a room type, show the calendar with room-specific availability
+4. Price tier info displayed next to calendar ("Stay 7+ nights: save 20%")
+5. Enhanced booking summary showing: base price, tier discount, auto discount, promo code, final total
+6. Rest of flow (guest form, confirmation) stays the same
+
+---
+
+## Technical Details
+
+### Files Created (2)
 - `src/hooks/useAccommodationRoomsData.ts`
 - `src/hooks/useAccommodationPriceTiersData.ts`
 
-### Fichiers modifies (7)
-- `src/pages/accommodation-dashboard/AccommodationFormPage.tsx` : sections Rooms + Price Tiers
-- `src/pages/accommodation-dashboard/AccommodationBookingsPage.tsx` : colonne room + filtre
-- `src/pages/accommodation-widget/AccommodationWidgetPage.tsx` : flux room selection + affichage prix degressif
-- `src/hooks/useAccommodationWidgetData.ts` : adapter pour rooms et price tiers
-- `src/hooks/useAccommodationBookingsData.ts` : room_id
-- `supabase/functions/accommodation-widget-data/index.ts` : rooms + price tiers
-- `supabase/functions/create-accommodation-booking/index.ts` : stock check + degressive pricing
+### Files Modified (7)
+- `src/pages/accommodation-dashboard/AccommodationFormPage.tsx`
+- `src/pages/accommodation-dashboard/AccommodationBookingsPage.tsx`
+- `src/pages/accommodation-widget/AccommodationWidgetPage.tsx`
+- `src/hooks/useAccommodationWidgetData.ts`
+- `src/hooks/useAccommodationBookingsData.ts`
+- `supabase/functions/accommodation-widget-data/index.ts`
+- `supabase/functions/create-accommodation-booking/index.ts`
 
-### Logique de priorite tarifaire
-```text
-1. Prix degressif (tiers) -> determine le prix/nuit de base
-2. Reductions automatiques (early bird, last minute, long stay) -> appliquees sur le total
-3. Code promo -> applique sur le total apres reductions auto
-```
+### Backward Compatibility
+- `room_id` is nullable everywhere, so existing villas work exactly as before
+- Price tiers are optional: if none defined, the base `price_per_night` from the accommodation/room is used
+- Calendar entries without `room_id` (existing data) continue to work for villas
+
