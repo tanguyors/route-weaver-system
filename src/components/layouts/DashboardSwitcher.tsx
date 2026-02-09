@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserRole } from '@/hooks/useUserRole';
-import { usePartnerModules } from '@/hooks/usePartnerModules';
+import { usePartnerModules, type ModuleType } from '@/hooks/usePartnerModules';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
