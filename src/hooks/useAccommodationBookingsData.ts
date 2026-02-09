@@ -197,6 +197,11 @@ export const useAccommodationBookingsData = (filters?: {
 
     if (calError) throw calError;
 
+    // Send confirmation notification (non-blocking)
+    supabase.functions.invoke('send-accommodation-booking-confirmation', {
+      body: { booking_id: (booking as any).id }
+    }).catch(err => console.error('Notification error:', err));
+
     await fetchBookings();
     await fetchStats();
     return booking;

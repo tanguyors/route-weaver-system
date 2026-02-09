@@ -6,9 +6,12 @@ import { TEMPLATE_VARIABLES } from '@/hooks/useNotificationTemplatesData';
 
 interface VariablesListProps {
   onInsert: (variable: string) => void;
+  customVariables?: { key: string; label: string; description: string }[];
 }
 
-const VariablesList = ({ onInsert }: VariablesListProps) => {
+const VariablesList = ({ onInsert, customVariables }: VariablesListProps) => {
+  const variables = customVariables || TEMPLATE_VARIABLES;
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -23,7 +26,7 @@ const VariablesList = ({ onInsert }: VariablesListProps) => {
       <CardContent>
         <TooltipProvider>
           <div className="flex flex-wrap gap-2">
-            {TEMPLATE_VARIABLES.map((variable) => (
+            {variables.map((variable) => (
               <Tooltip key={variable.key}>
                 <TooltipTrigger asChild>
                   <Badge 
