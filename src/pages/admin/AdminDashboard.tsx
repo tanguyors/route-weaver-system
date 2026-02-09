@@ -96,7 +96,7 @@ const AdminDashboard = () => {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 
