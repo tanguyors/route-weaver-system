@@ -248,6 +248,41 @@ export type Database = {
           },
         ]
       }
+      accommodation_reminder_logs: {
+        Row: {
+          booking_id: string
+          channel: string
+          id: string
+          recipient: string
+          reminder_type: string
+          sent_at: string
+        }
+        Insert: {
+          booking_id: string
+          channel: string
+          id?: string
+          recipient: string
+          reminder_type: string
+          sent_at?: string
+        }
+        Update: {
+          booking_id?: string
+          channel?: string
+          id?: string
+          recipient?: string
+          reminder_type?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_reminder_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodations: {
         Row: {
           address: string | null

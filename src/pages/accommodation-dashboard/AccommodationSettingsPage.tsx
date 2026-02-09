@@ -10,7 +10,8 @@ import { useSettingsData } from '@/hooks/useSettingsData';
 import { useAuth } from '@/contexts/AuthContext';
 import CancellationSettingsForm from '@/components/settings/CancellationSettingsForm';
 import StaffList from '@/components/settings/StaffList';
-import { Building2, XCircle, Users, Loader2, Landmark, Globe } from 'lucide-react';
+import AccommodationNotificationTemplatesEditor from '@/components/accommodation/AccommodationNotificationTemplatesEditor';
+import { Building2, XCircle, Users, Loader2, Landmark, Globe, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AccommodationSettingsPage = () => {

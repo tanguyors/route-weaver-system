@@ -8,7 +8,8 @@ import { Loader2, RotateCcw, Save, Mail, MessageCircle, Send } from 'lucide-reac
 import { 
   TemplateType, 
   DEFAULT_TEMPLATES, 
-  SAMPLE_DATA 
+  SAMPLE_DATA,
+  ACC_SAMPLE_DATA,
 } from '@/hooks/useNotificationTemplatesData';
 import TemplatePreview from './TemplatePreview';
 import VariablesList from './VariablesList';
@@ -35,6 +36,8 @@ interface TemplateEditorProps {
   partnerId: string;
   partnerEmail?: string;
   partnerPhone?: string;
+  customVariables?: { key: string; label: string; description: string }[];
+  useAccSampleData?: boolean;
   onSave: (content: string, subject?: string | null) => Promise<boolean>;
   onReset: () => Promise<boolean>;
 }
@@ -49,6 +52,8 @@ const TemplateEditor = ({
   partnerId,
   partnerEmail = '',
   partnerPhone = '',
+  customVariables,
+  useAccSampleData = false,
   onSave,
   onReset,
 }: TemplateEditorProps) => {
@@ -117,7 +122,8 @@ const TemplateEditor = ({
   // Generate preview with sample data
   const replaceWithSampleData = (text: string): string => {
     let result = text;
-    Object.entries(SAMPLE_DATA).forEach(([key, value]) => {
+    const data = useAccSampleData ? ACC_SAMPLE_DATA : SAMPLE_DATA;
+    Object.entries(data).forEach(([key, value]) => {
       const placeholder = `{{${key}}}`;
       result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
     });
@@ -186,7 +192,7 @@ const TemplateEditor = ({
             </CardContent>
           </Card>
 
-          <VariablesList onInsert={handleInsertVariable} />
+          <VariablesList onInsert={handleInsertVariable} customVariables={customVariables} />
         </div>
 
         {/* Preview Column */}
