@@ -46,6 +46,7 @@ import AccommodationCalendarPage from "./pages/accommodation-dashboard/Accommoda
 import AccommodationBookingsPage from "./pages/accommodation-dashboard/AccommodationBookingsPage";
 import AccommodationIcalSyncPage from "./pages/accommodation-dashboard/AccommodationIcalSyncPage";
 import AccommodationReportsPage from "./pages/accommodation-dashboard/AccommodationReportsPage";
+import AccommodationTransactionsPage from "./pages/accommodation-dashboard/AccommodationTransactionsPage";
 import AccommodationSettingsPage from "./pages/accommodation-dashboard/AccommodationSettingsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
@@ -136,6 +137,7 @@ const App = () => (
             <Route path="/accommodation-dashboard/bookings" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationBookingsPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/ical-sync" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationIcalSyncPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/reports" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationReportsPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/transactions" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationTransactionsPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/settings" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationSettingsPage /></ModuleProtectedRoute>} />
             
             {/* Admin Routes */}
