@@ -197,6 +197,150 @@ export type Database = {
           },
         ]
       }
+      accommodation_discount_usage: {
+        Row: {
+          booking_id: string | null
+          customer_email: string | null
+          customer_phone: string | null
+          discount_id: string
+          discounted_amount: number
+          id: string
+          partner_id: string
+          used_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          discount_id: string
+          discounted_amount?: number
+          id?: string
+          partner_id: string
+          used_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          discount_id?: string
+          discounted_amount?: number
+          id?: string
+          partner_id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_discount_usage_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_discount_usage_discount_id_fkey"
+            columns: ["discount_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_discounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_discount_usage_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_discounts: {
+        Row: {
+          applicable_accommodation_ids: string[] | null
+          book_end_date: string | null
+          book_start_date: string | null
+          category: string
+          checkin_end_date: string | null
+          checkin_start_date: string | null
+          code: string | null
+          created_at: string
+          discount_value: number
+          discount_value_type: string
+          early_bird_days: number | null
+          id: string
+          individual_use_only: boolean | null
+          last_minute_days: number | null
+          limit_per_customer: number | null
+          min_nights: number | null
+          minimum_spend: number | null
+          partner_id: string
+          status: string
+          total_discounted_amount: number
+          type: string
+          updated_at: string
+          usage_count: number
+          usage_limit: number | null
+        }
+        Insert: {
+          applicable_accommodation_ids?: string[] | null
+          book_end_date?: string | null
+          book_start_date?: string | null
+          category?: string
+          checkin_end_date?: string | null
+          checkin_start_date?: string | null
+          code?: string | null
+          created_at?: string
+          discount_value?: number
+          discount_value_type?: string
+          early_bird_days?: number | null
+          id?: string
+          individual_use_only?: boolean | null
+          last_minute_days?: number | null
+          limit_per_customer?: number | null
+          min_nights?: number | null
+          minimum_spend?: number | null
+          partner_id: string
+          status?: string
+          total_discounted_amount?: number
+          type?: string
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+        }
+        Update: {
+          applicable_accommodation_ids?: string[] | null
+          book_end_date?: string | null
+          book_start_date?: string | null
+          category?: string
+          checkin_end_date?: string | null
+          checkin_start_date?: string | null
+          code?: string | null
+          created_at?: string
+          discount_value?: number
+          discount_value_type?: string
+          early_bird_days?: number | null
+          id?: string
+          individual_use_only?: boolean | null
+          last_minute_days?: number | null
+          limit_per_customer?: number | null
+          min_nights?: number | null
+          minimum_spend?: number | null
+          partner_id?: string
+          status?: string
+          total_discounted_amount?: number
+          type?: string
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_discounts_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_ical_imports: {
         Row: {
           accommodation_id: string
