@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import AccommodationDashboardLayout from '@/components/layouts/AccommodationDashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useAccommodationsData } from '@/hooks/useAccommodationsData';
 import { useAccommodationBookingsData, CreateBookingInput } from '@/hooks/useAccommodationBookingsData';
 import { toast } from '@/hooks/use-toast';
-import { Plus, MoreHorizontal, BookOpen } from 'lucide-react';
+import { Plus, MoreHorizontal, BookOpen, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 
 const statusColors: Record<string, string> = {
@@ -49,6 +50,73 @@ const AccommodationBookingsPage = () => {
     notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Record Payment state
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentBooking, setPaymentBooking] = useState<any>(null);
+  const [paymentForm, setPaymentForm] = useState({ amount: 0, method: 'cash', notes: '' });
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+
+  const openPaymentDialog = (booking: any) => {
+    setPaymentBooking(booking);
+    setPaymentForm({ amount: booking.total_amount, method: 'cash', notes: '' });
+    setShowPaymentDialog(true);
+  };
+
+  const handleRecordPayment = async () => {
+    if (!paymentBooking || paymentForm.amount <= 0) return;
+    setPaymentSubmitting(true);
+    try {
+      // Get partner commission rate
+      const partnerId = bookings[0]?.partner_id;
+      if (!partnerId) throw new Error('No partner');
+
+      const { data: partnerData } = await supabase
+        .from('partners')
+        .select('commission_percent')
+        .eq('id', partnerId)
+        .single();
+
+      const commissionRate = partnerData?.commission_percent || 7;
+      const feeAmount = Math.round((paymentForm.amount * commissionRate) / 100);
+      const netAmount = paymentForm.amount - feeAmount;
+
+      // Insert payment
+      const { error: payErr } = await supabase
+        .from('accommodation_payments')
+        .insert({
+          partner_id: partnerId,
+          booking_id: paymentBooking.id,
+          amount: paymentForm.amount,
+          currency: paymentBooking.currency || 'LKR',
+          method: paymentForm.method,
+          status: 'paid',
+          notes: paymentForm.notes || null,
+        } as any);
+      if (payErr) throw payErr;
+
+      // Insert commission
+      const { error: commErr } = await supabase
+        .from('accommodation_commission_records')
+        .insert({
+          partner_id: partnerId,
+          booking_id: paymentBooking.id,
+          gross_amount: paymentForm.amount,
+          platform_fee_percent: commissionRate,
+          platform_fee_amount: feeAmount,
+          partner_net_amount: netAmount,
+          currency: paymentBooking.currency || 'LKR',
+        } as any);
+      if (commErr) throw commErr;
+
+      toast({ title: 'Payment recorded', description: `${paymentBooking.currency || 'LKR'} ${paymentForm.amount.toLocaleString()} recorded` });
+      setShowPaymentDialog(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  };
 
   const selectedAcc = accommodations.find(a => a.id === form.accommodation_id);
   const nights = form.checkin_date && form.checkout_date
@@ -219,6 +287,12 @@ const AccommodationBookingsPage = () => {
                             {b.status !== 'cancelled' && (
                               <DropdownMenuItem className="text-destructive" onClick={() => handleStatusChange(b.id, 'cancelled')}>Cancel</DropdownMenuItem>
                             )}
+                            {b.status === 'confirmed' && (
+                              <DropdownMenuItem onClick={() => openPaymentDialog(b)}>
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                Record Payment
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -307,6 +381,54 @@ const AccommodationBookingsPage = () => {
             <Button variant="outline" onClick={() => setShowNewDialog(false)}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting ? 'Creating...' : 'Create Booking'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Record Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+            <DialogDescription>
+              {paymentBooking?.guest_name} — {paymentBooking?.accommodation?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Amount ({paymentBooking?.currency || 'LKR'})</Label>
+              <Input
+                type="number"
+                min={0}
+                value={paymentForm.amount}
+                onChange={e => setPaymentForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
+            <div>
+              <Label>Payment Method</Label>
+              <Select value={paymentForm.method} onValueChange={v => setPaymentForm(f => ({ ...f, method: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={paymentForm.notes}
+                onChange={e => setPaymentForm(f => ({ ...f, notes: e.target.value }))}
+                rows={2}
+                placeholder="Optional notes"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>Cancel</Button>
+            <Button onClick={handleRecordPayment} disabled={paymentSubmitting || paymentForm.amount <= 0}>
+              {paymentSubmitting ? 'Recording...' : 'Record Payment'}
             </Button>
           </DialogFooter>
         </DialogContent>

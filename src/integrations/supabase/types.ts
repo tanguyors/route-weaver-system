@@ -146,6 +146,57 @@ export type Database = {
           },
         ]
       }
+      accommodation_commission_records: {
+        Row: {
+          booking_id: string
+          created_at: string
+          currency: string
+          gross_amount: number
+          id: string
+          partner_id: string
+          partner_net_amount: number
+          platform_fee_amount: number
+          platform_fee_percent: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          currency?: string
+          gross_amount?: number
+          id?: string
+          partner_id: string
+          partner_net_amount?: number
+          platform_fee_amount?: number
+          platform_fee_percent?: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          currency?: string
+          gross_amount?: number
+          id?: string
+          partner_id?: string
+          partner_net_amount?: number
+          platform_fee_amount?: number
+          platform_fee_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_commission_records_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_commission_records_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_ical_imports: {
         Row: {
           accommodation_id: string
@@ -241,6 +292,60 @@ export type Database = {
           },
           {
             foreignKeyName: "accommodation_images_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          created_at: string
+          currency: string
+          id: string
+          method: string
+          notes: string | null
+          paid_at: string
+          partner_id: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          booking_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_at?: string
+          partner_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_at?: string
+          partner_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_payments_partner_id_fkey"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"

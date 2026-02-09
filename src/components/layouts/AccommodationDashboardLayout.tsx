@@ -15,6 +15,7 @@ import {
   BarChart3,
   BookOpen,
   RefreshCw,
+  Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +44,7 @@ const navItems: NavItem[] = [
   { label: 'Bookings', href: '/accommodation-dashboard/bookings', icon: BookOpen },
   { label: 'iCal Sync', href: '/accommodation-dashboard/ical-sync', icon: RefreshCw },
   { label: 'Reports', href: '/accommodation-dashboard/reports', icon: BarChart3 },
+  { label: 'Transactions', href: '/accommodation-dashboard/transactions', icon: Wallet },
   { label: 'Settings', href: '/accommodation-dashboard/settings', icon: Settings },
 ];
 
