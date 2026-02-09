@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import DashboardSwitcher from '@/components/layouts/DashboardSwitcher';
 
 interface AccommodationDashboardLayoutProps {
   children: ReactNode;

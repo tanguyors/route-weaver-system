@@ -22,6 +22,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DashboardSwitcher from '@/components/layouts/DashboardSwitcher';
 
 interface AdminDashboardLayoutProps {
   children: ReactNode;

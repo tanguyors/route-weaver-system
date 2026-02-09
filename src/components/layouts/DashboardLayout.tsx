@@ -6,6 +6,7 @@ import { usePartnerModules } from '@/hooks/usePartnerModules';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
+import DashboardSwitcher from '@/components/layouts/DashboardSwitcher';
 import OnboardingBlockedOverlay from '@/components/onboarding/OnboardingBlockedOverlay';
 import {
   Sailboat,
