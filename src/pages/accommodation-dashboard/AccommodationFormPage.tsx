@@ -10,6 +10,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useAccommodationsData } from '@/hooks/useAccommodationsData';
+import { useUserRole } from '@/hooks/useUserRole';
+import { AccommodationImageGallery } from '@/components/accommodation/AccommodationImageGallery';
 import { toast } from 'sonner';
 
 const AMENITIES_OPTIONS = [
@@ -23,6 +25,7 @@ const AccommodationFormPage = () => {
   const navigate = useNavigate();
   const isEdit = !!id && id !== 'new';
   const { accommodations, loading, createAccommodation, updateAccommodation } = useAccommodationsData();
+  const { partnerId } = useUserRole();
 
   const [form, setForm] = useState({
     name: '', type: 'villa', description: '', capacity: 2, bedrooms: 1, bathrooms: 1,
@@ -103,6 +106,11 @@ const AccommodationFormPage = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Photos - only in edit mode */}
+          {isEdit && (
+            <AccommodationImageGallery accommodationId={id} partnerId={partnerId || undefined} />
+          )}
+
           {/* General Info */}
           <Card>
             <CardHeader><CardTitle>General Information</CardTitle></CardHeader>
@@ -241,7 +249,7 @@ const AccommodationFormPage = () => {
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => navigate('/accommodation-dashboard/list')}>Cancel</Button>
-            <Button type="submit" disabled={saving} className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white">
+            <Button type="submit" disabled={saving}>
               <Save className="w-4 h-4 mr-2" />{saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Accommodation'}
             </Button>
           </div>
