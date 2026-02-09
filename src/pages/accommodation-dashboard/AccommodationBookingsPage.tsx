@@ -13,8 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAccommodationsData } from '@/hooks/useAccommodationsData';
 import { useAccommodationBookingsData, CreateBookingInput } from '@/hooks/useAccommodationBookingsData';
+import { useAccommodationDiscountsData, AccommodationDiscount } from '@/hooks/useAccommodationDiscountsData';
 import { toast } from '@/hooks/use-toast';
-import { Plus, MoreHorizontal, BookOpen, CreditCard } from 'lucide-react';
+import { Plus, MoreHorizontal, BookOpen, CreditCard, Tag, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 const statusColors: Record<string, string> = {
@@ -26,6 +27,7 @@ const statusColors: Record<string, string> = {
 
 const AccommodationBookingsPage = () => {
   const { accommodations } = useAccommodationsData();
+  const { discounts } = useAccommodationDiscountsData();
   const [filterAccId, setFilterAccId] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterChannel, setFilterChannel] = useState('all');
@@ -50,6 +52,118 @@ const AccommodationBookingsPage = () => {
     notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Promo code state
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<AccommodationDiscount | null>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+
+  const calculateDiscountAmount = (discount: AccommodationDiscount, totalAmount: number, numNights: number): number => {
+    switch (discount.category) {
+      case 'booking_fixed':
+        return Math.min(discount.discount_value, totalAmount);
+      case 'booking_percent':
+        return Math.round((totalAmount * discount.discount_value) / 100);
+      case 'per_night_fixed':
+        return Math.min(discount.discount_value * numNights, totalAmount);
+      case 'per_night_percent': {
+        const pricePerNight = numNights > 0 ? totalAmount / numNights : 0;
+        return Math.round((pricePerNight * discount.discount_value / 100) * numNights);
+      }
+      case 'early_bird':
+      case 'last_minute':
+      case 'long_stay':
+        if (discount.discount_value_type === 'percent') {
+          return Math.round((totalAmount * discount.discount_value) / 100);
+        }
+        return Math.min(discount.discount_value, totalAmount);
+      default:
+        return 0;
+    }
+  };
+
+  const handleApplyPromoCode = () => {
+    if (!promoCodeInput.trim()) return;
+    const code = promoCodeInput.trim().toUpperCase();
+    const found = discounts.find(d =>
+      d.code?.toUpperCase() === code &&
+      d.status === 'active' &&
+      d.type === 'promo_code'
+    );
+    if (!found) {
+      toast({ title: 'Invalid promo code', variant: 'destructive' });
+      return;
+    }
+    // Check usage limit
+    if (found.usage_limit && found.usage_count >= found.usage_limit) {
+      toast({ title: 'Promo code usage limit reached', variant: 'destructive' });
+      return;
+    }
+    // Check booking dates
+    const today = new Date().toISOString().split('T')[0];
+    if (found.book_start_date && today < found.book_start_date) {
+      toast({ title: 'Promo code not yet active', variant: 'destructive' });
+      return;
+    }
+    if (found.book_end_date && today > found.book_end_date) {
+      toast({ title: 'Promo code expired', variant: 'destructive' });
+      return;
+    }
+    // Check checkin dates
+    if (form.checkin_date) {
+      if (found.checkin_start_date && form.checkin_date < found.checkin_start_date) {
+        toast({ title: 'Check-in date outside promo period', variant: 'destructive' });
+        return;
+      }
+      if (found.checkin_end_date && form.checkin_date > found.checkin_end_date) {
+        toast({ title: 'Check-in date outside promo period', variant: 'destructive' });
+        return;
+      }
+    }
+    // Check min nights
+    if (found.min_nights && nights < found.min_nights) {
+      toast({ title: `Minimum ${found.min_nights} nights required`, variant: 'destructive' });
+      return;
+    }
+    // Check minimum spend
+    if (found.minimum_spend && form.total_amount < found.minimum_spend) {
+      toast({ title: `Minimum spend of ${found.minimum_spend} required`, variant: 'destructive' });
+      return;
+    }
+    // Check applicable accommodations
+    if (found.applicable_accommodation_ids && found.applicable_accommodation_ids.length > 0 && form.accommodation_id) {
+      if (!found.applicable_accommodation_ids.includes(form.accommodation_id)) {
+        toast({ title: 'Promo code not applicable to this accommodation', variant: 'destructive' });
+        return;
+      }
+    }
+    // Check early bird / last minute
+    if (found.category === 'early_bird' && found.early_bird_days && form.checkin_date) {
+      const daysUntilCheckin = Math.round((new Date(form.checkin_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (daysUntilCheckin < found.early_bird_days) {
+        toast({ title: `Must book at least ${found.early_bird_days} days before check-in`, variant: 'destructive' });
+        return;
+      }
+    }
+    if (found.category === 'last_minute' && found.last_minute_days && form.checkin_date) {
+      const daysUntilCheckin = Math.round((new Date(form.checkin_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (daysUntilCheckin > found.last_minute_days) {
+        toast({ title: `Only available within ${found.last_minute_days} days of check-in`, variant: 'destructive' });
+        return;
+      }
+    }
+
+    const amt = calculateDiscountAmount(found, form.total_amount, nights);
+    setAppliedDiscount(found);
+    setDiscountAmount(amt);
+    toast({ title: 'Promo code applied!', description: `Discount: ${amt.toLocaleString()}` });
+  };
+
+  const removePromoCode = () => {
+    setAppliedDiscount(null);
+    setDiscountAmount(0);
+    setPromoCodeInput('');
+  };
 
   // Record Payment state
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -142,6 +256,8 @@ const AccommodationBookingsPage = () => {
     });
   };
 
+  const finalTotal = appliedDiscount ? Math.max(0, form.total_amount - discountAmount) : form.total_amount;
+
   const handleSubmit = async () => {
     if (!form.accommodation_id || !form.guest_name || !form.checkin_date || !form.checkout_date) {
       toast({ title: 'Please fill required fields', variant: 'destructive' });
@@ -149,7 +265,7 @@ const AccommodationBookingsPage = () => {
     }
     setSubmitting(true);
     try {
-      await createBooking({
+      const bookingResult = await createBooking({
         accommodation_id: form.accommodation_id,
         guest_name: form.guest_name,
         guest_email: form.guest_email || undefined,
@@ -157,13 +273,36 @@ const AccommodationBookingsPage = () => {
         guests_count: form.guests_count,
         checkin_date: form.checkin_date,
         checkout_date: form.checkout_date,
-        total_amount: form.total_amount,
+        total_amount: finalTotal,
         channel: form.channel,
         notes: form.notes || undefined,
       });
+
+      // Record discount usage if applied
+      if (appliedDiscount && discountAmount > 0 && bookingResult) {
+        const partnerId = bookings[0]?.partner_id;
+        if (partnerId) {
+          await supabase.from('accommodation_discount_usage').insert({
+            discount_id: appliedDiscount.id,
+            booking_id: bookingResult.id || null,
+            customer_email: form.guest_email || null,
+            customer_phone: form.guest_phone || null,
+            discounted_amount: discountAmount,
+            partner_id: partnerId,
+          } as any);
+
+          // Update usage_count and total_discounted_amount
+          await supabase.from('accommodation_discounts').update({
+            usage_count: (appliedDiscount.usage_count || 0) + 1,
+            total_discounted_amount: (appliedDiscount.total_discounted_amount || 0) + discountAmount,
+          } as any).eq('id', appliedDiscount.id);
+        }
+      }
+
       toast({ title: 'Booking created', description: 'Calendar dates have been blocked automatically.' });
       setShowNewDialog(false);
       setForm({ accommodation_id: '', guest_name: '', guest_email: '', guest_phone: '', guests_count: 1, checkin_date: '', checkout_date: '', total_amount: 0, channel: 'walk-in', notes: '' });
+      removePromoCode();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -370,8 +509,58 @@ const AccommodationBookingsPage = () => {
             </div>
             <div>
               <Label>Total Amount ({selectedAcc?.currency || 'IDR'})</Label>
-              <Input type="number" min={0} value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: parseFloat(e.target.value) || 0 }))} />
+              <Input type="number" min={0} value={form.total_amount} onChange={e => {
+                setForm(f => ({ ...f, total_amount: parseFloat(e.target.value) || 0 }));
+                if (appliedDiscount) removePromoCode();
+              }} />
             </div>
+
+            {/* Promo Code */}
+            <div>
+              <Label className="flex items-center gap-1"><Tag className="w-3 h-3" /> Promo Code</Label>
+              {appliedDiscount ? (
+                <div className="flex items-center gap-2 p-2 rounded-md bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800">
+                  <Badge variant="default" className="bg-green-600">{appliedDiscount.code}</Badge>
+                  <span className="text-sm text-green-700 dark:text-green-300 flex-1">
+                    -{discountAmount.toLocaleString()} {selectedAcc?.currency || 'IDR'}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={removePromoCode}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={promoCodeInput}
+                    onChange={e => setPromoCodeInput(e.target.value.toUpperCase())}
+                    placeholder="Enter code"
+                    className="flex-1"
+                  />
+                  <Button variant="outline" onClick={handleApplyPromoCode} disabled={!promoCodeInput.trim()}>
+                    Apply
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Final total with discount */}
+            {appliedDiscount && discountAmount > 0 && (
+              <div className="p-3 rounded-md bg-muted">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal</span>
+                  <span>{form.total_amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discount ({appliedDiscount.code})</span>
+                  <span>-{discountAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between font-bold border-t border-border mt-1 pt-1">
+                  <span>Total</span>
+                  <span>{finalTotal.toLocaleString()} {selectedAcc?.currency || 'IDR'}</span>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label>Notes</Label>
               <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />

@@ -48,6 +48,7 @@ import AccommodationIcalSyncPage from "./pages/accommodation-dashboard/Accommoda
 import AccommodationReportsPage from "./pages/accommodation-dashboard/AccommodationReportsPage";
 import AccommodationTransactionsPage from "./pages/accommodation-dashboard/AccommodationTransactionsPage";
 import AccommodationSettingsPage from "./pages/accommodation-dashboard/AccommodationSettingsPage";
+import AccommodationDiscountsPage from "./pages/accommodation-dashboard/AccommodationDiscountsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartnersPage from "./pages/admin/AdminPartnersPage";
 import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
@@ -137,6 +138,7 @@ const App = () => (
             <Route path="/accommodation-dashboard/accommodations/:id" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationFormPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/calendar" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationCalendarPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/bookings" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationBookingsPage /></ModuleProtectedRoute>} />
+            <Route path="/accommodation-dashboard/discounts" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationDiscountsPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/ical-sync" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationIcalSyncPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/reports" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationReportsPage /></ModuleProtectedRoute>} />
             <Route path="/accommodation-dashboard/transactions" element={<ModuleProtectedRoute requiredModule="accommodation"><AccommodationTransactionsPage /></ModuleProtectedRoute>} />
