@@ -10,6 +10,7 @@ export interface CalendarEntry {
   source: string;
   booking_id: string | null;
   note: string | null;
+  guest_name?: string | null;
 }
 
 export const useAccommodationCalendarData = (accommodationId: string, startDate: string, endDate: string) => {
@@ -23,13 +24,17 @@ export const useAccommodationCalendarData = (accommodationId: string, startDate:
     try {
       const { data, error } = await supabase
         .from('accommodation_calendar')
-        .select('*')
+        .select('*, accommodation_bookings!accommodation_calendar_booking_id_fkey(guest_name)')
         .eq('accommodation_id', accommodationId)
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date');
       if (error) throw error;
-      setCalendarEntries((data || []) as unknown as CalendarEntry[]);
+      const mapped = (data || []).map((e: any) => ({
+        ...e,
+        guest_name: e.accommodation_bookings?.guest_name || null,
+      }));
+      setCalendarEntries(mapped as CalendarEntry[]);
     } catch (err) {
       console.error('Error fetching calendar:', err);
     } finally {
