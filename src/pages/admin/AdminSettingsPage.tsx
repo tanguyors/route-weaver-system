@@ -30,13 +30,11 @@ const AdminSettingsPage = () => {
     loading,
     saving,
     settings,
-    updateCommissionRate,
     updatePaymentProviders,
     updateCurrencies,
   } = useAdminSettingsData();
 
   // Local state for form values
-  const [commissionPercent, setCommissionPercent] = useState(7);
   const [enabledProviders, setEnabledProviders] = useState<string[]>([]);
   const [defaultCurrency, setDefaultCurrency] = useState('IDR');
   const [enabledCurrencies, setEnabledCurrencies] = useState<string[]>([]);
@@ -44,16 +42,11 @@ const AdminSettingsPage = () => {
   // Sync local state with fetched settings
   useEffect(() => {
     if (settings) {
-      setCommissionPercent(settings.commission_rate.percent);
       setEnabledProviders(settings.payment_providers.enabled);
       setDefaultCurrency(settings.currencies.default);
       setEnabledCurrencies(settings.currencies.enabled);
     }
   }, [settings]);
-
-  const handleSaveCommission = async () => {
-    await updateCommissionRate(commissionPercent);
-  };
 
   const handleToggleProvider = (providerId: string, enabled: boolean) => {
     const newProviders = enabled
