@@ -202,35 +202,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </Link>
           </div>
 
-          {/* Switch Module Button - only show if user has both modules */}
-          {hasBothModules && (
-            <div className="px-3 py-2 border-b border-border">
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => navigate('/select-module')}
-              >
-                <ArrowLeftRight className="w-4 h-4" />
-                Switch to Activity
-              </Button>
-            </div>
-          )}
+          {/* Dashboard Switcher */}
+          <DashboardSwitcher />
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4 px-3">
-            {isAdmin && (
-              <div className="px-3 py-2 mb-2 border-b border-border">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                  onClick={() => navigate('/admin')}
-                >
-                  <ArrowLeftRight className="w-4 h-4" />
-                  Admin Panel
-                </Button>
-              </div>
-            )}
-
             <div className="px-3 mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {isAdmin ? 'Partner View' : 'Menu'}
