@@ -35,21 +35,51 @@ interface NavItem {
   icon: React.ElementType;
 }
 
-const adminNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { label: 'All Bookings', href: '/admin/bookings', icon: BookOpen },
-  { label: 'Commissions', href: '/admin/commissions', icon: Wallet },
-  { label: 'Accom. Bookings', href: '/admin/accommodation-bookings', icon: Building2 },
-  { label: 'Accom. Commissions', href: '/admin/accommodation-commissions', icon: Building2 },
-  { label: 'Activity Commissions', href: '/admin/activity-commissions', icon: Wallet },
-  { label: 'Activity Invoices', href: '/admin/activity-invoices', icon: BookOpen },
-  { label: 'Activity Payouts', href: '/admin/activity-payouts', icon: CreditCard },
-  { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard },
-  { label: 'Partners', href: '/admin/partners', icon: Building2 },
-  { label: 'Users', href: '/admin/users', icon: Users },
-  { label: 'Ports', href: '/admin/ports', icon: Ship },
-  { label: 'Facilities', href: '/admin/facilities', icon: Wrench },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+interface NavGroup {
+  label: string;
+  icon: React.ElementType;
+  items: NavItem[];
+}
+
+const adminNavGroups: NavGroup[] = [
+  {
+    label: 'Global',
+    icon: ShieldCheck,
+    items: [
+      { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+      { label: 'Partners', href: '/admin/partners', icon: Building2 },
+      { label: 'Users', href: '/admin/users', icon: Users },
+      { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard },
+      { label: 'Settings', href: '/admin/settings', icon: Settings },
+    ],
+  },
+  {
+    label: 'Boat',
+    icon: Ship,
+    items: [
+      { label: 'Bookings', href: '/admin/bookings', icon: BookOpen },
+      { label: 'Commissions', href: '/admin/commissions', icon: Wallet },
+      { label: 'Ports', href: '/admin/ports', icon: Anchor },
+      { label: 'Facilities', href: '/admin/facilities', icon: Wrench },
+    ],
+  },
+  {
+    label: 'Activity',
+    icon: Compass,
+    items: [
+      { label: 'Commissions', href: '/admin/activity-commissions', icon: Wallet },
+      { label: 'Invoices', href: '/admin/activity-invoices', icon: BookOpen },
+      { label: 'Payouts', href: '/admin/activity-payouts', icon: CreditCard },
+    ],
+  },
+  {
+    label: 'Accommodation',
+    icon: Home,
+    items: [
+      { label: 'Bookings', href: '/admin/accommodation-bookings', icon: BookOpen },
+      { label: 'Commissions', href: '/admin/accommodation-commissions', icon: Wallet },
+    ],
+  },
 ];
 
 const AdminDashboardLayout = ({ children }: AdminDashboardLayoutProps) => {
