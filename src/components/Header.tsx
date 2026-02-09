@@ -20,10 +20,6 @@ const Header = () => {
   const { activeModules, loading: modulesLoading } = usePartnerModules();
 
   const isAdmin = role === 'admin';
-  const hasBoatModule = activeModules.includes('boat');
-  const hasActivityModule = activeModules.includes('activity');
-  const hasAccommodationModule = activeModules.includes('accommodation');
-  const hasDashboardAccess = isAdmin || hasBoatModule || hasActivityModule || hasAccommodationModule;
 
   const navLinks = [
     { name: "Home", href: "#" },
@@ -31,6 +27,13 @@ const Header = () => {
     { name: "Pricing", href: "#pricing" },
     { name: "How It Works", href: "#how-it-works" },
     { name: "Contact Us", href: "#contact" },
+  ];
+
+  const dashboardItems = [
+    ...(isAdmin ? [{ to: "/admin", icon: Shield, label: "Dashboard Admin" }] : []),
+    { to: "/dashboard", icon: Anchor, label: "Dashboard Boat" },
+    { to: "/activity-dashboard", icon: Compass, label: "Dashboard Activity" },
+    { to: "/accommodation-dashboard", icon: Home, label: "Dashboard Accommodation" },
   ];
 
   const DashboardDropdown = ({ isMobile = false }: { isMobile?: boolean }) => (
@@ -44,39 +47,32 @@ const Header = () => {
           <ChevronDown className="w-4 h-4 ml-2" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48 bg-card border border-border shadow-lg z-50">
-        {isAdmin && (
-          <DropdownMenuItem asChild>
-            <Link to="/admin" className="flex items-center cursor-pointer">
-              <Shield className="w-4 h-4 mr-2" />
-              Dashboard Admin
-            </Link>
-          </DropdownMenuItem>
-        )}
-        {hasBoatModule && (
-          <DropdownMenuItem asChild>
-            <Link to="/dashboard" className="flex items-center cursor-pointer">
-              <Anchor className="w-4 h-4 mr-2" />
-              Dashboard Boat
-            </Link>
-          </DropdownMenuItem>
-        )}
-        {hasActivityModule && (
-          <DropdownMenuItem asChild>
-            <Link to="/activity-dashboard" className="flex items-center cursor-pointer">
-              <Compass className="w-4 h-4 mr-2" />
-              Dashboard Activity
-            </Link>
-          </DropdownMenuItem>
-        )}
-        {hasAccommodationModule && (
-          <DropdownMenuItem asChild>
-            <Link to="/accommodation-dashboard" className="flex items-center cursor-pointer">
-              <Home className="w-4 h-4 mr-2" />
-              Dashboard Accommodation
-            </Link>
-          </DropdownMenuItem>
-        )}
+      <DropdownMenuContent align="end" className="w-56 bg-card border border-border shadow-lg z-50">
+        {dashboardItems.map((item) => {
+          const isActive = isAdmin && item.to === "/admin" 
+            ? true 
+            : activeModules.includes(
+                item.to === "/dashboard" ? "boat" 
+                : item.to === "/activity-dashboard" ? "activity" 
+                : "accommodation"
+              );
+          return (
+            <DropdownMenuItem key={item.to} asChild>
+              <Link 
+                to={item.to} 
+                className={`flex items-center cursor-pointer ${!isActive ? "opacity-50" : ""}`}
+              >
+                <item.icon className="w-4 h-4 mr-2" />
+                {item.label}
+                {!isActive && (
+                  <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                    Inactive
+                  </span>
+                )}
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -103,13 +99,9 @@ const Header = () => {
 
           <div className="hidden lg:flex items-center gap-3">
             {user ? (
-              hasDashboardAccess && !roleLoading && !modulesLoading ? (
+              !roleLoading && !modulesLoading ? (
                 <DashboardDropdown />
-              ) : (
-                <Button className="rounded-full px-6" asChild>
-                  <Link to="/select-module"><LayoutDashboard className="w-4 h-4 mr-2" />Dashboard</Link>
-                </Button>
-              )
+              ) : null
             ) : (
               <>
                 <Button variant="outline" className="rounded-full px-6" asChild>
@@ -137,9 +129,7 @@ const Header = () => {
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
                 {user ? (
-                  hasDashboardAccess && !roleLoading && !modulesLoading ? <DashboardDropdown isMobile /> : (
-                    <Button asChild><Link to="/select-module">Dashboard</Link></Button>
-                  )
+                  !roleLoading && !modulesLoading ? <DashboardDropdown isMobile /> : null
                 ) : (
                   <>
                     <Button variant="outline" asChild><Link to="/auth">Sign In</Link></Button>
