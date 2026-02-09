@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useAccommodationWidgetData, AccommodationItem } from '@/hooks/useAccommodationWidgetData';
+import { useAccommodationWidgetData, AccommodationItem, RoomItem } from '@/hooks/useAccommodationWidgetData';
 import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,8 @@ import {
   Plus,
   Moon,
   AlertCircle,
+  DoorOpen,
+  Sparkles,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,6 +38,7 @@ const AccommodationWidgetPage = () => {
 
   // State
   const [selectedAccommodation, setSelectedAccommodation] = useState<AccommodationItem | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<RoomItem | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
   const [checkinDate, setCheckinDate] = useState<Date | undefined>();
   const [checkoutDate, setCheckoutDate] = useState<Date | undefined>();
@@ -54,15 +57,31 @@ const AccommodationWidgetPage = () => {
   const bgColor = data?.theme_config?.background_color || '#ffffff';
   const textColor = data?.theme_config?.text_color || '#1f2937';
 
+  // Determine if hotel with rooms
+  const isHotelWithRooms = selectedAccommodation?.type === 'hotel' && (selectedAccommodation?.rooms?.length || 0) > 0;
+
+  // Active source for calendar/pricing: room if selected, else accommodation
+  const activeRoomId = selectedRoom?.id;
+  const activeMinNights = selectedRoom?.minimum_nights ?? selectedAccommodation?.minimum_nights ?? 1;
+  const activeCapacity = selectedRoom?.capacity ?? selectedAccommodation?.capacity ?? 1;
+
   // Pricing
   const pricing = useMemo(() => {
     if (!selectedAccommodation || !checkinDate || !checkoutDate) return null;
     return calculatePrice(
       selectedAccommodation.id,
       checkinDate.toISOString().split('T')[0],
-      checkoutDate.toISOString().split('T')[0]
+      checkoutDate.toISOString().split('T')[0],
+      activeRoomId
     );
-  }, [selectedAccommodation, checkinDate, checkoutDate, calculatePrice]);
+  }, [selectedAccommodation, checkinDate, checkoutDate, calculatePrice, activeRoomId]);
+
+  // Price tiers for display
+  const activeTiers = useMemo(() => {
+    if (!selectedAccommodation) return [];
+    if (selectedRoom && selectedRoom.price_tiers?.length > 0) return selectedRoom.price_tiers;
+    return selectedAccommodation.price_tiers || [];
+  }, [selectedAccommodation, selectedRoom]);
 
   // Calendar disabled dates
   const disabledDays = useCallback(
@@ -73,16 +92,14 @@ const AccommodationWidgetPage = () => {
       today.setHours(0, 0, 0, 0);
       if (date < today) return true;
       if (!selectingCheckout) {
-        return !isDateAvailable(selectedAccommodation.id, dateStr);
+        return !isDateAvailable(selectedAccommodation.id, dateStr, activeRoomId);
       }
-      // For checkout selection, allow dates after checkin
       if (!checkinDate) return true;
       if (date <= checkinDate) return true;
-      // Check all dates in range are available
       const checkinStr = checkinDate.toISOString().split('T')[0];
-      return !isRangeAvailable(selectedAccommodation.id, checkinStr, dateStr);
+      return !isRangeAvailable(selectedAccommodation.id, checkinStr, dateStr, activeRoomId);
     },
-    [selectedAccommodation, isDateAvailable, isRangeAvailable, selectingCheckout, checkinDate]
+    [selectedAccommodation, isDateAvailable, isRangeAvailable, selectingCheckout, checkinDate, activeRoomId]
   );
 
   // Handle date selection
@@ -95,10 +112,10 @@ const AccommodationWidgetPage = () => {
     } else {
       if (selectedAccommodation) {
         const nights = Math.round((date.getTime() - (checkinDate?.getTime() || 0)) / (1000 * 60 * 60 * 24));
-        if (nights < selectedAccommodation.minimum_nights) {
+        if (nights < activeMinNights) {
           toast({
             title: 'Minimum stay',
-            description: `Minimum stay is ${selectedAccommodation.minimum_nights} nights`,
+            description: `Minimum stay is ${activeMinNights} nights`,
             variant: 'destructive',
           });
           return;
@@ -117,6 +134,7 @@ const AccommodationWidgetPage = () => {
     try {
       const result = await createBooking({
         accommodation_id: selectedAccommodation.id,
+        room_id: activeRoomId,
         checkin_date: checkinDate.toISOString().split('T')[0],
         checkout_date: checkoutDate.toISOString().split('T')[0],
         guests_count: guestsCount,
@@ -143,12 +161,40 @@ const AccommodationWidgetPage = () => {
   // Select accommodation
   const handleSelectAccommodation = (acc: AccommodationItem) => {
     setSelectedAccommodation(acc);
+    setSelectedRoom(null);
     setImageIndex(0);
     setCheckinDate(undefined);
     setCheckoutDate(undefined);
     setSelectingCheckout(false);
     setGuestsCount(1);
     setPromoCode('');
+  };
+
+  // Select room
+  const handleSelectRoom = (room: RoomItem) => {
+    setSelectedRoom(room);
+    setImageIndex(0);
+    setCheckinDate(undefined);
+    setCheckoutDate(undefined);
+    setSelectingCheckout(false);
+    setGuestsCount(1);
+  };
+
+  // Go back
+  const handleBackToProperties = () => {
+    setSelectedAccommodation(null);
+    setSelectedRoom(null);
+    setCheckinDate(undefined);
+    setCheckoutDate(undefined);
+    setSelectingCheckout(false);
+    setBookingResult(null);
+  };
+
+  const handleBackToRooms = () => {
+    setSelectedRoom(null);
+    setCheckinDate(undefined);
+    setCheckoutDate(undefined);
+    setSelectingCheckout(false);
   };
 
   if (loading) {
@@ -190,6 +236,12 @@ const AccommodationWidgetPage = () => {
                 <span className="text-gray-500">Property</span>
                 <span className="font-medium">{bookingResult.accommodation_name}</span>
               </div>
+              {bookingResult.room_name && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Room Type</span>
+                  <span className="font-medium">{bookingResult.room_name}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-500">Check-in</span>
                 <span className="font-medium">{bookingResult.checkin_date}</span>
@@ -206,6 +258,17 @@ const AccommodationWidgetPage = () => {
                 <span className="text-gray-500">Guests</span>
                 <span className="font-medium">{bookingResult.guests_count}</span>
               </div>
+              {bookingResult.effective_price_per_night && bookingResult.effective_price_per_night !== bookingResult.base_price_per_night && (
+                <div className="flex justify-between text-green-600">
+                  <span>Tier discount</span>
+                  <span>
+                    {bookingResult.currency} {bookingResult.effective_price_per_night.toLocaleString()}/night
+                    <span className="line-through text-gray-400 ml-1 text-xs">
+                      {bookingResult.base_price_per_night.toLocaleString()}
+                    </span>
+                  </span>
+                </div>
+              )}
               {bookingResult.discount_amount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Discount</span>
@@ -228,6 +291,14 @@ const AccommodationWidgetPage = () => {
     );
   }
 
+  // Current images to show
+  const currentImages = selectedRoom?.images?.length
+    ? selectedRoom.images
+    : selectedAccommodation?.images || [];
+
+  // Show calendar (when villa selected, or room selected for hotel)
+  const showCalendarAndBooking = selectedAccommodation && (!isHotelWithRooms || selectedRoom);
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }}>
       {/* Header */}
@@ -239,17 +310,20 @@ const AccommodationWidgetPage = () => {
       </div>
 
       <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
-        {/* Back button when accommodation selected */}
+        {/* Back buttons */}
         {selectedAccommodation && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedAccommodation(null)}
-            className="mb-2"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back to all properties
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={handleBackToProperties} className="mb-2">
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Back to all properties
+            </Button>
+            {isHotelWithRooms && selectedRoom && (
+              <Button variant="ghost" size="sm" onClick={handleBackToRooms} className="mb-2">
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Back to room types
+              </Button>
+            )}
+          </div>
         )}
 
         {/* Property List */}
@@ -257,55 +331,64 @@ const AccommodationWidgetPage = () => {
           <div>
             <h2 className="text-xl font-bold mb-4">Our Properties</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {data.accommodations.map((acc) => (
-                <Card
-                  key={acc.id}
-                  className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => handleSelectAccommodation(acc)}
-                >
-                  {acc.images.length > 0 ? (
-                    <img
-                      src={acc.images[0].image_url}
-                      alt={acc.name}
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="w-full h-48 flex items-center justify-center"
-                      style={{ backgroundColor: `${primaryColor}10` }}
-                    >
-                      <BedDouble className="w-12 h-12" style={{ color: `${primaryColor}40` }} />
-                    </div>
-                  )}
-                  <CardContent className="p-4 space-y-2">
-                    <h3 className="font-semibold text-lg">{acc.name}</h3>
-                    <Badge variant="secondary" className="text-xs">
-                      {acc.type}
-                    </Badge>
-                    {acc.city && (
-                      <p className="text-sm text-gray-500 flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {acc.city}{acc.country ? `, ${acc.country}` : ''}
-                      </p>
+              {data.accommodations.map((acc) => {
+                const startingPrice = acc.type === 'hotel' && acc.rooms?.length > 0
+                  ? Math.min(...acc.rooms.map(r => r.price_per_night))
+                  : acc.price_per_night;
+                const hasRooms = acc.type === 'hotel' && acc.rooms?.length > 0;
+
+                return (
+                  <Card
+                    key={acc.id}
+                    className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => handleSelectAccommodation(acc)}
+                  >
+                    {acc.images.length > 0 ? (
+                      <img src={acc.images[0].image_url} alt={acc.name} className="w-full h-48 object-cover" />
+                    ) : (
+                      <div className="w-full h-48 flex items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
+                        <BedDouble className="w-12 h-12" style={{ color: `${primaryColor}40` }} />
+                      </div>
                     )}
-                    <div className="flex items-center gap-3 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />{acc.capacity}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BedDouble className="w-3 h-3" />{acc.bedrooms}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Bath className="w-3 h-3" />{acc.bathrooms}
-                      </span>
-                    </div>
-                    <p className="font-bold text-lg" style={{ color: primaryColor }}>
-                      {acc.currency} {acc.price_per_night.toLocaleString()}
-                      <span className="text-sm font-normal text-gray-500">/night</span>
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="font-semibold text-lg">{acc.name}</h3>
+                      <div className="flex gap-2">
+                        <Badge variant="secondary" className="text-xs">{acc.type}</Badge>
+                        {hasRooms && (
+                          <Badge variant="outline" className="text-xs">
+                            <DoorOpen className="w-3 h-3 mr-1" />
+                            {acc.rooms.length} room type{acc.rooms.length > 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                      </div>
+                      {acc.city && (
+                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {acc.city}{acc.country ? `, ${acc.country}` : ''}
+                        </p>
+                      )}
+                      {!hasRooms && (
+                        <div className="flex items-center gap-3 text-sm text-gray-500">
+                          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{acc.capacity}</span>
+                          <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" />{acc.bedrooms}</span>
+                          <span className="flex items-center gap-1"><Bath className="w-3 h-3" />{acc.bathrooms}</span>
+                        </div>
+                      )}
+                      <p className="font-bold text-lg" style={{ color: primaryColor }}>
+                        {hasRooms && <span className="text-sm font-normal text-gray-500">from </span>}
+                        {acc.currency} {startingPrice.toLocaleString()}
+                        <span className="text-sm font-normal text-gray-500">/night</span>
+                      </p>
+                      {acc.price_tiers?.length > 0 && (
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Long stay discounts available
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
             {data.accommodations.length === 0 && (
               <p className="text-center text-gray-400 py-12">No properties available at the moment.</p>
@@ -313,48 +396,10 @@ const AccommodationWidgetPage = () => {
           </div>
         )}
 
-        {/* Selected Accommodation Details */}
-        {selectedAccommodation && (
-          <div className="space-y-8">
-            {/* Image Carousel */}
-            {selectedAccommodation.images.length > 0 && (
-              <div className="relative rounded-xl overflow-hidden">
-                <img
-                  src={selectedAccommodation.images[imageIndex]?.image_url}
-                  alt={selectedAccommodation.name}
-                  className="w-full h-64 md:h-96 object-cover"
-                />
-                {selectedAccommodation.images.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setImageIndex((i) => (i > 0 ? i - 1 : selectedAccommodation.images.length - 1))}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => setImageIndex((i) => (i < selectedAccommodation.images.length - 1 ? i + 1 : 0))}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                      {selectedAccommodation.images.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setImageIndex(i)}
-                          className={`w-2 h-2 rounded-full transition-all ${
-                            i === imageIndex ? 'bg-white w-4' : 'bg-white/60'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Property Info */}
+        {/* Hotel Room Selection */}
+        {selectedAccommodation && isHotelWithRooms && !selectedRoom && (
+          <div className="space-y-6">
+            {/* Hotel info */}
             <div>
               <h2 className="text-2xl font-bold">{selectedAccommodation.name}</h2>
               <div className="flex flex-wrap items-center gap-3 mt-2">
@@ -366,29 +411,179 @@ const AccommodationWidgetPage = () => {
                     {selectedAccommodation.country ? `, ${selectedAccommodation.country}` : ''}
                   </span>
                 )}
-                <span className="text-sm text-gray-500 flex items-center gap-1">
-                  <Users className="w-3 h-3" />{selectedAccommodation.capacity} guests
-                </span>
-                <span className="text-sm text-gray-500 flex items-center gap-1">
-                  <BedDouble className="w-3 h-3" />{selectedAccommodation.bedrooms} bed
-                </span>
-                <span className="text-sm text-gray-500 flex items-center gap-1">
-                  <Bath className="w-3 h-3" />{selectedAccommodation.bathrooms} bath
-                </span>
               </div>
               {selectedAccommodation.description && (
-                <p className="mt-4 text-gray-600 leading-relaxed">{selectedAccommodation.description}</p>
+                <p className="mt-3 text-gray-600 leading-relaxed">{selectedAccommodation.description}</p>
               )}
-              {selectedAccommodation.amenities && Array.isArray(selectedAccommodation.amenities) && (
+            </div>
+
+            {/* Room type cards */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Choose Your Room</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {selectedAccommodation.rooms.map((room) => (
+                  <Card
+                    key={room.id}
+                    className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => handleSelectRoom(room)}
+                  >
+                    {room.images?.length > 0 ? (
+                      <img src={room.images[0].image_url} alt={room.name} className="w-full h-40 object-cover" />
+                    ) : selectedAccommodation.images.length > 0 ? (
+                      <img src={selectedAccommodation.images[0].image_url} alt={room.name} className="w-full h-40 object-cover opacity-70" />
+                    ) : (
+                      <div className="w-full h-40 flex items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
+                        <DoorOpen className="w-10 h-10" style={{ color: `${primaryColor}40` }} />
+                      </div>
+                    )}
+                    <CardContent className="p-4 space-y-2">
+                      <h4 className="font-semibold">{room.name}</h4>
+                      <div className="flex items-center gap-3 text-sm text-gray-500">
+                        <span className="flex items-center gap-1"><Users className="w-3 h-3" />{room.capacity}</span>
+                        <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" />{room.bed_type}</span>
+                        <Badge variant="outline" className="text-xs">×{room.quantity}</Badge>
+                      </div>
+                      {room.description && (
+                        <p className="text-sm text-gray-500 line-clamp-2">{room.description}</p>
+                      )}
+                      <p className="font-bold text-lg" style={{ color: primaryColor }}>
+                        {room.currency} {room.price_per_night.toLocaleString()}
+                        <span className="text-sm font-normal text-gray-500">/night</span>
+                      </p>
+                      {room.price_tiers?.length > 0 && (
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          {room.price_tiers.map(t => `${t.min_nights}+ nights: ${room.currency} ${t.price_per_night.toLocaleString()}`).join(' · ')}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Selected Accommodation/Room Details + Calendar + Booking */}
+        {showCalendarAndBooking && (
+          <div className="space-y-8">
+            {/* Image Carousel */}
+            {currentImages.length > 0 && (
+              <div className="relative rounded-xl overflow-hidden">
+                <img
+                  src={currentImages[imageIndex]?.image_url}
+                  alt={selectedRoom?.name || selectedAccommodation!.name}
+                  className="w-full h-64 md:h-96 object-cover"
+                />
+                {currentImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setImageIndex((i) => (i > 0 ? i - 1 : currentImages.length - 1))}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setImageIndex((i) => (i < currentImages.length - 1 ? i + 1 : 0))}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {currentImages.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setImageIndex(i)}
+                          className={`w-2 h-2 rounded-full transition-all ${i === imageIndex ? 'bg-white w-4' : 'bg-white/60'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Property/Room Info */}
+            <div>
+              <h2 className="text-2xl font-bold">
+                {selectedRoom ? `${selectedAccommodation!.name} — ${selectedRoom.name}` : selectedAccommodation!.name}
+              </h2>
+              <div className="flex flex-wrap items-center gap-3 mt-2">
+                <Badge variant="secondary">{selectedAccommodation!.type}</Badge>
+                {selectedRoom && <Badge variant="outline">{selectedRoom.bed_type}</Badge>}
+                {selectedAccommodation!.city && (
+                  <span className="text-sm text-gray-500 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {selectedAccommodation!.city}
+                    {selectedAccommodation!.country ? `, ${selectedAccommodation!.country}` : ''}
+                  </span>
+                )}
+                <span className="text-sm text-gray-500 flex items-center gap-1">
+                  <Users className="w-3 h-3" />{activeCapacity} guests
+                </span>
+                {!selectedRoom && (
+                  <>
+                    <span className="text-sm text-gray-500 flex items-center gap-1">
+                      <BedDouble className="w-3 h-3" />{selectedAccommodation!.bedrooms} bed
+                    </span>
+                    <span className="text-sm text-gray-500 flex items-center gap-1">
+                      <Bath className="w-3 h-3" />{selectedAccommodation!.bathrooms} bath
+                    </span>
+                  </>
+                )}
+              </div>
+              {(selectedRoom?.description || (!selectedRoom && selectedAccommodation!.description)) && (
+                <p className="mt-4 text-gray-600 leading-relaxed">
+                  {selectedRoom?.description || selectedAccommodation!.description}
+                </p>
+              )}
+              {!selectedRoom && selectedAccommodation!.amenities && Array.isArray(selectedAccommodation!.amenities) && (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {(selectedAccommodation.amenities as string[]).map((a, i) => (
-                    <Badge key={i} variant="outline" className="text-xs">
-                      {a}
-                    </Badge>
+                  {(selectedAccommodation!.amenities as string[]).map((a, i) => (
+                    <Badge key={i} variant="outline" className="text-xs">{a}</Badge>
+                  ))}
+                </div>
+              )}
+              {selectedRoom?.amenities && Array.isArray(selectedRoom.amenities) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {(selectedRoom.amenities as string[]).map((a, i) => (
+                    <Badge key={i} variant="outline" className="text-xs">{a}</Badge>
                   ))}
                 </div>
               )}
             </div>
+
+            {/* Price Tiers Info */}
+            {activeTiers.length > 0 && (
+              <Card className="border-green-200 bg-green-50/50">
+                <CardContent className="p-4">
+                  <h4 className="font-medium text-green-800 flex items-center gap-1.5 mb-2">
+                    <Sparkles className="w-4 h-4" /> Long Stay Discounts
+                  </h4>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {activeTiers.map((tier, i) => {
+                      const basePrice = selectedRoom?.price_per_night ?? selectedAccommodation!.price_per_night;
+                      const savings = basePrice > 0 ? Math.round((1 - tier.price_per_night / basePrice) * 100) : 0;
+                      return (
+                        <div key={i} className="flex items-center justify-between p-2 rounded-md bg-white border border-green-100">
+                          <span className="text-sm font-medium text-green-700">
+                            {tier.min_nights}+ nights
+                          </span>
+                          <span className="text-sm">
+                            <span className="font-bold" style={{ color: primaryColor }}>
+                              {(selectedRoom?.currency || selectedAccommodation!.currency)} {tier.price_per_night.toLocaleString()}
+                            </span>
+                            {savings > 0 && (
+                              <span className="text-xs text-green-600 ml-1">-{savings}%</span>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Date Selection */}
             <Card>
@@ -398,8 +593,7 @@ const AccommodationWidgetPage = () => {
                   {!selectingCheckout
                     ? 'Choose your check-in date'
                     : 'Choose your check-out date'}
-                  {selectedAccommodation.minimum_nights > 1 &&
-                    ` (min. ${selectedAccommodation.minimum_nights} nights)`}
+                  {activeMinNights > 1 && ` (min. ${activeMinNights} nights)`}
                 </p>
 
                 <div className="flex justify-center">
@@ -436,16 +630,16 @@ const AccommodationWidgetPage = () => {
                     <div>
                       <span className="text-gray-500">Check-in: </span>
                       <span className="font-medium">{checkinDate.toLocaleDateString()}</span>
-                      {selectedAccommodation.checkin_time && (
-                        <span className="text-gray-400"> from {selectedAccommodation.checkin_time}</span>
+                      {selectedAccommodation!.checkin_time && (
+                        <span className="text-gray-400"> from {selectedAccommodation!.checkin_time}</span>
                       )}
                     </div>
                     {checkoutDate && (
                       <div>
                         <span className="text-gray-500">Check-out: </span>
                         <span className="font-medium">{checkoutDate.toLocaleDateString()}</span>
-                        {selectedAccommodation.checkout_time && (
-                          <span className="text-gray-400"> before {selectedAccommodation.checkout_time}</span>
+                        {selectedAccommodation!.checkout_time && (
+                          <span className="text-gray-400"> before {selectedAccommodation!.checkout_time}</span>
                         )}
                       </div>
                     )}
@@ -475,14 +669,12 @@ const AccommodationWidgetPage = () => {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => setGuestsCount((g) => Math.min(selectedAccommodation.capacity, g + 1))}
-                      disabled={guestsCount >= selectedAccommodation.capacity}
+                      onClick={() => setGuestsCount((g) => Math.min(activeCapacity, g + 1))}
+                      disabled={guestsCount >= activeCapacity}
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
-                    <span className="text-sm text-gray-500">
-                      max {selectedAccommodation.capacity} guests
-                    </span>
+                    <span className="text-sm text-gray-500">max {activeCapacity} guests</span>
                   </div>
                 </CardContent>
               </Card>
@@ -503,6 +695,16 @@ const AccommodationWidgetPage = () => {
                         {pricing.currency} {pricing.baseTotal.toLocaleString()}
                       </span>
                     </div>
+                    {pricing.tierApplied && (
+                      <div className="flex justify-between text-green-600 text-sm">
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" /> Long stay rate applied
+                        </span>
+                        <span className="line-through text-gray-400">
+                          {pricing.currency} {(pricing.originalPricePerNight * pricing.nights).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Promo Code */}
@@ -536,32 +738,15 @@ const AccommodationWidgetPage = () => {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="name">Full Name *</Label>
-                      <Input
-                        id="name"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="John Doe"
-                        required
-                      />
+                      <Input id="name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="John Doe" required />
                     </div>
                     <div>
                       <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value)}
-                        placeholder="john@example.com"
-                      />
+                      <Input id="email" type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="john@example.com" />
                     </div>
                     <div>
                       <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="+1 234 567 890"
-                      />
+                      <Input id="phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+1 234 567 890" />
                     </div>
                     <div>
                       <Label htmlFor="country">Country</Label>
@@ -571,9 +756,7 @@ const AccommodationWidgetPage = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {countries.map((c) => (
-                            <SelectItem key={c.code} value={c.name}>
-                              {c.name}
-                            </SelectItem>
+                            <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>

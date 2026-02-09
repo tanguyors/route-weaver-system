@@ -10,6 +10,27 @@ export interface AccommodationImage {
   display_order: number;
 }
 
+export interface PriceTierItem {
+  min_nights: number;
+  price_per_night: number;
+}
+
+export interface RoomItem {
+  id: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  bed_type: string;
+  quantity: number;
+  price_per_night: number;
+  currency: string;
+  minimum_nights: number;
+  amenities: any;
+  images: AccommodationImage[];
+  blocked_dates: string[];
+  price_tiers: PriceTierItem[];
+}
+
 export interface AccommodationItem {
   id: string;
   name: string;
@@ -28,6 +49,8 @@ export interface AccommodationItem {
   checkout_time: string | null;
   images: AccommodationImage[];
   blocked_dates: string[];
+  rooms: RoomItem[];
+  price_tiers: PriceTierItem[];
 }
 
 export interface AccWidgetThemeConfig {
@@ -57,6 +80,14 @@ export interface AccWidgetData {
   theme_config: AccWidgetThemeConfig | null;
   accommodations: AccommodationItem[];
   automatic_discounts: AutomaticDiscount[];
+}
+
+function getEffectivePrice(tiers: PriceTierItem[], nights: number, basePrice: number): number {
+  if (!tiers || tiers.length === 0) return basePrice;
+  const applicable = tiers
+    .filter(t => t.min_nights <= nights)
+    .sort((a, b) => b.min_nights - a.min_nights);
+  return applicable.length > 0 ? applicable[0].price_per_night : basePrice;
 }
 
 export const useAccommodationWidgetData = (widgetKey: string | null) => {
@@ -119,40 +150,67 @@ export const useAccommodationWidgetData = (widgetKey: string | null) => {
   }, [fetchData]);
 
   const isDateAvailable = useCallback(
-    (accommodationId: string, date: string): boolean => {
+    (accommodationId: string, date: string, roomId?: string): boolean => {
       if (!data) return false;
       const acc = data.accommodations.find((a) => a.id === accommodationId);
       if (!acc) return false;
-      // Past dates are not available
       const today = new Date().toISOString().split('T')[0];
       if (date < today) return false;
+
+      if (roomId) {
+        const room = acc.rooms.find(r => r.id === roomId);
+        if (!room) return false;
+        return !room.blocked_dates.includes(date);
+      }
+
       return !acc.blocked_dates.includes(date);
     },
     [data]
   );
 
   const isRangeAvailable = useCallback(
-    (accommodationId: string, checkin: string, checkout: string): boolean => {
+    (accommodationId: string, checkin: string, checkout: string, roomId?: string): boolean => {
       const dates = getDatesInRange(checkin, checkout);
-      return dates.every((d) => isDateAvailable(accommodationId, d));
+      return dates.every((d) => isDateAvailable(accommodationId, d, roomId));
     },
     [isDateAvailable]
   );
 
   const calculatePrice = useCallback(
-    (accommodationId: string, checkin: string, checkout: string) => {
-      if (!data) return { nights: 0, pricePerNight: 0, baseTotal: 0, currency: 'USD' };
+    (accommodationId: string, checkin: string, checkout: string, roomId?: string) => {
+      if (!data) return { nights: 0, pricePerNight: 0, originalPricePerNight: 0, baseTotal: 0, currency: 'USD', tierApplied: false };
       const acc = data.accommodations.find((a) => a.id === accommodationId);
-      if (!acc) return { nights: 0, pricePerNight: 0, baseTotal: 0, currency: 'USD' };
+      if (!acc) return { nights: 0, pricePerNight: 0, originalPricePerNight: 0, baseTotal: 0, currency: 'USD', tierApplied: false };
 
       const nights = Math.round(
         (new Date(checkout).getTime() - new Date(checkin).getTime()) / (1000 * 60 * 60 * 24)
       );
+
+      let basePrice = acc.price_per_night;
+      let currency = acc.currency;
+      let tiers = acc.price_tiers;
+
+      if (roomId) {
+        const room = acc.rooms.find(r => r.id === roomId);
+        if (room) {
+          basePrice = room.price_per_night;
+          currency = room.currency;
+          if (room.price_tiers && room.price_tiers.length > 0) {
+            tiers = room.price_tiers;
+          }
+        }
+      }
+
+      const effectivePrice = getEffectivePrice(tiers, nights, basePrice);
+      const tierApplied = effectivePrice !== basePrice;
+
       return {
         nights,
-        pricePerNight: acc.price_per_night,
-        baseTotal: acc.price_per_night * nights,
-        currency: acc.currency,
+        pricePerNight: effectivePrice,
+        originalPricePerNight: basePrice,
+        baseTotal: effectivePrice * nights,
+        currency,
+        tierApplied,
       };
     },
     [data]
@@ -160,6 +218,7 @@ export const useAccommodationWidgetData = (widgetKey: string | null) => {
 
   const createBooking = async (params: {
     accommodation_id: string;
+    room_id?: string;
     checkin_date: string;
     checkout_date: string;
     guests_count: number;

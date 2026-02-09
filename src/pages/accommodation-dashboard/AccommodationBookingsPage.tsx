@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AccommodationDashboardLayout from '@/components/layouts/AccommodationDashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useAccommodationsData } from '@/hooks/useAccommodationsData';
 import { useAccommodationBookingsData, CreateBookingInput } from '@/hooks/useAccommodationBookingsData';
 import { useAccommodationDiscountsData, AccommodationDiscount } from '@/hooks/useAccommodationDiscountsData';
+import { useAccommodationRoomsData } from '@/hooks/useAccommodationRoomsData';
+import { useAccommodationPriceTiersData } from '@/hooks/useAccommodationPriceTiersData';
 import { toast } from '@/hooks/use-toast';
 import { Plus, MoreHorizontal, BookOpen, CreditCard, Tag, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -41,6 +43,7 @@ const AccommodationBookingsPage = () => {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [form, setForm] = useState({
     accommodation_id: '',
+    room_id: '',
     guest_name: '',
     guest_email: '',
     guest_phone: '',
@@ -53,10 +56,34 @@ const AccommodationBookingsPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Room & Tier hooks
+  const { rooms: roomsForAcc } = useAccommodationRoomsData(form.accommodation_id || undefined);
+  const { tiers, getEffectivePrice } = useAccommodationPriceTiersData(
+    form.accommodation_id || undefined,
+    form.room_id || undefined
+  );
+
   // Promo code state
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<AccommodationDiscount | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
+
+  const selectedAcc = accommodations.find(a => a.id === form.accommodation_id);
+  const selectedRoom = roomsForAcc.find(r => r.id === form.room_id);
+  const isHotel = selectedAcc?.type === 'hotel';
+  const activeRooms = roomsForAcc.filter(r => r.status === 'active');
+
+  const nights = form.checkin_date && form.checkout_date
+    ? Math.max(0, Math.round((new Date(form.checkout_date).getTime() - new Date(form.checkin_date).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  // Auto-calculate price from accommodation/room + tiers
+  const autoCalcPrice = useMemo(() => {
+    if (nights <= 0) return 0;
+    const basePrice = selectedRoom ? selectedRoom.price_per_night : (selectedAcc?.price_per_night || 0);
+    const effectivePrice = getEffectivePrice(tiers, nights, basePrice);
+    return effectivePrice * nights;
+  }, [nights, selectedAcc, selectedRoom, tiers, getEffectivePrice]);
 
   const calculateDiscountAmount = (discount: AccommodationDiscount, totalAmount: number, numNights: number): number => {
     switch (discount.category) {
@@ -94,12 +121,10 @@ const AccommodationBookingsPage = () => {
       toast({ title: 'Invalid promo code', variant: 'destructive' });
       return;
     }
-    // Check usage limit
     if (found.usage_limit && found.usage_count >= found.usage_limit) {
       toast({ title: 'Promo code usage limit reached', variant: 'destructive' });
       return;
     }
-    // Check booking dates
     const today = new Date().toISOString().split('T')[0];
     if (found.book_start_date && today < found.book_start_date) {
       toast({ title: 'Promo code not yet active', variant: 'destructive' });
@@ -109,7 +134,6 @@ const AccommodationBookingsPage = () => {
       toast({ title: 'Promo code expired', variant: 'destructive' });
       return;
     }
-    // Check checkin dates
     if (form.checkin_date) {
       if (found.checkin_start_date && form.checkin_date < found.checkin_start_date) {
         toast({ title: 'Check-in date outside promo period', variant: 'destructive' });
@@ -120,24 +144,20 @@ const AccommodationBookingsPage = () => {
         return;
       }
     }
-    // Check min nights
     if (found.min_nights && nights < found.min_nights) {
       toast({ title: `Minimum ${found.min_nights} nights required`, variant: 'destructive' });
       return;
     }
-    // Check minimum spend
     if (found.minimum_spend && form.total_amount < found.minimum_spend) {
       toast({ title: `Minimum spend of ${found.minimum_spend} required`, variant: 'destructive' });
       return;
     }
-    // Check applicable accommodations
     if (found.applicable_accommodation_ids && found.applicable_accommodation_ids.length > 0 && form.accommodation_id) {
       if (!found.applicable_accommodation_ids.includes(form.accommodation_id)) {
         toast({ title: 'Promo code not applicable to this accommodation', variant: 'destructive' });
         return;
       }
     }
-    // Check early bird / last minute
     if (found.category === 'early_bird' && found.early_bird_days && form.checkin_date) {
       const daysUntilCheckin = Math.round((new Date(form.checkin_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       if (daysUntilCheckin < found.early_bird_days) {
@@ -181,7 +201,6 @@ const AccommodationBookingsPage = () => {
     if (!paymentBooking || paymentForm.amount <= 0) return;
     setPaymentSubmitting(true);
     try {
-      // Get partner commission rate
       const partnerId = bookings[0]?.partner_id;
       if (!partnerId) throw new Error('No partner');
 
@@ -195,7 +214,6 @@ const AccommodationBookingsPage = () => {
       const feeAmount = Math.round((paymentForm.amount * commissionRate) / 100);
       const netAmount = paymentForm.amount - feeAmount;
 
-      // Insert payment
       const { error: payErr } = await supabase
         .from('accommodation_payments')
         .insert({
@@ -209,7 +227,6 @@ const AccommodationBookingsPage = () => {
         } as any);
       if (payErr) throw payErr;
 
-      // Insert commission
       const { error: commErr } = await supabase
         .from('accommodation_commission_records')
         .insert({
@@ -232,15 +249,27 @@ const AccommodationBookingsPage = () => {
     }
   };
 
-  const selectedAcc = accommodations.find(a => a.id === form.accommodation_id);
-  const nights = form.checkin_date && form.checkout_date
-    ? Math.max(0, Math.round((new Date(form.checkout_date).getTime() - new Date(form.checkin_date).getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
-
   const handleAccChange = (accId: string) => {
     const acc = accommodations.find(a => a.id === accId);
-    const autoTotal = acc && nights > 0 ? nights * acc.price_per_night : 0;
-    setForm(f => ({ ...f, accommodation_id: accId, total_amount: autoTotal }));
+    const isHotelType = acc?.type === 'hotel';
+    // Reset room when accommodation changes
+    setForm(f => ({
+      ...f,
+      accommodation_id: accId,
+      room_id: '',
+      total_amount: isHotelType ? 0 : (acc && nights > 0 ? nights * acc.price_per_night : 0),
+    }));
+    removePromoCode();
+  };
+
+  const handleRoomChange = (roomId: string) => {
+    const room = roomsForAcc.find(r => r.id === roomId);
+    setForm(f => ({
+      ...f,
+      room_id: roomId,
+      total_amount: room && nights > 0 ? nights * room.price_per_night : 0,
+    }));
+    removePromoCode();
   };
 
   const handleDateChange = (field: 'checkin_date' | 'checkout_date', value: string) => {
@@ -248,13 +277,19 @@ const AccommodationBookingsPage = () => {
       const updated = { ...f, [field]: value };
       const ci = field === 'checkin_date' ? value : f.checkin_date;
       const co = field === 'checkout_date' ? value : f.checkout_date;
-      if (ci && co && selectedAcc) {
+      if (ci && co) {
         const n = Math.max(0, Math.round((new Date(co).getTime() - new Date(ci).getTime()) / (1000 * 60 * 60 * 24)));
-        updated.total_amount = n * selectedAcc.price_per_night;
+        const basePrice = selectedRoom ? selectedRoom.price_per_night : (selectedAcc?.price_per_night || 0);
+        // Tiers will be applied via autoCalcPrice, but set initial estimate
+        updated.total_amount = n * basePrice;
       }
       return updated;
     });
+    removePromoCode();
   };
+
+  // Update total_amount when autoCalcPrice changes (due to tiers)
+  const effectiveTotalForDisplay = autoCalcPrice > 0 ? autoCalcPrice : form.total_amount;
 
   const finalTotal = appliedDiscount ? Math.max(0, form.total_amount - discountAmount) : form.total_amount;
 
@@ -263,9 +298,13 @@ const AccommodationBookingsPage = () => {
       toast({ title: 'Please fill required fields', variant: 'destructive' });
       return;
     }
+    if (isHotel && activeRooms.length > 0 && !form.room_id) {
+      toast({ title: 'Please select a room type', variant: 'destructive' });
+      return;
+    }
     setSubmitting(true);
     try {
-      const bookingResult = await createBooking({
+      const bookingInput: CreateBookingInput = {
         accommodation_id: form.accommodation_id,
         guest_name: form.guest_name,
         guest_email: form.guest_email || undefined,
@@ -276,7 +315,12 @@ const AccommodationBookingsPage = () => {
         total_amount: finalTotal,
         channel: form.channel,
         notes: form.notes || undefined,
-      });
+      };
+      if (form.room_id) {
+        bookingInput.room_id = form.room_id;
+      }
+
+      const bookingResult = await createBooking(bookingInput);
 
       // Record discount usage if applied
       if (appliedDiscount && discountAmount > 0 && bookingResult) {
@@ -291,7 +335,6 @@ const AccommodationBookingsPage = () => {
             partner_id: partnerId,
           } as any);
 
-          // Update usage_count and total_discounted_amount
           await supabase.from('accommodation_discounts').update({
             usage_count: (appliedDiscount.usage_count || 0) + 1,
             total_discounted_amount: (appliedDiscount.total_discounted_amount || 0) + discountAmount,
@@ -301,7 +344,7 @@ const AccommodationBookingsPage = () => {
 
       toast({ title: 'Booking created', description: 'Calendar dates have been blocked automatically.' });
       setShowNewDialog(false);
-      setForm({ accommodation_id: '', guest_name: '', guest_email: '', guest_phone: '', guests_count: 1, checkin_date: '', checkout_date: '', total_amount: 0, channel: 'walk-in', notes: '' });
+      setForm({ accommodation_id: '', room_id: '', guest_name: '', guest_email: '', guest_phone: '', guests_count: 1, checkin_date: '', checkout_date: '', total_amount: 0, channel: 'walk-in', notes: '' });
       removePromoCode();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -387,6 +430,7 @@ const AccommodationBookingsPage = () => {
                   <TableRow>
                     <TableHead>Guest</TableHead>
                     <TableHead>Accommodation</TableHead>
+                    <TableHead>Room</TableHead>
                     <TableHead>Check-in</TableHead>
                     <TableHead>Check-out</TableHead>
                     <TableHead>Nights</TableHead>
@@ -401,6 +445,7 @@ const AccommodationBookingsPage = () => {
                     <TableRow key={b.id}>
                       <TableCell className="font-medium">{b.guest_name}</TableCell>
                       <TableCell>{b.accommodation?.name || '—'}</TableCell>
+                      <TableCell>{b.room?.name || '—'}</TableCell>
                       <TableCell>{format(new Date(b.checkin_date), 'MMM d, yyyy')}</TableCell>
                       <TableCell>{format(new Date(b.checkout_date), 'MMM d, yyyy')}</TableCell>
                       <TableCell>{b.total_nights}</TableCell>
@@ -458,11 +503,29 @@ const AccommodationBookingsPage = () => {
                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   {accommodations.map(a => (
-                    <SelectItem key={a.id} value={a.id}>{a.name} — {a.currency} {a.price_per_night}/night</SelectItem>
+                    <SelectItem key={a.id} value={a.id}>{a.name} ({a.type})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Room selector for hotels */}
+            {isHotel && activeRooms.length > 0 && (
+              <div>
+                <Label>Room Type *</Label>
+                <Select value={form.room_id} onValueChange={handleRoomChange}>
+                  <SelectTrigger><SelectValue placeholder="Select room type" /></SelectTrigger>
+                  <SelectContent>
+                    {activeRooms.map(r => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name} — {r.currency} {r.price_per_night}/night (×{r.quantity})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Check-in *</Label>
@@ -474,7 +537,14 @@ const AccommodationBookingsPage = () => {
               </div>
             </div>
             {nights > 0 && (
-              <p className="text-sm text-muted-foreground">{nights} night{nights > 1 ? 's' : ''}</p>
+              <p className="text-sm text-muted-foreground">
+                {nights} night{nights > 1 ? 's' : ''}
+                {tiers.length > 0 && autoCalcPrice > 0 && autoCalcPrice !== nights * (selectedRoom?.price_per_night || selectedAcc?.price_per_night || 0) && (
+                  <span className="text-green-600 ml-2">
+                    (degressive pricing applied)
+                  </span>
+                )}
+              </p>
             )}
             <div>
               <Label>Guest Name *</Label>
@@ -508,11 +578,22 @@ const AccommodationBookingsPage = () => {
               </div>
             </div>
             <div>
-              <Label>Total Amount ({selectedAcc?.currency || 'IDR'})</Label>
-              <Input type="number" min={0} value={form.total_amount} onChange={e => {
-                setForm(f => ({ ...f, total_amount: parseFloat(e.target.value) || 0 }));
-                if (appliedDiscount) removePromoCode();
-              }} />
+              <Label>Total Amount ({selectedRoom?.currency || selectedAcc?.currency || 'IDR'})</Label>
+              <Input
+                type="number"
+                min={0}
+                value={autoCalcPrice > 0 ? autoCalcPrice : form.total_amount}
+                onChange={e => {
+                  setForm(f => ({ ...f, total_amount: parseFloat(e.target.value) || 0 }));
+                  if (appliedDiscount) removePromoCode();
+                }}
+                onFocus={() => {
+                  // Sync autoCalcPrice into form when user focuses
+                  if (autoCalcPrice > 0) {
+                    setForm(f => ({ ...f, total_amount: autoCalcPrice }));
+                  }
+                }}
+              />
             </div>
 
             {/* Promo Code */}
@@ -522,7 +603,7 @@ const AccommodationBookingsPage = () => {
                 <div className="flex items-center gap-2 p-2 rounded-md bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800">
                   <Badge variant="default" className="bg-green-600">{appliedDiscount.code}</Badge>
                   <span className="text-sm text-green-700 dark:text-green-300 flex-1">
-                    -{discountAmount.toLocaleString()} {selectedAcc?.currency || 'IDR'}
+                    -{discountAmount.toLocaleString()} {selectedRoom?.currency || selectedAcc?.currency || 'IDR'}
                   </span>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={removePromoCode}>
                     <X className="w-3 h-3" />
@@ -556,7 +637,7 @@ const AccommodationBookingsPage = () => {
                 </div>
                 <div className="flex justify-between font-bold border-t border-border mt-1 pt-1">
                   <span>Total</span>
-                  <span>{finalTotal.toLocaleString()} {selectedAcc?.currency || 'IDR'}</span>
+                  <span>{finalTotal.toLocaleString()} {selectedRoom?.currency || selectedAcc?.currency || 'IDR'}</span>
                 </div>
               </div>
             )}
@@ -574,6 +655,7 @@ const AccommodationBookingsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Record Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
