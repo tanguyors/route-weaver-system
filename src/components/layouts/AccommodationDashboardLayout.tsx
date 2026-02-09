@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import DashboardSwitcher from '@/components/layouts/DashboardSwitcher';
 
 interface AccommodationDashboardLayoutProps {
   children: ReactNode;
@@ -109,17 +110,8 @@ const AccommodationDashboardLayout = ({ children }: AccommodationDashboardLayout
             </div>
           </div>
 
-          {/* Switch Module Button */}
-          <div className="px-3 py-2 border-b border-border">
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2"
-              onClick={() => navigate('/select-module')}
-            >
-              <ArrowLeftRight className="w-4 h-4" />
-              Switch Dashboard
-            </Button>
-          </div>
+          {/* Dashboard Switcher */}
+          <DashboardSwitcher />
 
           {/* Navigation */}
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">

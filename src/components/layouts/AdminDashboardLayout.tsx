@@ -22,6 +22,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DashboardSwitcher from '@/components/layouts/DashboardSwitcher';
 
 interface AdminDashboardLayoutProps {
   children: ReactNode;
@@ -108,24 +109,8 @@ const AdminDashboardLayout = ({ children }: AdminDashboardLayoutProps) => {
             </Link>
           </div>
 
-          {/* Switch to Partner Dashboard */}
-          {hasAnyPartnerModule && (
-            <div className="px-3 py-2 border-b border-border">
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => {
-                  if (canSwitchToBoat) navigate('/dashboard');
-                  else if (canSwitchToActivity) navigate('/activity');
-                  else if (canSwitchToAccommodation) navigate('/accommodation');
-                  else navigate('/select-module');
-                }}
-              >
-                <ArrowLeftRight className="w-4 h-4" />
-                Partner Dashboard
-              </Button>
-            </div>
-          )}
+          {/* Dashboard Switcher */}
+          <DashboardSwitcher />
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4 px-3">
