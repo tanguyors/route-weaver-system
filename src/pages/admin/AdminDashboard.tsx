@@ -1,4 +1,4 @@
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import AdminDashboardLayout from '@/components/layouts/AdminDashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, BookOpen, DollarSign, Users, Loader2, BookMarked, UserPlus, Wallet, Home } from 'lucide-react';
 import { useAdminDashboardData } from '@/hooks/useAdminDashboardData';
