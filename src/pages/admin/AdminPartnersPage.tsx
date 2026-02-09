@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import AdminDashboardLayout from '@/components/layouts/AdminDashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Plus, Search, MoreHorizontal, Ship, Compass, Filter, Home } from 'lucide-react';
@@ -169,7 +169,7 @@ const AdminPartnersPage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <AdminDashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -300,7 +300,7 @@ const AdminPartnersPage = () => {
         onOpenChange={(open) => !open && setSelectedPartner(null)}
         onPartnerUpdated={handlePartnerUpdated}
       />
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

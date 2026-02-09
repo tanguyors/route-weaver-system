@@ -87,18 +87,6 @@ const navItems: NavItem[] = [
   { label: 'Settings', href: '/dashboard/settings', icon: Settings, ownerOnly: true, alwaysAccessible: true },
 ];
 
-const adminNavItems: NavItem[] = [
-  { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard, adminOnly: true },
-  { label: 'All Bookings', href: '/admin/bookings', icon: BookOpen, adminOnly: true },
-  { label: 'Commissions', href: '/admin/commissions', icon: Wallet, adminOnly: true },
-  { label: 'Accom. Bookings', href: '/admin/accommodation-bookings', icon: Building2, adminOnly: true },
-  { label: 'Accom. Commissions', href: '/admin/accommodation-commissions', icon: Building2, adminOnly: true },
-  { label: 'Withdrawals', href: '/admin/withdrawals', icon: CreditCard, adminOnly: true },
-  { label: 'Users', href: '/admin/users', icon: Users, adminOnly: true },
-  { label: 'Ports', href: '/admin/ports', icon: Ship, adminOnly: true },
-  { label: 'Facilities', href: '/admin/facilities', icon: Wrench, adminOnly: true },
-  { label: 'Settings', href: '/admin/settings', icon: Settings, adminOnly: true },
-];
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, signOut } = useAuth();
@@ -231,30 +219,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4 px-3">
             {isAdmin && (
-              <>
-                <div className="px-3 mb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Admin
-                  </span>
-                </div>
-                {adminNavItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-1',
-                      isActive(item.href)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    )}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    {item.label}
-                  </Link>
-                ))}
-                <div className="my-4 border-t border-border" />
-              </>
+              <div className="px-3 py-2 mb-2 border-b border-border">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => navigate('/admin')}
+                >
+                  <ArrowLeftRight className="w-4 h-4" />
+                  Admin Panel
+                </Button>
+              </div>
             )}
 
             <div className="px-3 mb-2">

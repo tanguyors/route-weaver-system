@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import AdminDashboardLayout from '@/components/layouts/AdminDashboardLayout';
 import { useActivityPayoutsData } from '@/hooks/useActivityPayoutsData';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -95,7 +95,7 @@ const AdminActivityPayoutsPage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <AdminDashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -245,7 +245,7 @@ const AdminActivityPayoutsPage = () => {
         onClose={() => setShowGenerateModal(false)}
         partners={partners}
       />
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 
