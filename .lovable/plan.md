@@ -1,140 +1,191 @@
 
-# Feature 6 : Codes de reduction Accommodation
+
+# Feature 7 : Widget de Reservation Accommodation
 
 ## Vue d'ensemble
 
-Ajouter un systeme de codes promo et reductions automatiques dedie au module Accommodation. Le systeme sera plus simple que celui du module Boat car les hebergements n'ont pas de concepts de trips/routes/schedules. Les categories de reduction seront adaptees au contexte accommodation (reduction par nuit, sejour minimum, early bird, last minute, etc.).
+Creer un systeme de widget public permettant aux visiteurs de rechercher des disponibilites et reserver un hebergement directement, similaire au widget fastboat existant mais adapte au contexte des sejours (dates check-in/check-out, calendrier de disponibilites, galerie photos, etc.).
+
+Le widget sera accessible via une route publique `/accommodation/:widgetKey` et pourra etre integre en iframe sur le site du partenaire.
 
 ---
 
-## 6.1 Migration SQL : Tables accommodation_discounts et accommodation_discount_usage
+## 7.1 Migration SQL : Ajouter "accommodation" au type widget
 
-Deux nouvelles tables dediees au module accommodation.
+L'enum `widget_type` ne contient actuellement que `fastboat` et `activity`. Il faut ajouter `accommodation`.
 
+**Migration** :
 ```text
-+----------------------------------+       +----------------------------------+
-| accommodation_discounts          |       | accommodation_discount_usage     |
-+----------------------------------+       +----------------------------------+
-| id (uuid PK)                    |       | id (uuid PK)                    |
-| partner_id (uuid FK)             |       | discount_id (uuid FK)            |
-| code (text, nullable)            |       | booking_id (uuid FK, nullable)   |
-| type (text: promo_code/automatic)|       | customer_email (text, nullable)  |
-| category (text)                  |       | customer_phone (text, nullable)  |
-| discount_value (numeric)         |       | discounted_amount (numeric)      |
-| discount_value_type (text: %/fix)|       | partner_id (uuid)                |
-| book_start_date (date, nullable) |       | used_at (timestamptz)            |
-| book_end_date (date, nullable)   |       +----------------------------------+
-| checkin_start_date (date, null.) |
-| checkin_end_date (date, nullable)|
-| minimum_spend (numeric)         |
-| min_nights (integer, nullable)   |   <-- specifique accommodation
-| applicable_accommodation_ids     |   <-- filtre par propriete
-| individual_use_only (boolean)    |
-| usage_limit (integer, nullable)  |
-| limit_per_customer (integer)     |
-| usage_count (integer, default 0) |
-| total_discounted_amount (numeric)|
-| status (text: active/inactive)   |
-| created_at, updated_at           |
-+----------------------------------+
+ALTER TYPE widget_type ADD VALUE 'accommodation';
 ```
 
-**Categories adaptees a l'accommodation** :
-- `booking_fixed` : Montant fixe sur la reservation
-- `booking_percent` : Pourcentage sur la reservation
-- `per_night_fixed` : Montant fixe par nuit
-- `per_night_percent` : Pourcentage par nuit
-- `early_bird` : Reduction si reserve X jours avant le check-in
-- `last_minute` : Reduction si reserve proche du check-in
-- `long_stay` : Reduction pour sejours de X nuits minimum
-
-Champ specifique : `early_bird_days` (nombre de jours avant check-in pour early bird) et `last_minute_days` (pour last minute).
-
-**Politiques RLS** :
-- Les partenaires ne voient que leurs propres reductions (via `partner_id` + `partner_users`)
-- Le service role a un acces complet
+Cela permet de reutiliser la table `widgets` existante avec la contrainte unique `(partner_id, widget_type)`.
 
 ---
 
-## 6.2 Hook : `useAccommodationDiscountsData`
+## 7.2 Edge Function : `accommodation-widget-data`
 
-Nouveau hook repliquant le pattern de `useDiscountsData` mais adapte au module accommodation.
+Nouvelle Edge Function pour fournir les donnees publiques d'un widget accommodation.
 
-**Fichier** : `src/hooks/useAccommodationDiscountsData.ts` (nouveau)
+**Fichier** : `supabase/functions/accommodation-widget-data/index.ts`
+
+**Logique** :
+1. Valider le `widget_key` dans la table `widgets` (type = accommodation, status = active)
+2. Recuperer les donnees publiques du partenaire en parallele :
+   - Infos partenaire (nom, logo)
+   - Liste des `accommodations` actives avec images (`accommodation_images`)
+   - Calendrier de disponibilites pour les 6 prochains mois (`accommodation_calendar`)
+   - Reductions automatiques actives (`accommodation_discounts` type = automatic)
+3. Retourner un JSON structure avec cache HTTP (5 min)
+
+**Donnees retournees** :
+```text
+{
+  partner_id, theme_config,
+  accommodations: [
+    { id, name, type, description, capacity, bedrooms, bathrooms, amenities,
+      city, country, price_per_night, currency, minimum_nights,
+      checkin_time, checkout_time,
+      images: [{ id, image_url, display_order }],
+      blocked_dates: ["2026-02-15", "2026-02-16", ...] }
+  ],
+  automatic_discounts: [...]
+}
+```
+
+Les dates bloquees sont les dates ayant un statut != 'available' dans `accommodation_calendar` (booked_sribooking, booked_external, blocked).
+
+---
+
+## 7.3 Edge Function : `create-accommodation-booking`
+
+Nouvelle Edge Function pour creer une reservation depuis le widget public.
+
+**Fichier** : `supabase/functions/create-accommodation-booking/index.ts`
+
+**Logique** :
+1. Valider le `widget_key`
+2. Valider l'hebergement (actif, appartient au partenaire)
+3. Verifier la disponibilite de toutes les dates (check-in a check-out - 1)
+4. Calculer le prix : `price_per_night * nights`
+5. Appliquer le code promo si fourni (via `accommodation_discounts`)
+6. Appliquer les reductions automatiques si applicables
+7. Creer le `accommodation_booking` (status = confirmed, channel = online_widget)
+8. Bloquer les dates dans `accommodation_calendar` (status = booked_sribooking)
+9. Creer les enregistrements de commission (`accommodation_commission_records`)
+10. Envoyer la notification de confirmation (via `send-accommodation-booking-confirmation`)
+11. Si promo code utilise : enregistrer l'usage dans `accommodation_discount_usage`
+
+**Payload attendu** :
+```text
+{
+  widget_key, accommodation_id,
+  checkin_date, checkout_date, guests_count,
+  customer: { name, email, phone, country },
+  promo_code?: string
+}
+```
+
+---
+
+## 7.4 Hook : `useAccommodationWidgetData`
+
+Nouveau hook client pour le widget public.
+
+**Fichier** : `src/hooks/useAccommodationWidgetData.ts`
 
 **Fonctionnalites** :
-- CRUD complet sur `accommodation_discounts`
-- Fetch des usages depuis `accommodation_discount_usage`
-- Toggle de statut (active/inactive)
-- Categories specifiques accommodation (ACCOM_DISCOUNT_CATEGORIES)
-- Audit logging via `audit_logs`
+- Fetch des donnees via l'edge function `accommodation-widget-data`
+- Cache en memoire (5 min TTL, meme pattern que `useWidgetBooking`)
+- Helpers : `getAvailableDates(accommodationId)`, `isDateAvailable(accommodationId, date)`, `calculatePrice(accommodationId, checkin, checkout)`
+- Fonction `createBooking(...)` appelant l'edge function `create-accommodation-booking`
+- Gestion de la validation du code promo
 
 ---
 
-## 6.3 Page : `AccommodationDiscountsPage`
+## 7.5 Page Widget Public : `AccommodationWidgetPage`
 
-Nouvelle page dans le dashboard accommodation, repliquant le pattern de la page `DiscountsPage` du module boat.
+Nouveau composant pour le widget public accessible via `/accommodation/:widgetKey`.
 
-**Fichier** : `src/pages/accommodation-dashboard/AccommodationDiscountsPage.tsx` (nouveau)
+**Fichier** : `src/pages/accommodation-widget/AccommodationWidgetPage.tsx`
 
-**Structure** :
-- Cartes KPI : Total, Active, Uses, Amount discounted
-- Onglets : "Promo Codes" / "Automatic"
-- Liste avec actions : Edit, Delete, Toggle Status, View Usage
-- Dialog de creation/edition adapte aux categories accommodation
-- Modal d'historique d'utilisation
+**Experience utilisateur en une seule page (scroll vertical)** :
 
-Le formulaire sera integre directement dans la page (dialog) avec les champs specifiques par categorie :
-- Pour `early_bird` : champ "Days before check-in"
-- Pour `last_minute` : champ "Days before check-in"
-- Pour `long_stay` : champ "Minimum nights"
-- Pour `per_night_*` : le montant s'applique par nuit
-- Option de filtrage par accommodation specifique
+1. **En-tete** : Logo partenaire + nom
+2. **Liste des proprietes** : Grille de cartes avec image principale, nom, type, ville, prix/nuit, capacite
+3. **Selection d'une propriete** : Carrousel d'images, description, equipements, details
+4. **Selecteur de dates** : Calendrier interactif montrant les disponibilites (vert = disponible, gris = bloque/reserve)
+   - Selection check-in puis check-out
+   - Respect du minimum_nights
+   - Exclusion des dates passees et bloquees
+5. **Nombre d'invites** : Selecteur avec max = capacite
+6. **Recapitulatif** : Nuits x prix/nuit, code promo, total
+7. **Formulaire client** : Nom, email, telephone, pays
+8. **Confirmation** : Message de succes avec details de la reservation
 
----
-
-## 6.4 Application du discount lors du booking
-
-Modification de `AccommodationBookingsPage.tsx` pour permettre l'application d'un code promo lors de la creation d'un booking.
-
-**Changements** :
-- Ajouter un champ "Promo Code" dans le dialog de creation de booking
-- Bouton "Apply" pour verifier et appliquer le code
-- Affichage du montant de reduction et du nouveau total
-- A la confirmation : enregistrer l'usage dans `accommodation_discount_usage` et mettre a jour `usage_count` + `total_discounted_amount` dans `accommodation_discounts`
-
-La verification du code promo inclut :
-- Code actif et dans la periode de validite (book dates + checkin dates)
-- Usage limit non atteinte
-- Minimum spend respecte
-- Min nights respecte
-- Accommodation applicable (si filtre)
+**UX** : Le widget s'adapte a l'iframe (utilise `useIframeHeightMessenger`). Le flux est un scroll vertical continu sans pagination d'etapes pour simplifier l'experience accommodation.
 
 ---
 
-## 6.5 Navigation et routes
+## 7.6 Page de configuration widget (Dashboard partenaire)
+
+Nouveau hook et page pour configurer le widget accommodation depuis le dashboard partenaire.
+
+**Fichier** : `src/hooks/useAccommodationWidgetConfigData.ts`
+
+Hook repliquant le pattern de `useWidgetConfigData` mais avec `widget_type = 'accommodation'`. Inclut la creation/lecture/mise a jour du widget, la gestion des domaines autorises, et la generation des codes embed.
+
+**Fichier** : `src/pages/accommodation-dashboard/AccommodationWidgetPage.tsx`
+
+Page permettant au partenaire de :
+- Activer/desactiver le widget
+- Personnaliser les couleurs du theme
+- Gerer les domaines autorises
+- Copier le code embed (iframe) et le lien direct
+- Previsualiser le widget
+
+---
+
+## 7.7 Navigation et routes
 
 **Fichier** : `src/components/layouts/AccommodationDashboardLayout.tsx`
-- Ajouter "Discounts" dans la navigation (icone Tag, entre Bookings et iCal Sync)
+- Ajouter "Widget" dans la navigation (icone Globe, entre iCal Sync et Reports)
 
 **Fichier** : `src/App.tsx`
-- Ajouter la route `/accommodation-dashboard/discounts`
+- Route publique : `/accommodation/:widgetKey` vers `AccommodationWidgetPage`
+- Route dashboard : `/accommodation-dashboard/widget` vers la page de configuration
 
 ---
 
 ## Resume technique
 
 ### Migration SQL (1)
-- Tables `accommodation_discounts` + `accommodation_discount_usage` avec RLS et index
+- Ajout de `'accommodation'` a l'enum `widget_type`
 
-### Nouveaux fichiers (2)
-- `src/hooks/useAccommodationDiscountsData.ts` : hook CRUD + validation
-- `src/pages/accommodation-dashboard/AccommodationDiscountsPage.tsx` : page complete avec formulaire, liste, usage modal
+### Nouvelles Edge Functions (2)
+- `supabase/functions/accommodation-widget-data/index.ts` : donnees publiques du widget
+- `supabase/functions/create-accommodation-booking/index.ts` : creation de reservation publique
 
-### Fichiers modifies (3)
-- `src/pages/accommodation-dashboard/AccommodationBookingsPage.tsx` : champ promo code dans le dialog de creation
-- `src/components/layouts/AccommodationDashboardLayout.tsx` : nav item "Discounts"
-- `src/App.tsx` : route `/accommodation-dashboard/discounts`
+### Nouveaux fichiers front-end (4)
+- `src/hooks/useAccommodationWidgetData.ts` : hook pour le widget public
+- `src/hooks/useAccommodationWidgetConfigData.ts` : hook pour la configuration du widget
+- `src/pages/accommodation-widget/AccommodationWidgetPage.tsx` : page widget publique
+- `src/pages/accommodation-dashboard/AccommodationWidgetPage.tsx` : page de configuration
 
-### Etape suivante apres Feature 6
-**Feature 7 : Widget de reservation Accommodation** - Creer un widget public permettant aux visiteurs de rechercher des disponibilites et reserver directement un hebergement (similaire au widget de reservation bateau mais adapte aux sejours).
+### Fichiers modifies (2)
+- `src/components/layouts/AccommodationDashboardLayout.tsx` : nav item "Widget"
+- `src/App.tsx` : 2 nouvelles routes
+
+### Infrastructure reutilisee
+- Table `widgets` existante (avec nouveau type enum)
+- Table `accommodation_calendar` pour les disponibilites
+- Table `accommodation_bookings` pour les reservations
+- Table `accommodation_discounts` pour les codes promo
+- Table `accommodation_commission_records` pour les commissions
+- Edge function `send-accommodation-booking-confirmation` pour les notifications
+- Hook `useIframeHeightMessenger` pour l'integration iframe
+- Pattern de cache identique a `useWidgetBooking`
+
+### Etape suivante apres Feature 7
+**Feature 8 : Notification Templates Accommodation** - Enrichir le systeme de templates de notifications pour couvrir les rappels de check-in, les messages post-sejour, et les relances d'avis client.
+
