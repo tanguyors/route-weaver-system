@@ -177,6 +177,24 @@ const UserDetailModal = ({ user, open, onOpenChange }: UserDetailModalProps) => 
     },
   });
 
+  // Add module mutation
+  const addModuleMutation = useMutation({
+    mutationFn: async (moduleType: 'boat' | 'activity' | 'accommodation') => {
+      if (!partnerId) throw new Error('No partner ID');
+      const { error } = await supabase
+        .from('partner_modules')
+        .insert({ partner_id: partnerId, module_type: moduleType, status: 'active' });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Module added');
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: () => {
+      toast.error('Error adding module');
+    },
+  });
+
   if (!user) return null;
 
   const copyToClipboard = (text: string) => {
