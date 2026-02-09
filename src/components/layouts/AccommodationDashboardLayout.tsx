@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Wallet,
   Tag,
+  Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
   { label: 'Bookings', href: '/accommodation-dashboard/bookings', icon: BookOpen },
   { label: 'Discounts', href: '/accommodation-dashboard/discounts', icon: Tag },
   { label: 'iCal Sync', href: '/accommodation-dashboard/ical-sync', icon: RefreshCw },
+  { label: 'Widget', href: '/accommodation-dashboard/widget', icon: Globe },
   { label: 'Reports', href: '/accommodation-dashboard/reports', icon: BarChart3 },
   { label: 'Transactions', href: '/accommodation-dashboard/transactions', icon: Wallet },
   { label: 'Settings', href: '/accommodation-dashboard/settings', icon: Settings },

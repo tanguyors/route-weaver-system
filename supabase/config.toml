@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.sync-ical-imports]
 verify_jwt = false
+
+[functions.accommodation-widget-data]
+verify_jwt = false
+
+[functions.create-accommodation-booking]
+verify_jwt = false
