@@ -72,11 +72,12 @@ const AccommodationFormPage = () => {
       if (isEdit) {
         await updateAccommodation(id!, form);
         toast.success('Accommodation updated');
+        navigate('/accommodation-dashboard/list');
       } else {
-        await createAccommodation(form);
-        toast.success('Accommodation created');
+        const created = await createAccommodation(form);
+        toast.success('Accommodation created — you can now add photos, rooms & pricing');
+        navigate(`/accommodation-dashboard/accommodations/${created.id}`);
       }
-      navigate('/accommodation-dashboard/list');
     } catch (err: any) {
       toast.error(err.message || 'Error saving accommodation');
     } finally {
