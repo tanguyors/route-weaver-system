@@ -650,6 +650,17 @@ const WidgetBookingNew = () => {
           />
         )}
 
+        {/* Payment Pending */}
+        {step === 'payment-pending' && (
+          <Card className="p-8 text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+            <h2 className="text-xl font-bold mb-2">Verifying Payment...</h2>
+            <p className="text-muted-foreground">
+              Please complete the payment in the popup window. We'll confirm your booking automatically.
+            </p>
+          </Card>
+        )}
+
         {/* Success */}
         {step === 'finish' && bookingResult && customerData && (
           <BookingSuccess
