@@ -526,57 +526,14 @@ export const WidgetSearchForm = ({
   const parsedReturnDate = returnDate ? parseDateOnly(returnDate) : null;
   const parsedPrivateDate = privateDate ? parseDateOnly(privateDate) : null;
 
-  const canCloseDepartureCalendar =
-    tripType !== 'round-trip' || !departureDate || !!returnDate;
-
-  const handleDepartureCalendarOpenChange = (nextOpen: boolean) => {
-    widgetLogger.debug('Calendar', 'handleDepartureCalendarOpenChange', {
-      nextOpen,
-      tripType,
-      canCloseDepartureCalendar,
-      departureDate,
-      returnDate,
-    });
-    // En round-trip, on empêche la fermeture tant que la date retour n'est pas choisie.
-    if (!nextOpen && !canCloseDepartureCalendar) return;
-    setDepartureDateOpen(nextOpen);
-  };
-
-  useEffect(() => {
-    widgetLogger.info('Calendar', departureDateOpen ? 'OPEN' : 'CLOSE', {
-      tripType,
-      departureDate,
-      returnDate,
-      canCloseDepartureCalendar,
-    });
-  }, [departureDateOpen, tripType, departureDate, returnDate, canCloseDepartureCalendar]);
-
-  const formatTripDatesLabel = () => {
+  const formatDepartureDateLabel = () => {
     if (!parsedDepartureDate) return t('selectDate');
-    if (tripType === 'one-way') return format(parsedDepartureDate, 'd MMM yyyy');
-
-    // round-trip
-    const fromLabel = format(parsedDepartureDate, 'd MMM yyyy');
-    const toLabel = parsedReturnDate ? format(parsedReturnDate, 'd MMM yyyy') : t('selectDate');
-    return `${fromLabel} → ${toLabel}`;
+    return format(parsedDepartureDate, 'd MMM yyyy');
   };
 
-  const applyRoundTripDayClick = (day: Date) => {
-    const dayStr = formatDateOnly(day);
-    if (!parsedDepartureDate || parsedReturnDate) {
-      onDepartureDateChange(dayStr);
-      onReturnDateChange('');
-      return { shouldClose: false };
-    }
-
-    if (isBefore(startOfDay(day), startOfDay(parsedDepartureDate))) {
-      onDepartureDateChange(dayStr);
-      onReturnDateChange('');
-      return { shouldClose: false };
-    }
-
-    onReturnDateChange(dayStr);
-    return { shouldClose: true };
+  const formatReturnDateLabel = () => {
+    if (!parsedReturnDate) return t('selectDate');
+    return format(parsedReturnDate, 'd MMM yyyy');
   };
 
   const selectedBoat = privateBoats.find(b => b.id === selectedBoatId);
