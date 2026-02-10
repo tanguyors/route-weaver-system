@@ -1,4 +1,4 @@
-import { MapPin, CalendarDays, Car, Bus, Gift, Check } from 'lucide-react';
+import { MapPin, CalendarDays, Car, Bus, Gift, Check, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 interface TripInfo {
