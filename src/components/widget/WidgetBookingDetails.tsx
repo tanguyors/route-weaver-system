@@ -494,9 +494,8 @@ export const WidgetBookingDetails = ({
 
         {/* Departure Passengers Section */}
         <div className="bg-white rounded-lg border p-6">
+          {/* Departure trip summary - always shown */}
           <h2 className="text-xl font-bold mb-2">Departure Ticket - Passenger(s)</h2>
-
-          {/* Departure trip summary */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <div
@@ -521,6 +520,36 @@ export const WidgetBookingDetails = ({
             </div>
           </div>
 
+          {/* Return trip summary - shown inline when samePassengers is checked */}
+          {returnTrip && samePassengers && (
+            <>
+              <h2 className="text-xl font-bold mb-2 mt-4">Return Ticket - Passenger(s)</h2>
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
+                    style={{ borderTopColor: '#10b981' }}
+                  />
+                  <span className="font-medium text-emerald-600">
+                    {returnTrip.originName}
+                  </span>
+                  <span className="text-gray-400">—</span>
+                  <span className="font-medium text-emerald-600">
+                    {returnTrip.destName}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  📅 {format(new Date(returnTrip.date), 'EEE, dd MMM yyyy')}
+                  {returnTrip.time && <span className="ml-2">🕐 {returnTrip.time}</span>}
+                  {returnTrip.arrivalTime && <span className="text-gray-400"> → {returnTrip.arrivalTime}</span>}
+                  <span className="ml-2">
+                    (Adult x {returnTrip.paxAdult}, Child x {returnTrip.paxChild}, Infants x {returnTrip.paxInfant})
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Same passengers toggle (only show if round trip) */}
           {returnTrip && (
             <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -531,7 +560,6 @@ export const WidgetBookingDetails = ({
                   const isChecked = !!checked;
                   setSamePassengers(isChecked);
                   if (isChecked) {
-                    // Copy departure passengers to return
                     setReturnPassengers(departurePassengers.map(p => ({ ...p })));
                   }
                 }}
