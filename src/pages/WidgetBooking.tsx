@@ -140,6 +140,83 @@ const WidgetBooking = () => {
     createBooking,
   } = useWidgetBooking(widgetKey);
 
+  // Handle return from payment platform (check URL params) - must be before early returns
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment_status');
+    const returnBookingId = params.get('booking_id');
+
+    if (paymentStatus && returnBookingId) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('payment_status');
+      cleanUrl.searchParams.delete('booking_id');
+      window.history.replaceState({}, '', cleanUrl.toString());
+
+      if (paymentStatus === 'success') {
+        setStep('payment-pending');
+        pollBookingStatus(returnBookingId);
+      } else {
+        toast.error('Payment was not completed. Please select another payment method.');
+        setStep('payment');
+      }
+    }
+  }, []);
+
+  const pollBookingStatus = async (pollBookingId: string) => {
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const { data: bookingData } = await supabase
+          .from('bookings')
+          .select('id, status, total_amount')
+          .eq('id', pollBookingId)
+          .single();
+
+        if (bookingData?.status === 'confirmed') {
+          const { data: ticketData } = await supabase
+            .from('tickets')
+            .select('id, qr_token')
+            .eq('booking_id', pollBookingId)
+            .single();
+
+          setBookingResult({
+            booking_id: pollBookingId,
+            ticket_id: ticketData?.id,
+            qr_token: ticketData?.qr_token,
+            total_amount: bookingData.total_amount,
+            subtotal_amount: booking.subtotal,
+            addons_amount: booking.transportTotal,
+            discount_amount: 0,
+            addons: booking.selectedAddons,
+          });
+          setStep('success');
+          toast.success('Payment confirmed! Your booking is ready.');
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          toast.error('Payment verification timed out. Please contact support.');
+          setStep('payment');
+          return;
+        }
+
+        setTimeout(poll, 2000);
+      } catch (err) {
+        if (attempts >= maxAttempts) {
+          toast.error('Unable to verify payment. Please contact support.');
+          setStep('payment');
+          return;
+        }
+        setTimeout(poll, 2000);
+      }
+    };
+
+    poll();
+  };
+
   // Get current trip type based on widget style
   const currentTripType = widgetStyle === 'bar' ? barSelection.tripType : blockTripType;
   const currentReturnDate = widgetStyle === 'bar' ? barSelection.returnDate : blockReturnDate;
