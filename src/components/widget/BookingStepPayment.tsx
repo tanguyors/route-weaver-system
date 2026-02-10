@@ -6,40 +6,7 @@ import { ChevronLeft, Loader2, Wallet, Building, CreditCard, Landmark } from 'lu
 import { format } from 'date-fns';
 import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
-export type PaymentMethod = 'cash' | 'bank_transfer' | 'credit_card' | 'xendit';
-
-interface PassengerInfo {
-  name: string;
-  age: string;
-  idNumber: string;
-}
-
-interface TripSummary {
-  originName: string;
-  destName: string;
-  date: string;
-  time?: string;
-}
-
-interface BookingStepPaymentProps {
-  outbound: TripSummary;
-  returnTrip?: TripSummary;
-  paxAdult: number;
-  paxChild: number;
-  paxInfant: number;
-  passengers: PassengerInfo[];
-  customer: {
-    full_name: string;
-    email: string;
-    phone: string;
-    country: string;
-  };
-  totalAmount: number;
-  primaryColor?: string;
-  isSubmitting?: boolean;
-  onSubmit: (paymentMethod: PaymentMethod) => void;
-  onBack: () => void;
-}
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'xendit' | 'paypal';
 
 const paymentMethods = [
   {
@@ -55,18 +22,16 @@ const paymentMethods = [
     icon: Landmark,
   },
   {
-    id: 'credit_card' as PaymentMethod,
-    name: 'Credit/Debit Card',
-    description: 'Pay with Visa, Mastercard, or other cards',
-    icon: CreditCard,
-    comingSoon: true,
-  },
-  {
     id: 'xendit' as PaymentMethod,
     name: 'Online Payment (Xendit)',
-    description: 'Pay via e-wallet, virtual account, or QRIS',
+    description: 'Pay via e-wallet, virtual account, QRIS, or bank transfer',
+    icon: CreditCard,
+  },
+  {
+    id: 'paypal' as PaymentMethod,
+    name: 'PayPal',
+    description: 'Pay securely with your PayPal account or card',
     icon: Building,
-    comingSoon: true,
   },
 ];
 
