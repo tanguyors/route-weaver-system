@@ -15,6 +15,7 @@ import WidgetDebugPanel from '@/components/widget/WidgetDebugPanel';
 import { Card } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PassengerInfo {
   name: string;
