@@ -130,9 +130,11 @@
     infants: 0,
     loading: true,
     error: null,
-    // Calendar state - unified calendar
-    calendarOpen: false,
-    calendarViewDate: new Date()
+    // Calendar state - separate for departure and return
+    departCalendarOpen: false,
+    returnCalendarOpen: false,
+    departCalendarViewDate: new Date(),
+    returnCalendarViewDate: new Date()
   };
 
   // Supabase Edge Function URL (hardcoded to avoid CORS issues)
