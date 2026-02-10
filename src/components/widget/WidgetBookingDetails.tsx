@@ -483,62 +483,83 @@ export const WidgetBookingDetails = ({
               )}
             </div>
           </div>
+          {/* Booker is passenger checkbox */}
+          <div className="flex items-center gap-2 mt-4">
+            <Checkbox
+              id="bookerIsPassenger"
+              checked={bookerIsPassenger}
+              onCheckedChange={(checked) => handleBookerIsPassengerChange(!!checked)}
+            />
+            <Label htmlFor="bookerIsPassenger" className="text-sm cursor-pointer font-medium">
+              Booker is passenger
+            </Label>
+          </div>
         </div>
 
-        {/* Passengers Section (single, shared for outbound + return) */}
+        {/* Departure Passengers Section */}
         <div className="bg-white rounded-lg border p-6">
-          <h2 className="text-xl font-bold mb-2">Passenger(s)</h2>
+          <h2 className="text-xl font-bold mb-2">Departure Ticket - Passenger(s)</h2>
 
-          {/* Trip summaries */}
-          <div className="space-y-4">
-            {trips.map((trip, idx) => (
+          {/* Departure trip summary */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
               <div
-                key={`${trip.isReturn ? 'return' : 'outbound'}-${idx}`}
-                className={cn(idx > 0 && 'pt-4 border-t')}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div
-                    className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
-                    style={{ borderTopColor: primaryColor }}
-                  />
-                  <span style={{ color: primaryColor }} className="font-medium">
-                    {trip.originName}
-                  </span>
-                  <span className="text-gray-400">—</span>
-                  <span style={{ color: primaryColor }} className="font-medium">
-                    {trip.destName}
-                  </span>
-                </div>
-
-                <div className="text-sm text-gray-500">
-                  📅 {format(new Date(trip.date), 'EEE, dd MMM yyyy')}
-                  {trip.time && <span className="ml-2">🕐 {trip.time}</span>}
-                  {trip.arrivalTime && <span className="text-gray-400"> → {trip.arrivalTime}</span>}
-                  <span className="ml-2">
-                    (Adult x {trip.paxAdult}, Child x {trip.paxChild}, Infants x {trip.paxInfant})
-                  </span>
-                </div>
-              </div>
-            ))}
+                className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
+                style={{ borderTopColor: primaryColor }}
+              />
+              <span style={{ color: primaryColor }} className="font-medium">
+                {outbound.originName}
+              </span>
+              <span className="text-gray-400">—</span>
+              <span style={{ color: primaryColor }} className="font-medium">
+                {outbound.destName}
+              </span>
+            </div>
+            <div className="text-sm text-gray-500">
+              📅 {format(new Date(outbound.date), 'EEE, dd MMM yyyy')}
+              {outbound.time && <span className="ml-2">🕐 {outbound.time}</span>}
+              {outbound.arrivalTime && <span className="text-gray-400"> → {outbound.arrivalTime}</span>}
+              <span className="ml-2">
+                (Adult x {outbound.paxAdult}, Child x {outbound.paxChild}, Infants x {outbound.paxInfant})
+              </span>
+            </div>
           </div>
 
+          {/* Same passengers toggle (only show if round trip) */}
+          {returnTrip && (
+            <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <Checkbox
+                id="samePassengers"
+                checked={samePassengers}
+                onCheckedChange={(checked) => {
+                  const isChecked = !!checked;
+                  setSamePassengers(isChecked);
+                  if (isChecked) {
+                    // Copy departure passengers to return
+                    setReturnPassengers(departurePassengers.map(p => ({ ...p })));
+                  }
+                }}
+              />
+              <Label htmlFor="samePassengers" className="text-sm cursor-pointer font-medium">
+                Passengers are same for departure and return
+              </Label>
+            </div>
+          )}
 
-          {/* Passenger selector: 3 per row */}
-          {passengers.length > 0 && (
+          {/* Departure passenger selector: 3 per row */}
+          {departurePassengers.length > 0 && (
             <div className="mt-4">
               <div className="grid grid-cols-3 gap-2">
-                {passengers.map((passenger, index) => {
-                  const isActive = expandedPassenger === index;
+                {departurePassengers.map((passenger, index) => {
+                  const isActive = expandedDeparturePassenger === index;
                   return (
                     <button
                       key={index}
                       type="button"
-                      onClick={() => setExpandedPassenger(index)}
+                      onClick={() => setExpandedDeparturePassenger(index)}
                       className={cn(
                         'rounded-lg border px-3 py-3 text-left transition-colors min-w-0',
-                        isActive
-                          ? 'bg-gray-50'
-                          : 'bg-white hover:bg-gray-50'
+                        isActive ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
                       )}
                       style={isActive ? { borderColor: primaryColor } : undefined}
                       aria-pressed={isActive}
@@ -546,9 +567,7 @@ export const WidgetBookingDetails = ({
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium truncate">Passenger {index + 1}</span>
                         {passenger.name ? (
-                          <span className="text-xs font-semibold" style={{ color: primaryColor }}>
-                            ✓
-                          </span>
+                          <span className="text-xs font-semibold" style={{ color: primaryColor }}>✓</span>
                         ) : null}
                       </div>
                       {passenger.name ? (
@@ -561,12 +580,12 @@ export const WidgetBookingDetails = ({
                 })}
               </div>
 
-              {/* Active passenger form */}
+              {/* Active departure passenger form */}
               <div className="mt-4 rounded-lg border p-4 space-y-4">
                 {(() => {
-                  const passenger = passengers[expandedPassenger];
+                  const passenger = departurePassengers[expandedDeparturePassenger];
                   if (!passenger) return null;
-                  const index = expandedPassenger;
+                  const index = expandedDeparturePassenger;
                   return (
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -576,8 +595,9 @@ export const WidgetBookingDetails = ({
                             <Input
                               placeholder="Full Name"
                               value={passenger.name}
-                              onChange={(e) => updatePassenger(index, 'name', e.target.value)}
-                              className={errors[`passenger_${index}_name`] ? 'border-red-500' : ''}
+                              onChange={(e) => updateDeparturePassenger(index, 'name', e.target.value)}
+                              className={errors[`dep_passenger_${index}_name`] ? 'border-red-500' : ''}
+                              disabled={bookerIsPassenger && index === 0}
                             />
                             <select className="p-2 border rounded-md">
                               <option>Gender</option>
@@ -585,8 +605,8 @@ export const WidgetBookingDetails = ({
                               <option>Female</option>
                             </select>
                           </div>
-                          {errors[`passenger_${index}_name`] && (
-                            <p className="text-sm text-red-500 mt-1">{errors[`passenger_${index}_name`]}</p>
+                          {errors[`dep_passenger_${index}_name`] && (
+                            <p className="text-sm text-red-500 mt-1">{errors[`dep_passenger_${index}_name`]}</p>
                           )}
                         </div>
                         <div>
@@ -595,11 +615,11 @@ export const WidgetBookingDetails = ({
                             placeholder="Age"
                             type="number"
                             value={passenger.age}
-                            onChange={(e) => updatePassenger(index, 'age', e.target.value)}
-                            className={cn("mt-1", errors[`passenger_${index}_age`] && 'border-red-500')}
+                            onChange={(e) => updateDeparturePassenger(index, 'age', e.target.value)}
+                            className={cn("mt-1", errors[`dep_passenger_${index}_age`] && 'border-red-500')}
                           />
-                          {errors[`passenger_${index}_age`] && (
-                            <p className="text-sm text-red-500 mt-1">{errors[`passenger_${index}_age`]}</p>
+                          {errors[`dep_passenger_${index}_age`] && (
+                            <p className="text-sm text-red-500 mt-1">{errors[`dep_passenger_${index}_age`]}</p>
                           )}
                         </div>
                       </div>
@@ -608,11 +628,11 @@ export const WidgetBookingDetails = ({
                         <Input
                           placeholder="ID Number"
                           value={passenger.idNumber}
-                          onChange={(e) => updatePassenger(index, 'idNumber', e.target.value)}
-                          className={cn("mt-1", errors[`passenger_${index}_idNumber`] && 'border-red-500')}
+                          onChange={(e) => updateDeparturePassenger(index, 'idNumber', e.target.value)}
+                          className={cn("mt-1", errors[`dep_passenger_${index}_idNumber`] && 'border-red-500')}
                         />
-                        {errors[`passenger_${index}_idNumber`] && (
-                          <p className="text-sm text-red-500 mt-1">{errors[`passenger_${index}_idNumber`]}</p>
+                        {errors[`dep_passenger_${index}_idNumber`] && (
+                          <p className="text-sm text-red-500 mt-1">{errors[`dep_passenger_${index}_idNumber`]}</p>
                         )}
                       </div>
                     </>
@@ -622,6 +642,133 @@ export const WidgetBookingDetails = ({
             </div>
           )}
         </div>
+
+        {/* Return Passengers Section (only if round trip and not same passengers) */}
+        {returnTrip && !samePassengers && (
+          <div className="bg-white rounded-lg border p-6">
+            <h2 className="text-xl font-bold mb-2">Return Ticket - Passenger(s)</h2>
+
+            {/* Return trip summary */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-0 h-0 border-l-[12px] border-t-[12px] border-b-[12px] border-l-transparent border-b-transparent"
+                  style={{ borderTopColor: '#10b981' }}
+                />
+                <span className="font-medium text-emerald-600">
+                  {returnTrip.originName}
+                </span>
+                <span className="text-gray-400">—</span>
+                <span className="font-medium text-emerald-600">
+                  {returnTrip.destName}
+                </span>
+              </div>
+              <div className="text-sm text-gray-500">
+                📅 {format(new Date(returnTrip.date), 'EEE, dd MMM yyyy')}
+                {returnTrip.time && <span className="ml-2">🕐 {returnTrip.time}</span>}
+                {returnTrip.arrivalTime && <span className="text-gray-400"> → {returnTrip.arrivalTime}</span>}
+                <span className="ml-2">
+                  (Adult x {returnTrip.paxAdult}, Child x {returnTrip.paxChild}, Infants x {returnTrip.paxInfant})
+                </span>
+              </div>
+            </div>
+
+            {/* Return passenger selector: 3 per row */}
+            {returnPassengers.length > 0 && (
+              <div className="mt-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {returnPassengers.map((passenger, index) => {
+                    const isActive = expandedReturnPassenger === index;
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setExpandedReturnPassenger(index)}
+                        className={cn(
+                          'rounded-lg border px-3 py-3 text-left transition-colors min-w-0',
+                          isActive ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
+                        )}
+                        style={isActive ? { borderColor: '#10b981' } : undefined}
+                        aria-pressed={isActive}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium truncate">Passenger {index + 1}</span>
+                          {passenger.name ? (
+                            <span className="text-xs font-semibold text-emerald-600">✓</span>
+                          ) : null}
+                        </div>
+                        {passenger.name ? (
+                          <div className="text-xs text-gray-500 truncate">{passenger.name}</div>
+                        ) : (
+                          <div className="text-xs text-gray-400 truncate">Details</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active return passenger form */}
+                <div className="mt-4 rounded-lg border p-4 space-y-4">
+                  {(() => {
+                    const passenger = returnPassengers[expandedReturnPassenger];
+                    if (!passenger) return null;
+                    const index = expandedReturnPassenger;
+                    return (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-2">
+                            <Label>* Name</Label>
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                placeholder="Full Name"
+                                value={passenger.name}
+                                onChange={(e) => updateReturnPassenger(index, 'name', e.target.value)}
+                                className={errors[`ret_passenger_${index}_name`] ? 'border-red-500' : ''}
+                              />
+                              <select className="p-2 border rounded-md">
+                                <option>Gender</option>
+                                <option>Male</option>
+                                <option>Female</option>
+                              </select>
+                            </div>
+                            {errors[`ret_passenger_${index}_name`] && (
+                              <p className="text-sm text-red-500 mt-1">{errors[`ret_passenger_${index}_name`]}</p>
+                            )}
+                          </div>
+                          <div>
+                            <Label>* Age</Label>
+                            <Input
+                              placeholder="Age"
+                              type="number"
+                              value={passenger.age}
+                              onChange={(e) => updateReturnPassenger(index, 'age', e.target.value)}
+                              className={cn("mt-1", errors[`ret_passenger_${index}_age`] && 'border-red-500')}
+                            />
+                            {errors[`ret_passenger_${index}_age`] && (
+                              <p className="text-sm text-red-500 mt-1">{errors[`ret_passenger_${index}_age`]}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <Label>* ID number of Passport/ Kitas/ KTP</Label>
+                          <Input
+                            placeholder="ID Number"
+                            value={passenger.idNumber}
+                            onChange={(e) => updateReturnPassenger(index, 'idNumber', e.target.value)}
+                            className={cn("mt-1", errors[`ret_passenger_${index}_idNumber`] && 'border-red-500')}
+                          />
+                          {errors[`ret_passenger_${index}_idNumber`] && (
+                            <p className="text-sm text-red-500 mt-1">{errors[`ret_passenger_${index}_idNumber`]}</p>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Private Boat Activity Add-ons Selection */}
         {isPrivateBoat && routeActivityAddons.length > 0 && (
