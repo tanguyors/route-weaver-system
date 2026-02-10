@@ -645,23 +645,24 @@
     return isSameDay(date, end);
   }
 
-  // Build calendar HTML - unified for both one-way and round-trip
-  function buildCalendarHTML() {
-    var viewDate = state.calendarViewDate;
+  // Build calendar HTML for a specific target ('depart' or 'return')
+  function buildCalendarHTML(target) {
+    var viewDate = target === 'return' ? state.returnCalendarViewDate : state.departCalendarViewDate;
     var year = viewDate.getFullYear();
     var month = viewDate.getMonth();
     var months = monthNames[lang] || monthNames.en;
     var days = dayNames[lang] || dayNames.en;
     var calendarDays = getCalendarDays(year, month);
     
-    var departDate = state.departDate ? new Date(state.departDate + 'T00:00:00') : null;
-    var returnDate = state.returnDate ? new Date(state.returnDate + 'T00:00:00') : null;
+    var selectedDate = target === 'return' 
+      ? (state.returnDate ? new Date(state.returnDate + 'T00:00:00') : null)
+      : (state.departDate ? new Date(state.departDate + 'T00:00:00') : null);
     
     var html = '<div class="srb-pw-calendar-header">' +
       '<span class="srb-pw-calendar-title">' + months[month] + ' ' + year + '</span>' +
       '<div class="srb-pw-calendar-nav">' +
-        '<button type="button" class="srb-pw-calendar-nav-btn" data-action="prev">' + icons.chevronLeft + '</button>' +
-        '<button type="button" class="srb-pw-calendar-nav-btn" data-action="next">' + icons.chevronRight + '</button>' +
+        '<button type="button" class="srb-pw-calendar-nav-btn" data-action="prev" data-target="' + target + '">' + icons.chevronLeft + '</button>' +
+        '<button type="button" class="srb-pw-calendar-nav-btn" data-action="next" data-target="' + target + '">' + icons.chevronRight + '</button>' +
       '</div>' +
     '</div>';
     
@@ -671,32 +672,34 @@
     }
     html += '</div>';
     
+    // Determine min date for return calendar
+    var minDisableDate = new Date();
+    minDisableDate.setHours(0, 0, 0, 0);
+    if (target === 'return' && state.departDate) {
+      minDisableDate = new Date(state.departDate + 'T00:00:00');
+    }
+    
     html += '<div class="srb-pw-calendar-days">';
     for (var j = 0; j < calendarDays.length; j++) {
       var dayInfo = calendarDays[j];
       var dayDate = dayInfo.date;
       var dateStr = formatISODate(dayDate);
-      var disabled = isDateDisabled(dayDate) || dayInfo.outside;
+      var disabled = dayDate < minDisableDate || dayInfo.outside;
       
-      var isDepartSelected = departDate && isSameDay(dayDate, departDate);
-      var isReturnSelected = returnDate && isSameDay(dayDate, returnDate);
-      var isInRange = state.tripType === 'roundtrip' && isDateInRange(dayDate, state.departDate, state.returnDate);
+      var isSelected = selectedDate && isSameDay(dayDate, selectedDate);
       var isTodayDay = isToday(dayDate);
       
       var classes = 'srb-pw-calendar-day';
       if (dayInfo.outside) classes += ' outside';
       if (isTodayDay && !dayInfo.outside) classes += ' today';
-      if (isDepartSelected || isReturnSelected) classes += ' selected';
-      if (isInRange) classes += ' in-range';
-      if (isDepartSelected && state.returnDate) classes += ' range-start';
-      if (isReturnSelected) classes += ' range-end';
+      if (isSelected) classes += ' selected';
       
       var style = '';
-      if (isDepartSelected || isReturnSelected) {
+      if (isSelected) {
         style = 'background-color: ' + primaryColor + ';';
       }
       
-      html += '<button type="button" class="' + classes + '" data-date="' + dateStr + '" ' +
+      html += '<button type="button" class="' + classes + '" data-date="' + dateStr + '" data-target="' + target + '" ' +
         (disabled ? 'disabled' : '') + 
         (style ? ' style="' + style + '"' : '') + '>' + 
         dayDate.getDate() + '</button>';
@@ -706,46 +709,20 @@
     return html;
   }
 
-  // Handle day selection - unified logic like the widget
-  function handleDayClick(dateStr) {
-    var clickedDate = new Date(dateStr + 'T00:00:00');
-    
-    if (state.tripType === 'oneway') {
-      // One-way: single selection, close immediately
-      state.departDate = dateStr;
-      state.calendarOpen = false;
+  // Handle day selection - simple single mode
+  function handleDayClick(dateStr, target) {
+    if (target === 'return') {
+      state.returnDate = dateStr;
+      state.returnCalendarOpen = false;
     } else {
-      // Round-trip: sequential selection
-      if (!state.departDate || state.returnDate) {
-        // Start fresh selection
-        state.departDate = dateStr;
+      state.departDate = dateStr;
+      state.departCalendarOpen = false;
+      // If return date is before new departure, clear it
+      if (state.returnDate && state.returnDate < dateStr) {
         state.returnDate = '';
-        // Keep calendar open for return date
-      } else {
-        // Already have depart date, now selecting return
-        var departDateObj = new Date(state.departDate + 'T00:00:00');
-        
-        if (clickedDate < departDateObj) {
-          // User clicked earlier date, restart selection
-          state.departDate = dateStr;
-          state.returnDate = '';
-          // Keep calendar open
-        } else {
-          // Valid return date selected
-          state.returnDate = dateStr;
-          state.calendarOpen = false;
-        }
       }
     }
-    
     render();
-  }
-
-  // Can close calendar logic
-  function canCloseCalendar() {
-    if (state.tripType === 'oneway') return true;
-    // Round-trip: can close if we don't have depart, or we have both dates
-    return !state.departDate || !!state.returnDate;
   }
 
   // Render function
