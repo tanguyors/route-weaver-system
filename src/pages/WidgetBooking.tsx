@@ -7,6 +7,7 @@ import { BookingStepDeparture } from '@/components/widget/BookingStepDeparture';
 import { BookingStepPassengers } from '@/components/widget/BookingStepPassengers';
 import { BookingStepPickupDropoff, PickupDropoffSelection } from '@/components/widget/BookingStepPickupDropoff';
 import { BookingStepConfirm } from '@/components/widget/BookingStepConfirm';
+import { BookingStepPayment, PaymentMethod } from '@/components/widget/BookingStepPayment';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import WidgetBarView from '@/components/widget/WidgetBarView';
 import { BookingStepPrivateConfirm } from '@/components/widget/BookingStepPrivateConfirm';
@@ -14,8 +15,9 @@ import { Card } from '@/components/ui/card';
 import { Loader2, Ship, AlertCircle, ArrowLeft, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
-type BookingStep = 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'pickup-dropoff' | 'confirm' | 'success' | 'private-confirm' | 'private-success';
+type BookingStep = 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'pickup-dropoff' | 'confirm' | 'payment' | 'payment-pending' | 'success' | 'private-confirm' | 'private-success';
 type WidgetStyle = 'block' | 'bar';
 
 interface BarSelectionState {
