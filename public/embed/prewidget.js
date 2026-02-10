@@ -555,18 +555,16 @@
     return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
   }
 
-  // Format trip dates label (unified display)
-  function formatTripDatesLabel() {
+  // Format departure date label
+  function formatDepartDateLabel() {
     if (!state.departDate) return t.selectDate;
-    
-    if (state.tripType === 'oneway') {
-      return formatDisplayDate(state.departDate);
-    }
-    
-    // round-trip
-    var fromLabel = formatDisplayDate(state.departDate);
-    var toLabel = state.returnDate ? formatDisplayDate(state.returnDate) : t.selectDate;
-    return fromLabel + ' → ' + toLabel;
+    return formatDisplayDate(state.departDate);
+  }
+
+  // Format return date label
+  function formatReturnDateLabel() {
+    if (!state.returnDate) return t.selectDate;
+    return formatDisplayDate(state.returnDate);
   }
 
   function formatISODate(date) {
