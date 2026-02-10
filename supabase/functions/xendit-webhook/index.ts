@@ -32,20 +32,65 @@ serve(async (req) => {
     const event = body.event;
     const data = body.data;
 
-    console.log(`[v${VERSION}] Event: ${event}, Payment ID: ${data?.id}, Status: ${data?.status}`);
+    console.log(`[v${VERSION}] Event: ${event}, Body keys: ${Object.keys(body).join(',')}`);
+    console.log(`[v${VERSION}] Full payload:`, JSON.stringify(body).substring(0, 500));
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Extract reference_id which should contain our booking ID or payment link token
-    const referenceId = data?.reference_id;
+    // Extract reference_id - handle both Payment Request API (data.reference_id) 
+    // and Invoice API (external_id at top level)
+    const referenceId = data?.reference_id || body.external_id;
 
     if (!referenceId) {
-      console.log("No reference_id in webhook payload, skipping");
+      console.log("No reference_id or external_id in webhook payload, skipping");
       return new Response(
         JSON.stringify({ success: true, message: "No reference_id, skipped", _version: VERSION }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Handle Invoice callbacks (status field at top level)
+    const invoiceStatus = body.status;
+    if (invoiceStatus && !event) {
+      // This is an Invoice callback, not a Payment Request webhook
+      console.log(`Invoice callback: status=${invoiceStatus}, external_id=${referenceId}`);
+      
+      if (invoiceStatus === 'PAID' || invoiceStatus === 'SETTLED') {
+        const amount = body.paid_amount || body.amount;
+        const currency = body.currency || 'IDR';
+        
+        // Try reference_id as booking_id
+        const { data: booking } = await supabase
+          .from("bookings")
+          .select("id, partner_id, total_amount, currency")
+          .eq("id", referenceId)
+          .maybeSingle();
+
+        if (booking) {
+          await supabase.from("payments").insert({
+            partner_id: booking.partner_id,
+            booking_id: booking.id,
+            amount: amount,
+            currency: currency,
+            method: "qris",
+            provider: "xendit",
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            provider_reference: body.id || referenceId,
+          });
+
+          await handleBookingPayment(supabase, booking.id, booking.partner_id, amount, currency);
+          console.log(`Invoice payment recorded for booking ${booking.id}`);
+        }
+      } else if (invoiceStatus === 'EXPIRED' || invoiceStatus === 'FAILED') {
+        console.log(`Invoice ${invoiceStatus} for reference: ${referenceId}`);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, _version: VERSION }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
