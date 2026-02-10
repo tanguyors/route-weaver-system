@@ -80,37 +80,28 @@ export const BookingStepPayment = ({
           >
             {paymentMethods.map((method) => {
               const Icon = method.icon;
-              const isDisabled = method.comingSoon;
               
               return (
                 <div
                   key={method.id}
                   className={`relative flex items-center space-x-4 rounded-lg border-2 p-4 transition-all ${
-                    selectedMethod === method.id && !isDisabled
+                    selectedMethod === method.id
                       ? 'border-primary bg-primary/5'
-                      : isDisabled
-                      ? 'border-gray-200 bg-gray-50 opacity-60'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <RadioGroupItem
                     value={method.id}
                     id={method.id}
-                    disabled={isDisabled}
                     className="mt-0"
                   />
                   <Icon className="h-6 w-6 text-gray-600" />
                   <div className="flex-1">
                     <Label
                       htmlFor={method.id}
-                      className={`font-medium cursor-pointer ${isDisabled ? 'cursor-not-allowed' : ''}`}
+                      className="font-medium cursor-pointer"
                     >
                       {method.name}
-                      {method.comingSoon && (
-                        <span className="ml-2 text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full">
-                          Coming Soon
-                        </span>
-                      )}
                     </Label>
                     <p className="text-sm text-gray-500">{method.description}</p>
                   </div>

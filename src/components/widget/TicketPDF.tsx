@@ -63,8 +63,8 @@ interface TicketPDFProps {
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   cash: 'Cash at Partner Office',
   bank_transfer: 'Bank Transfer',
-  credit_card: 'Credit/Debit Card',
   xendit: 'Online Payment (Xendit)',
+  paypal: 'PayPal',
 };
 
 export const TicketPDF = forwardRef<HTMLDivElement, TicketPDFProps>(({
