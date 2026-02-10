@@ -275,7 +275,7 @@
         margin-bottom: 12px;
       }
       @media (min-width: 768px) {
-        .srb-pw-fields-row { grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+        .srb-pw-fields-row { gap: 16px; margin-bottom: 16px; }
       }
       
       /* Field wrapper (icon + label + input) */
