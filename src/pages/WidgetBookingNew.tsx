@@ -273,6 +273,12 @@ const WidgetBookingNew = () => {
           },
         }));
 
+      // Build redirect URLs for online payment
+      const currentUrl = window.location.href.split('?')[0];
+      const baseParams = new URLSearchParams(window.location.search);
+      const successUrl = `${currentUrl}?${baseParams.toString()}&payment_status=success&booking_id=`;
+      const failureUrl = `${currentUrl}?${baseParams.toString()}&payment_status=failed&booking_id=`;
+
       const result = await createBooking(
         selectedOutbound.departure.id,
         customerData,
@@ -280,7 +286,10 @@ const WidgetBookingNew = () => {
         paxChild,
         promoCode,
         pickupAddons,
-        selectedReturn?.departure?.id || null
+        selectedReturn?.departure?.id || null,
+        paymentMethod,
+        successUrl,
+        failureUrl
       );
 
       setBookingResult({
@@ -289,6 +298,39 @@ const WidgetBookingNew = () => {
         customer_name: customerData.full_name,
         customer_email: customerData.email,
       });
+
+      // If online payment: open payment gateway in a popup window
+      if (result.requires_payment && result.payment_redirect_url) {
+        const width = 500;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const popup = window.open(
+          result.payment_redirect_url,
+          'sribooking_payment',
+          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+        );
+
+        setStep('payment-pending');
+        pollBookingStatus(result.booking_id);
+
+        if (popup) {
+          const popupCheck = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(popupCheck);
+            }
+          }, 1000);
+        }
+        return;
+      }
+
+      if (result.requires_payment && !result.payment_redirect_url) {
+        toast.error('Payment gateway unavailable. Please select another payment method.');
+        setStep('payment');
+        return;
+      }
+
+      // For cash/bank_transfer: go directly to success
       setStep('finish');
       toast.success('Booking confirmed!');
     } catch (err: any) {
