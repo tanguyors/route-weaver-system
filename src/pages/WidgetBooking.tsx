@@ -404,6 +404,7 @@ const WidgetBooking = () => {
   };
 
   const handlePaymentSubmit = async (paymentMethod: PaymentMethod) => {
+    console.log('[WidgetBooking] handlePaymentSubmit called with:', paymentMethod);
     setIsSubmitting(true);
     try {
       const transportAddons: SelectedAddon[] = [];

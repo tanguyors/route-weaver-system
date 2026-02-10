@@ -86,6 +86,7 @@ export const BookingStepPayment = ({
   const { formatPrice } = useWidgetCurrency();
 
   const handleSubmit = () => {
+    console.log('[BookingStepPayment] Submitting with payment method:', selectedMethod);
     onSubmit(selectedMethod);
   };
 
