@@ -441,11 +441,11 @@ const WidgetBooking = () => {
         });
       }
 
-      // Build redirect URLs
+      // Build short redirect URLs (DOKU has 255 char limit)
       const currentUrl = window.location.href.split('?')[0];
-      const baseParams = new URLSearchParams(window.location.search);
-      const successUrl = `${currentUrl}?${baseParams.toString()}&payment_status=success&booking_id=`;
-      const failureUrl = `${currentUrl}?${baseParams.toString()}&payment_status=failed&booking_id=`;
+      const widgetKey = new URLSearchParams(window.location.search).get('key') || '';
+      const successUrl = `${currentUrl}?key=${widgetKey}&payment_status=success&booking_id=`;
+      const failureUrl = `${currentUrl}?key=${widgetKey}&payment_status=failed&booking_id=`;
 
       const result = await createBooking(
         booking.outbound.departureId,
