@@ -1,4 +1,4 @@
-import { MapPin, CalendarDays, Car, Bus, Gift, Check } from 'lucide-react';
+import { MapPin, CalendarDays, Car, Bus, Gift, Check, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 interface TripInfo {
@@ -12,6 +12,7 @@ interface TripInfo {
   paxChild: number;
   paxInfant: number;
   price: number;
+  departureTime?: string;
 }
 
 interface PickupInfo {
@@ -55,6 +56,17 @@ export const WidgetOrderSummary = ({
   isPrivateBoat = false,
 }: WidgetOrderSummaryProps) => {
   const { formatPrice } = useWidgetCurrency();
+
+  // Calculate pickup time: departure time - beforeDepartureMinutes
+  const calcPickupTime = (departureTime: string | undefined, beforeMinutes: number | undefined): string | null => {
+    if (!departureTime || !beforeMinutes) return null;
+    const [hours, minutes] = departureTime.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return null;
+    const totalMin = hours * 60 + minutes - beforeMinutes;
+    const h = Math.floor(((totalMin % 1440) + 1440) % 1440 / 60);
+    const m = ((totalMin % 1440) + 1440) % 1440 % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
 
   // For private boats, pickups are included (price = 0 in total)
   const pickupsTotal = isPrivateBoat ? 0 : pickups.reduce((sum, p) => sum + p.price, 0);
@@ -164,47 +176,60 @@ export const WidgetOrderSummary = ({
         {/* Pickup/Dropoff services */}
         {pickups.length > 0 && (
           <div className="mt-2 space-y-2">
-            {pickups.map((pickup, idx) => (
-              <div 
-                key={idx} 
-                className="flex items-center justify-between p-3 rounded-lg bg-white/10 text-white text-sm"
-              >
-                <div className="flex items-center gap-2">
-                  {pickup.vehicleType === 'car' ? (
-                    <Car className="w-4 h-4 text-yellow-400" />
-                  ) : (
-                    <Bus className="w-4 h-4 text-yellow-400" />
-                  )}
-                <div>
-                    <div className="font-medium">
-                      {pickup.serviceType === 'dropoff' ? 'DropOff' : 'Pickup'}: {pickup.cityName}
-                      {pickup.serviceType === 'dropoff' ? (
-                        <span className="text-white/70 text-xs ml-1">(arrival)</span>
-                      ) : pickup.beforeDepartureMinutes ? (
-                        <span className="text-white/70 text-xs ml-1">
-                          ({pickup.beforeDepartureMinutes} min before departure)
-                        </span>
-                      ) : null}
+            {pickups.map((pickup, idx) => {
+              const isPickup = pickup.serviceType !== 'dropoff';
+              const pickupTime = isPickup
+                ? calcPickupTime(outbound?.time, pickup.beforeDepartureMinutes)
+                : null;
+              const timeLabel = isPickup
+                ? pickupTime ? `at: ${pickupTime}` : ''
+                : 'at: arrival time';
+
+              return (
+                <div 
+                  key={idx} 
+                  className="p-3 rounded-lg bg-white/15 text-white"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      {pickup.vehicleType === 'car' ? (
+                        <Car className="w-5 h-5 text-yellow-400" />
+                      ) : (
+                        <Bus className="w-5 h-5 text-yellow-400" />
+                      )}
+                      <span className="font-bold text-base">
+                        {isPickup ? 'Pickup' : 'DropOff'}: {pickup.cityName}
+                        {timeLabel && (
+                          <span className="font-normal text-white/90 ml-1">
+                            ( {timeLabel} )
+                          </span>
+                        )}
+                      </span>
                     </div>
-                    {pickup.hotelAddress && (
-                      <div className="text-xs text-white/70 mt-0.5">
-                        📍 {pickup.hotelAddress}
+                    {isPrivateBoat ? (
+                      <div className="text-right">
+                        <span className="line-through text-white/50 text-xs mr-2">
+                          {formatPrice(pickup.price)}
+                        </span>
+                        <span className="font-bold text-yellow-400">Included</span>
                       </div>
+                    ) : (
+                      <span className="font-bold text-base">{formatPrice(pickup.price)}</span>
                     )}
                   </div>
-                </div>
-                {isPrivateBoat ? (
-                  <div className="text-right">
-                    <span className="line-through text-white/50 text-xs mr-2">
-                      {formatPrice(pickup.price)}
-                    </span>
-                    <span className="font-bold text-yellow-400">Included</span>
+                  <div className="text-sm text-white/70 italic ml-7">
+                    {isPickup
+                      ? 'Noted: Check-in 1 Hour before Departure time'
+                      : 'Noted: Driver with your full name plate at arrival port'}
                   </div>
-                ) : (
-                  <span className="font-bold">{formatPrice(pickup.price)}</span>
-                )}
-              </div>
-            ))}
+                  {pickup.hotelAddress && (
+                    <div className="text-xs text-white/70 mt-1 ml-7">
+                      📍 {pickup.hotelAddress}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
