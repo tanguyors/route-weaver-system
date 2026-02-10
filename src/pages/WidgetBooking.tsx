@@ -784,6 +784,42 @@ const WidgetBooking = () => {
               />
             )}
 
+            {step === 'payment' && (
+              <BookingStepPayment
+                outbound={{
+                  originName: originPort?.name || '',
+                  destName: destPort?.name || '',
+                  date: booking.outbound.departureDate,
+                  time: booking.outbound.departureTime,
+                }}
+                returnTrip={booking.returnTrip ? {
+                  originName: destPort?.name || '',
+                  destName: originPort?.name || '',
+                  date: booking.returnTrip.departureDate,
+                  time: booking.returnTrip.departureTime,
+                } : undefined}
+                paxAdult={booking.paxAdult}
+                paxChild={booking.paxChild}
+                paxInfant={booking.paxInfant}
+                passengers={[]}
+                customer={booking.customer}
+                totalAmount={booking.total}
+                isSubmitting={isSubmitting}
+                onSubmit={handlePaymentSubmit}
+                onBack={goBack}
+              />
+            )}
+
+            {step === 'payment-pending' && (
+              <Card className="p-8 text-center">
+                <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+                <h2 className="text-xl font-bold mb-2">Verifying Payment...</h2>
+                <p className="text-muted-foreground">
+                  Please wait while we confirm your payment. This may take a few moments.
+                </p>
+              </Card>
+            )}
+
             {step === 'success' && bookingResult && (
               <BookingSuccess
                 bookingId={bookingResult.booking_id}
