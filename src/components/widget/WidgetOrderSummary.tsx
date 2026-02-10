@@ -21,6 +21,7 @@ interface PickupInfo {
   details?: string;
   hotelAddress?: string;
   beforeDepartureMinutes?: number;
+  serviceType?: 'pickup' | 'dropoff';
 }
 
 interface ActivityAddonInfo {
@@ -176,12 +177,14 @@ export const WidgetOrderSummary = ({
                   )}
                 <div>
                     <div className="font-medium">
-                      Pickup: {pickup.cityName}
-                      {pickup.beforeDepartureMinutes && (
+                      {pickup.serviceType === 'dropoff' ? 'DropOff' : 'Pickup'}: {pickup.cityName}
+                      {pickup.serviceType === 'dropoff' ? (
+                        <span className="text-white/70 text-xs ml-1">(arrival)</span>
+                      ) : pickup.beforeDepartureMinutes ? (
                         <span className="text-white/70 text-xs ml-1">
-                          ({pickup.beforeDepartureMinutes} min before)
+                          ({pickup.beforeDepartureMinutes} min before departure)
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     {pickup.hotelAddress && (
                       <div className="text-xs text-white/70 mt-0.5">
