@@ -6,7 +6,34 @@ import { ChevronLeft, Loader2, Wallet, Building, CreditCard, Landmark } from 'lu
 import { format } from 'date-fns';
 import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
-export type PaymentMethod = 'cash' | 'bank_transfer' | 'credit_card' | 'xendit';
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'xendit' | 'paypal';
+
+const paymentMethods = [
+  {
+    id: 'cash' as PaymentMethod,
+    name: 'Cash at Partner Office',
+    description: 'Pay in cash at the partner agency counter',
+    icon: Wallet,
+  },
+  {
+    id: 'bank_transfer' as PaymentMethod,
+    name: 'Bank Transfer',
+    description: 'Transfer to our bank account',
+    icon: Landmark,
+  },
+  {
+    id: 'xendit' as PaymentMethod,
+    name: 'Online Payment (Xendit)',
+    description: 'Pay via e-wallet, virtual account, QRIS, or bank transfer',
+    icon: CreditCard,
+  },
+  {
+    id: 'paypal' as PaymentMethod,
+    name: 'PayPal',
+    description: 'Pay securely with your PayPal account or card',
+    icon: Building,
+  },
+];
 
 interface PassengerInfo {
   name: string;
@@ -40,35 +67,6 @@ interface BookingStepPaymentProps {
   onSubmit: (paymentMethod: PaymentMethod) => void;
   onBack: () => void;
 }
-
-const paymentMethods = [
-  {
-    id: 'cash' as PaymentMethod,
-    name: 'Cash at Partner Office',
-    description: 'Pay in cash at the partner agency counter',
-    icon: Wallet,
-  },
-  {
-    id: 'bank_transfer' as PaymentMethod,
-    name: 'Bank Transfer',
-    description: 'Transfer to our bank account',
-    icon: Landmark,
-  },
-  {
-    id: 'credit_card' as PaymentMethod,
-    name: 'Credit/Debit Card',
-    description: 'Pay with Visa, Mastercard, or other cards',
-    icon: CreditCard,
-    comingSoon: true,
-  },
-  {
-    id: 'xendit' as PaymentMethod,
-    name: 'Online Payment (Xendit)',
-    description: 'Pay via e-wallet, virtual account, or QRIS',
-    icon: Building,
-    comingSoon: true,
-  },
-];
 
 export const BookingStepPayment = ({
   outbound,
@@ -115,37 +113,28 @@ export const BookingStepPayment = ({
           >
             {paymentMethods.map((method) => {
               const Icon = method.icon;
-              const isDisabled = method.comingSoon;
               
               return (
                 <div
                   key={method.id}
                   className={`relative flex items-center space-x-4 rounded-lg border-2 p-4 transition-all ${
-                    selectedMethod === method.id && !isDisabled
+                    selectedMethod === method.id
                       ? 'border-primary bg-primary/5'
-                      : isDisabled
-                      ? 'border-gray-200 bg-gray-50 opacity-60'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <RadioGroupItem
                     value={method.id}
                     id={method.id}
-                    disabled={isDisabled}
                     className="mt-0"
                   />
                   <Icon className="h-6 w-6 text-gray-600" />
                   <div className="flex-1">
                     <Label
                       htmlFor={method.id}
-                      className={`font-medium cursor-pointer ${isDisabled ? 'cursor-not-allowed' : ''}`}
+                      className="font-medium cursor-pointer"
                     >
                       {method.name}
-                      {method.comingSoon && (
-                        <span className="ml-2 text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full">
-                          Coming Soon
-                        </span>
-                      )}
                     </Label>
                     <p className="text-sm text-gray-500">{method.description}</p>
                   </div>
