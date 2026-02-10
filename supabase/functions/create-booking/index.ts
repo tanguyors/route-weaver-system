@@ -494,20 +494,24 @@ serve(async (req) => {
     let paymentRedirectUrl: string | null = null;
 
     if (paymentMethod === 'xendit') {
+      const successUrlWithId = (body.success_redirect_url || '') + booking.id;
+      const failureUrlWithId = (body.failure_redirect_url || '') + booking.id;
       paymentRedirectUrl = await createXenditPayment(
         booking.id,
         totalAmount,
         body.customer,
-        body.success_redirect_url || '',
-        body.failure_redirect_url || ''
+        successUrlWithId,
+        failureUrlWithId
       );
     } else if (paymentMethod === 'paypal') {
+      const successUrlWithId = (body.success_redirect_url || '') + booking.id;
+      const failureUrlWithId = (body.failure_redirect_url || '') + booking.id;
       paymentRedirectUrl = await createPayPalPayment(
         booking.id,
         totalAmount,
         body.customer,
-        body.success_redirect_url || '',
-        body.failure_redirect_url || ''
+        successUrlWithId,
+        failureUrlWithId
       );
     }
 
