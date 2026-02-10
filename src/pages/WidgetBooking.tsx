@@ -321,6 +321,12 @@ const WidgetBooking = () => {
   };
 
   const handleCustomerSubmit = async (customer: typeof booking.customer) => {
+    // Save customer info and move to payment step
+    setBooking(prev => ({ ...prev, customer }));
+    setStep('payment');
+  };
+
+  const handlePaymentSubmit = async (paymentMethod: PaymentMethod) => {
     setIsSubmitting(true);
     try {
       const transportAddons: SelectedAddon[] = [];
@@ -357,18 +363,43 @@ const WidgetBooking = () => {
         });
       }
 
+      // Build redirect URLs
+      const currentUrl = window.location.href.split('?')[0];
+      const baseParams = new URLSearchParams(window.location.search);
+      const successUrl = `${currentUrl}?${baseParams.toString()}&payment_status=success&booking_id=`;
+      const failureUrl = `${currentUrl}?${baseParams.toString()}&payment_status=failed&booking_id=`;
+
       const result = await createBooking(
         booking.outbound.departureId,
-        customer,
+        booking.customer,
         booking.paxAdult,
         booking.paxChild,
         booking.promoCode,
         [...(booking.selectedAddons || []), ...transportAddons],
-        booking.returnTrip?.departureId || null
+        booking.returnTrip?.departureId || null,
+        paymentMethod,
+        successUrl,
+        failureUrl
       );
 
       setBookingResult(result);
-      setBooking(prev => ({ ...prev, customer, total: result.total_amount }));
+      setBooking(prev => ({ ...prev, total: result.total_amount }));
+
+      // If online payment: redirect to payment platform
+      if (result.requires_payment && result.payment_redirect_url) {
+        // Redirect to payment platform
+        window.location.href = result.payment_redirect_url;
+        return;
+      }
+
+      if (result.requires_payment && !result.payment_redirect_url) {
+        // Payment creation failed - go back to payment selection
+        toast.error('Payment gateway unavailable. Please select another payment method.');
+        setStep('payment');
+        return;
+      }
+
+      // For cash/bank_transfer: go directly to success
       setStep('success');
       toast.success('Booking confirmed!');
     } catch (err: any) {
@@ -376,6 +407,87 @@ const WidgetBooking = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Handle return from payment platform (check URL params)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment_status');
+    const bookingId = params.get('booking_id');
+
+    if (paymentStatus && bookingId) {
+      // Clean the URL
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('payment_status');
+      cleanUrl.searchParams.delete('booking_id');
+      window.history.replaceState({}, '', cleanUrl.toString());
+
+      if (paymentStatus === 'success') {
+        // Poll for booking confirmation
+        setStep('payment-pending');
+        pollBookingStatus(bookingId);
+      } else {
+        toast.error('Payment was not completed. Please select another payment method.');
+        setStep('payment');
+      }
+    }
+  }, []);
+
+  const pollBookingStatus = async (bookingId: string) => {
+    let attempts = 0;
+    const maxAttempts = 30; // 30 attempts x 2s = 60s max
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const { data: bookingData } = await supabase
+          .from('bookings')
+          .select('id, status, total_amount')
+          .eq('id', bookingId)
+          .single();
+
+        if (bookingData?.status === 'confirmed') {
+          // Get ticket info
+          const { data: ticketData } = await supabase
+            .from('tickets')
+            .select('id, qr_token')
+            .eq('booking_id', bookingId)
+            .single();
+
+          setBookingResult({
+            booking_id: bookingId,
+            ticket_id: ticketData?.id,
+            qr_token: ticketData?.qr_token,
+            total_amount: bookingData.total_amount,
+            subtotal_amount: booking.subtotal,
+            addons_amount: booking.transportTotal,
+            discount_amount: 0,
+            addons: booking.selectedAddons,
+          });
+          setStep('success');
+          toast.success('Payment confirmed! Your booking is ready.');
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          toast.error('Payment verification timed out. Please contact support with your booking reference.');
+          setStep('payment');
+          return;
+        }
+
+        // Try again in 2 seconds
+        setTimeout(poll, 2000);
+      } catch (err) {
+        if (attempts >= maxAttempts) {
+          toast.error('Unable to verify payment. Please contact support.');
+          setStep('payment');
+          return;
+        }
+        setTimeout(poll, 2000);
+      }
+    };
+
+    poll();
   };
 
   const goBack = () => {
