@@ -130,9 +130,11 @@
     infants: 0,
     loading: true,
     error: null,
-    // Calendar state - unified calendar
-    calendarOpen: false,
-    calendarViewDate: new Date()
+    // Calendar state - separate for departure and return
+    departCalendarOpen: false,
+    returnCalendarOpen: false,
+    departCalendarViewDate: new Date(),
+    returnCalendarViewDate: new Date()
   };
 
   // Supabase Edge Function URL (hardcoded to avoid CORS issues)
@@ -273,7 +275,7 @@
         margin-bottom: 12px;
       }
       @media (min-width: 768px) {
-        .srb-pw-fields-row { grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+        .srb-pw-fields-row { gap: 16px; margin-bottom: 16px; }
       }
       
       /* Field wrapper (icon + label + input) */
@@ -553,18 +555,16 @@
     return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
   }
 
-  // Format trip dates label (unified display)
-  function formatTripDatesLabel() {
+  // Format departure date label
+  function formatDepartDateLabel() {
     if (!state.departDate) return t.selectDate;
-    
-    if (state.tripType === 'oneway') {
-      return formatDisplayDate(state.departDate);
-    }
-    
-    // round-trip
-    var fromLabel = formatDisplayDate(state.departDate);
-    var toLabel = state.returnDate ? formatDisplayDate(state.returnDate) : t.selectDate;
-    return fromLabel + ' → ' + toLabel;
+    return formatDisplayDate(state.departDate);
+  }
+
+  // Format return date label
+  function formatReturnDateLabel() {
+    if (!state.returnDate) return t.selectDate;
+    return formatDisplayDate(state.returnDate);
   }
 
   function formatISODate(date) {
@@ -645,23 +645,24 @@
     return isSameDay(date, end);
   }
 
-  // Build calendar HTML - unified for both one-way and round-trip
-  function buildCalendarHTML() {
-    var viewDate = state.calendarViewDate;
+  // Build calendar HTML for a specific target ('depart' or 'return')
+  function buildCalendarHTML(target) {
+    var viewDate = target === 'return' ? state.returnCalendarViewDate : state.departCalendarViewDate;
     var year = viewDate.getFullYear();
     var month = viewDate.getMonth();
     var months = monthNames[lang] || monthNames.en;
     var days = dayNames[lang] || dayNames.en;
     var calendarDays = getCalendarDays(year, month);
     
-    var departDate = state.departDate ? new Date(state.departDate + 'T00:00:00') : null;
-    var returnDate = state.returnDate ? new Date(state.returnDate + 'T00:00:00') : null;
+    var selectedDate = target === 'return' 
+      ? (state.returnDate ? new Date(state.returnDate + 'T00:00:00') : null)
+      : (state.departDate ? new Date(state.departDate + 'T00:00:00') : null);
     
     var html = '<div class="srb-pw-calendar-header">' +
       '<span class="srb-pw-calendar-title">' + months[month] + ' ' + year + '</span>' +
       '<div class="srb-pw-calendar-nav">' +
-        '<button type="button" class="srb-pw-calendar-nav-btn" data-action="prev">' + icons.chevronLeft + '</button>' +
-        '<button type="button" class="srb-pw-calendar-nav-btn" data-action="next">' + icons.chevronRight + '</button>' +
+        '<button type="button" class="srb-pw-calendar-nav-btn" data-action="prev" data-target="' + target + '">' + icons.chevronLeft + '</button>' +
+        '<button type="button" class="srb-pw-calendar-nav-btn" data-action="next" data-target="' + target + '">' + icons.chevronRight + '</button>' +
       '</div>' +
     '</div>';
     
@@ -671,32 +672,34 @@
     }
     html += '</div>';
     
+    // Determine min date for return calendar
+    var minDisableDate = new Date();
+    minDisableDate.setHours(0, 0, 0, 0);
+    if (target === 'return' && state.departDate) {
+      minDisableDate = new Date(state.departDate + 'T00:00:00');
+    }
+    
     html += '<div class="srb-pw-calendar-days">';
     for (var j = 0; j < calendarDays.length; j++) {
       var dayInfo = calendarDays[j];
       var dayDate = dayInfo.date;
       var dateStr = formatISODate(dayDate);
-      var disabled = isDateDisabled(dayDate) || dayInfo.outside;
+      var disabled = dayDate < minDisableDate || dayInfo.outside;
       
-      var isDepartSelected = departDate && isSameDay(dayDate, departDate);
-      var isReturnSelected = returnDate && isSameDay(dayDate, returnDate);
-      var isInRange = state.tripType === 'roundtrip' && isDateInRange(dayDate, state.departDate, state.returnDate);
+      var isSelected = selectedDate && isSameDay(dayDate, selectedDate);
       var isTodayDay = isToday(dayDate);
       
       var classes = 'srb-pw-calendar-day';
       if (dayInfo.outside) classes += ' outside';
       if (isTodayDay && !dayInfo.outside) classes += ' today';
-      if (isDepartSelected || isReturnSelected) classes += ' selected';
-      if (isInRange) classes += ' in-range';
-      if (isDepartSelected && state.returnDate) classes += ' range-start';
-      if (isReturnSelected) classes += ' range-end';
+      if (isSelected) classes += ' selected';
       
       var style = '';
-      if (isDepartSelected || isReturnSelected) {
+      if (isSelected) {
         style = 'background-color: ' + primaryColor + ';';
       }
       
-      html += '<button type="button" class="' + classes + '" data-date="' + dateStr + '" ' +
+      html += '<button type="button" class="' + classes + '" data-date="' + dateStr + '" data-target="' + target + '" ' +
         (disabled ? 'disabled' : '') + 
         (style ? ' style="' + style + '"' : '') + '>' + 
         dayDate.getDate() + '</button>';
@@ -706,46 +709,20 @@
     return html;
   }
 
-  // Handle day selection - unified logic like the widget
-  function handleDayClick(dateStr) {
-    var clickedDate = new Date(dateStr + 'T00:00:00');
-    
-    if (state.tripType === 'oneway') {
-      // One-way: single selection, close immediately
-      state.departDate = dateStr;
-      state.calendarOpen = false;
+  // Handle day selection - simple single mode
+  function handleDayClick(dateStr, target) {
+    if (target === 'return') {
+      state.returnDate = dateStr;
+      state.returnCalendarOpen = false;
     } else {
-      // Round-trip: sequential selection
-      if (!state.departDate || state.returnDate) {
-        // Start fresh selection
-        state.departDate = dateStr;
+      state.departDate = dateStr;
+      state.departCalendarOpen = false;
+      // If return date is before new departure, clear it
+      if (state.returnDate && state.returnDate < dateStr) {
         state.returnDate = '';
-        // Keep calendar open for return date
-      } else {
-        // Already have depart date, now selecting return
-        var departDateObj = new Date(state.departDate + 'T00:00:00');
-        
-        if (clickedDate < departDateObj) {
-          // User clicked earlier date, restart selection
-          state.departDate = dateStr;
-          state.returnDate = '';
-          // Keep calendar open
-        } else {
-          // Valid return date selected
-          state.returnDate = dateStr;
-          state.calendarOpen = false;
-        }
       }
     }
-    
     render();
-  }
-
-  // Can close calendar logic
-  function canCloseCalendar() {
-    if (state.tripType === 'oneway') return true;
-    // Round-trip: can close if we don't have depart, or we have both dates
-    return !state.departDate || !!state.returnDate;
   }
 
   // Render function
@@ -817,29 +794,22 @@
       infantOptions += '<option value="' + inf + '"' + (state.infants === inf ? ' selected' : '') + '>' + inf + '</option>';
     }
 
-    // Determine date field label
-    var dateFieldLabel = isRoundTrip ? t.dates : t.departureDate;
-
     var html = '<div class="srb-pw">' +
       '<div class="srb-pw-card">' +
-        // Header
         '<div class="srb-pw-header" style="background-color: ' + primaryColor + ';">' +
           '<h2>' +
             '<span>▸ ' + t.bookTickets + '</span>' +
             (tagline ? '<span class="srb-pw-header-tagline">' + tagline + '</span>' : '') +
           '</h2>' +
         '</div>' +
-        // Body
         '<div class="srb-pw-body">' +
-          // Trip type toggle
           '<div class="srb-pw-trip-toggle">' +
             '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'oneway' ? ' active-oneway' : '') + '" data-trip="oneway">' + t.oneWay + '</button>' +
             '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'roundtrip' ? ' active-round' : '') + '" data-trip="roundtrip" style="' + (state.tripType === 'roundtrip' ? 'background-color: ' + primaryColor + ';' : '') + '">' + t.roundTrip + '</button>' +
             '<span class="srb-pw-trip-info"><span class="srb-pw-trip-info-icon">i</span>' + t.selectVoyage + '</span>' +
           '</div>' +
-          // Row 1: From, To, Date (unified single field)
+          // Row 1: From + To
           '<div class="srb-pw-fields-row">' +
-            // From
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
@@ -849,7 +819,6 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // To
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
@@ -859,24 +828,37 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Unified Date Field (single button for one-way or round-trip)
-            '<div class="srb-pw-field" id="srb-date-field">' +
+          '</div>' +
+          // Row 2: Departure + Return date fields
+          '<div class="srb-pw-fields-row" style="grid-template-columns: ' + (isRoundTrip ? 'repeat(2, 1fr)' : '1fr') + ';">' +
+            '<div class="srb-pw-field" id="srb-depart-date-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
                 '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + dateFieldLabel + '</label>' +
-                  '<button type="button" class="srb-pw-date-btn' + (!state.departDate ? ' placeholder' : '') + '" id="srb-date-btn">' + 
-                    formatTripDatesLabel() + 
+                  '<label class="srb-pw-field-label">' + t.departureDate + '</label>' +
+                  '<button type="button" class="srb-pw-date-btn' + (!state.departDate ? ' placeholder' : '') + '" id="srb-depart-date-btn">' + 
+                    formatDepartDateLabel() + 
                   '</button>' +
                 '</div>' +
               '</div>' +
             '</div>' +
+            (isRoundTrip ? (
+              '<div class="srb-pw-field" id="srb-return-date-field">' +
+                '<div class="srb-pw-field-inner">' +
+                  '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
+                  '<div class="srb-pw-field-content">' +
+                    '<label class="srb-pw-field-label">' + t.returnDate + '</label>' +
+                    '<button type="button" class="srb-pw-date-btn' + (!state.returnDate ? ' placeholder' : '') + '" id="srb-return-date-btn">' + 
+                      formatReturnDateLabel() + 
+                    '</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>'
+            ) : '') +
           '</div>' +
-          // Calendar dropdown - unified, rendered via JS positioning
-          (state.calendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-calendar">' + buildCalendarHTML() + '</div>' : '') +
-          // Passengers row
+          (state.departCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar">' + buildCalendarHTML('depart') + '</div>' : '') +
+          (state.returnCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar">' + buildCalendarHTML('return') + '</div>' : '') +
           '<div class="srb-pw-pax-row">' +
-            // Adult
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
@@ -886,7 +868,6 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Child
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
@@ -896,7 +877,6 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Infant
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.baby + '</div>' +
@@ -906,10 +886,8 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Search button
             '<button type="button" class="srb-pw-search-btn" id="srb-search" style="background-color: ' + primaryColor + ';">' + t.searchTrips + '</button>' +
           '</div>' +
-          // Branding
           '<div class="srb-pw-branding">' +
             t.poweredBy + ' <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" style="color: ' + primaryColor + ';">SriBooking.com</a>' +
           '</div>' +
@@ -917,48 +895,39 @@
       '</div>' +
     '</div>';
 
-    // Add backdrop if calendar is open
-    if (state.calendarOpen) {
+    if (state.departCalendarOpen || state.returnCalendarOpen) {
       html = '<div class="srb-pw-calendar-backdrop" id="srb-backdrop"></div>' + html;
     }
 
     container.innerHTML = html;
     bindEvents();
-    positionCalendar();
+    positionCalendars();
   }
 
-  // Position calendar dropdown - center vertically on trigger button
-  function positionCalendar() {
-    var calendar = container.querySelector('.srb-pw-calendar-dropdown');
+  function positionCalendars() {
+    positionCalendarFor('srb-depart-calendar', 'srb-depart-date-btn');
+    positionCalendarFor('srb-return-calendar', 'srb-return-date-btn');
+  }
+
+  function positionCalendarFor(calendarId, btnId) {
+    var calendar = document.getElementById(calendarId);
     if (!calendar) return;
-
-    var btn = document.getElementById('srb-date-btn');
+    var btn = document.getElementById(btnId);
     var body = container.querySelector('.srb-pw-body');
-    
     if (!btn || !body) return;
-
     var btnRect = btn.getBoundingClientRect();
     var bodyRect = body.getBoundingClientRect();
     var calWidth = 300;
     var calHeight = calendar.offsetHeight || 320;
-    
-    // Calculate left position - center on button, but keep within body bounds
     var btnCenterX = btnRect.left + btnRect.width / 2 - bodyRect.left;
     var left = btnCenterX - calWidth / 2;
-    
-    // Clamp to body bounds with padding
     var padding = 16;
     var maxLeft = bodyRect.width - calWidth - padding;
     left = Math.max(padding, Math.min(left, maxLeft));
-    
-    // Calculate top position - center vertically on button
     var btnCenterY = btnRect.top + btnRect.height / 2 - bodyRect.top;
     var top = btnCenterY - calHeight / 2;
-    
-    // Clamp to stay within body bounds (with some padding)
     var maxTop = bodyRect.height - calHeight - padding;
     top = Math.max(padding, Math.min(top, maxTop));
-    
     calendar.style.left = left + 'px';
     calendar.style.top = top + 'px';
     calendar.style.bottom = 'auto';
@@ -966,14 +935,13 @@
 
   // Bind events
   function bindEvents() {
-    // Backdrop click to close calendar (only if allowed)
+    // Backdrop click to close calendars
     var backdrop = document.getElementById('srb-backdrop');
     if (backdrop) {
       backdrop.addEventListener('click', function() {
-        if (canCloseCalendar()) {
-          state.calendarOpen = false;
-          render();
-        }
+        state.departCalendarOpen = false;
+        state.returnCalendarOpen = false;
+        render();
       });
     }
 
@@ -983,9 +951,9 @@
       btn.addEventListener('click', function() {
         var newType = this.getAttribute('data-trip');
         state.tripType = newType;
-        // Clear return date when switching to one-way
         if (newType === 'oneway') {
           state.returnDate = '';
+          state.returnCalendarOpen = false;
         }
         render();
       });
@@ -996,7 +964,7 @@
     if (fromSelect) {
       fromSelect.addEventListener('change', function() {
         state.from = this.value;
-        state.to = ''; // Reset destination
+        state.to = '';
         render();
       });
     }
@@ -1009,21 +977,31 @@
       });
     }
 
-    // Unified date button
-    var dateBtn = document.getElementById('srb-date-btn');
-    if (dateBtn) {
-      dateBtn.addEventListener('click', function(e) {
+    // Departure date button
+    var departBtn = document.getElementById('srb-depart-date-btn');
+    if (departBtn) {
+      departBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        state.calendarOpen = !state.calendarOpen;
-        if (state.calendarOpen) {
-          // Set initial view month
-          if (state.returnDate) {
-            state.calendarViewDate = new Date(state.returnDate + 'T00:00:00');
-          } else if (state.departDate) {
-            state.calendarViewDate = new Date(state.departDate + 'T00:00:00');
-          } else {
-            state.calendarViewDate = new Date();
-          }
+        state.returnCalendarOpen = false;
+        state.departCalendarOpen = !state.departCalendarOpen;
+        if (state.departCalendarOpen) {
+          state.departCalendarViewDate = state.departDate ? new Date(state.departDate + 'T00:00:00') : new Date();
+        }
+        render();
+      });
+    }
+
+    // Return date button
+    var returnBtn = document.getElementById('srb-return-date-btn');
+    if (returnBtn) {
+      returnBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        state.departCalendarOpen = false;
+        state.returnCalendarOpen = !state.returnCalendarOpen;
+        if (state.returnCalendarOpen) {
+          state.returnCalendarViewDate = state.returnDate 
+            ? new Date(state.returnDate + 'T00:00:00') 
+            : (state.departDate ? new Date(state.departDate + 'T00:00:00') : new Date());
         }
         render();
       });
@@ -1035,11 +1013,13 @@
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         var action = this.getAttribute('data-action');
-        var current = state.calendarViewDate;
+        var target = this.getAttribute('data-target');
+        var key = target === 'return' ? 'returnCalendarViewDate' : 'departCalendarViewDate';
+        var current = state[key];
         if (action === 'prev') {
-          state.calendarViewDate = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+          state[key] = new Date(current.getFullYear(), current.getMonth() - 1, 1);
         } else {
-          state.calendarViewDate = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+          state[key] = new Date(current.getFullYear(), current.getMonth() + 1, 1);
         }
         render();
       });
@@ -1051,7 +1031,8 @@
       dayBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         var dateStr = this.getAttribute('data-date');
-        handleDayClick(dateStr);
+        var target = this.getAttribute('data-target');
+        handleDayClick(dateStr, target);
       });
     });
 
