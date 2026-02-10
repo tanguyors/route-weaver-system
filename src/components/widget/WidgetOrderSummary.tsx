@@ -12,6 +12,8 @@ interface TripInfo {
   paxChild: number;
   paxInfant: number;
   price: number;
+  departureTime?: string;
+  arrivalTime?: string;
 }
 
 interface PickupInfo {
