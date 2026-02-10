@@ -383,8 +383,7 @@ export const WidgetBookingDetails = ({
               <Input
                 placeholder="Name"
                 value={customer.full_name}
-                onChange={(e) => setCustomer(prev => ({ ...prev, full_name: e.target.value }))}
-                className="mt-1"
+                onChange={(e) => handleCustomerNameChange(e.target.value)}
               />
               {errors.full_name && (
                 <p className="text-sm text-red-500 mt-1">{errors.full_name}</p>
