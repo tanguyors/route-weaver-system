@@ -101,7 +101,7 @@ const WidgetBookingNew = () => {
   // Poll booking status after online payment
   const pollBookingStatus = useCallback(async (pollBookingId: string) => {
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 150; // 150 x 2s = 5 minutes timeout
 
     const poll = async () => {
       attempts++;
