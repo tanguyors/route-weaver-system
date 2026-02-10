@@ -395,6 +395,7 @@ const WidgetBookingNew = () => {
           'sribooking_payment',
           `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
         );
+        paymentPopupRef.current = popup;
 
         setStep('payment-pending');
         pollBookingStatus(result.booking_id);
@@ -403,6 +404,7 @@ const WidgetBookingNew = () => {
           const popupCheck = setInterval(() => {
             if (popup.closed) {
               clearInterval(popupCheck);
+              paymentPopupRef.current = null;
             }
           }, 1000);
         }
