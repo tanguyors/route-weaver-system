@@ -375,9 +375,9 @@ export const WidgetBookingDetails = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <Label>* Name (English Only*)</Label>
+              <Label>* Full Name</Label>
               <Input
-                placeholder="Name"
+                placeholder="Full Name"
                 value={customer.full_name}
                 onChange={(e) => handleCustomerNameChange(e.target.value)}
               />
