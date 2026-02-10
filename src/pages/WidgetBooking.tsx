@@ -531,6 +531,7 @@ const WidgetBooking = () => {
     baseSteps.push('passengers');
     baseSteps.push('pickup-dropoff');
     baseSteps.push('confirm');
+    baseSteps.push('payment');
     return baseSteps;
   };
 
