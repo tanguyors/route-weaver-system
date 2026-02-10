@@ -240,12 +240,44 @@ export const WidgetBookingDetails = ({
     });
   };
 
-  const updatePassenger = (index: number, field: keyof PassengerInfo, value: string) => {
-    setPassengers(prev => {
+  const updateDeparturePassenger = (index: number, field: keyof PassengerInfo, value: string) => {
+    setDeparturePassengers(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
+  };
+
+  const updateReturnPassenger = (index: number, field: keyof PassengerInfo, value: string) => {
+    setReturnPassengers(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  // Sync booker info to departure passenger 1
+  const handleBookerIsPassengerChange = (checked: boolean) => {
+    setBookerIsPassenger(checked);
+    if (checked) {
+      setDeparturePassengers(prev => {
+        const updated = [...prev];
+        updated[0] = { ...updated[0], name: customer.full_name };
+        return updated;
+      });
+    }
+  };
+
+  // Keep passenger 1 synced with customer name when bookerIsPassenger is on
+  const handleCustomerNameChange = (name: string) => {
+    setCustomer(prev => ({ ...prev, full_name: name }));
+    if (bookerIsPassenger) {
+      setDeparturePassengers(prev => {
+        const updated = [...prev];
+        updated[0] = { ...updated[0], name };
+        return updated;
+      });
+    }
   };
 
   const handleSubmit = () => {
@@ -262,23 +294,45 @@ export const WidgetBookingDetails = ({
       return;
     }
 
-    // Validate all passengers - all fields are required
-    for (let i = 0; i < passengers.length; i++) {
-      const p = passengers[i];
+    // Validate departure passengers
+    for (let i = 0; i < departurePassengers.length; i++) {
+      const p = departurePassengers[i];
       if (!p.name.trim()) {
-        setErrors({ [`passenger_${i}_name`]: `Passenger ${i + 1}: Name is required` });
-        setExpandedPassenger(i);
+        setErrors({ [`dep_passenger_${i}_name`]: `Departure Passenger ${i + 1}: Name is required` });
+        setExpandedDeparturePassenger(i);
         return;
       }
       if (!p.age.trim()) {
-        setErrors({ [`passenger_${i}_age`]: `Passenger ${i + 1}: Age is required` });
-        setExpandedPassenger(i);
+        setErrors({ [`dep_passenger_${i}_age`]: `Departure Passenger ${i + 1}: Age is required` });
+        setExpandedDeparturePassenger(i);
         return;
       }
       if (!p.idNumber.trim()) {
-        setErrors({ [`passenger_${i}_idNumber`]: `Passenger ${i + 1}: ID Number is required` });
-        setExpandedPassenger(i);
+        setErrors({ [`dep_passenger_${i}_idNumber`]: `Departure Passenger ${i + 1}: ID Number is required` });
+        setExpandedDeparturePassenger(i);
         return;
+      }
+    }
+
+    // Validate return passengers if separate
+    if (returnTrip && !samePassengers) {
+      for (let i = 0; i < returnPassengers.length; i++) {
+        const p = returnPassengers[i];
+        if (!p.name.trim()) {
+          setErrors({ [`ret_passenger_${i}_name`]: `Return Passenger ${i + 1}: Name is required` });
+          setExpandedReturnPassenger(i);
+          return;
+        }
+        if (!p.age.trim()) {
+          setErrors({ [`ret_passenger_${i}_age`]: `Return Passenger ${i + 1}: Age is required` });
+          setExpandedReturnPassenger(i);
+          return;
+        }
+        if (!p.idNumber.trim()) {
+          setErrors({ [`ret_passenger_${i}_idNumber`]: `Return Passenger ${i + 1}: ID Number is required` });
+          setExpandedReturnPassenger(i);
+          return;
+        }
       }
     }
 
@@ -294,6 +348,8 @@ export const WidgetBookingDetails = ({
     }
 
     setErrors({});
+    // Use departure passengers as the main passengers list
+    const finalPassengers = samePassengers ? departurePassengers : departurePassengers;
     onSubmit({
       customer: {
         full_name: customer.full_name,
@@ -301,7 +357,7 @@ export const WidgetBookingDetails = ({
         phone: `${customer.phoneCode}${customer.phoneNumber}`,
         country: customer.country,
       },
-      passengers,
+      passengers: finalPassengers,
     });
   };
 
