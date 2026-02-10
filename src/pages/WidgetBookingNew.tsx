@@ -80,6 +80,7 @@ const WidgetBookingNew = () => {
   
   // Track if we've done auto-prefill
   const [hasPrefilled, setHasPrefilled] = useState(false);
+  const paymentPopupRef = useRef<Window | null>(null);
 
   const {
     data,
