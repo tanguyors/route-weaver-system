@@ -794,29 +794,22 @@
       infantOptions += '<option value="' + inf + '"' + (state.infants === inf ? ' selected' : '') + '>' + inf + '</option>';
     }
 
-    // Determine date field label
-    var dateFieldLabel = isRoundTrip ? t.dates : t.departureDate;
-
     var html = '<div class="srb-pw">' +
       '<div class="srb-pw-card">' +
-        // Header
         '<div class="srb-pw-header" style="background-color: ' + primaryColor + ';">' +
           '<h2>' +
             '<span>▸ ' + t.bookTickets + '</span>' +
             (tagline ? '<span class="srb-pw-header-tagline">' + tagline + '</span>' : '') +
           '</h2>' +
         '</div>' +
-        // Body
         '<div class="srb-pw-body">' +
-          // Trip type toggle
           '<div class="srb-pw-trip-toggle">' +
             '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'oneway' ? ' active-oneway' : '') + '" data-trip="oneway">' + t.oneWay + '</button>' +
             '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'roundtrip' ? ' active-round' : '') + '" data-trip="roundtrip" style="' + (state.tripType === 'roundtrip' ? 'background-color: ' + primaryColor + ';' : '') + '">' + t.roundTrip + '</button>' +
             '<span class="srb-pw-trip-info"><span class="srb-pw-trip-info-icon">i</span>' + t.selectVoyage + '</span>' +
           '</div>' +
-          // Row 1: From, To, Date (unified single field)
+          // Row 1: From + To
           '<div class="srb-pw-fields-row">' +
-            // From
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
@@ -826,7 +819,6 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // To
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
@@ -836,24 +828,37 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Unified Date Field (single button for one-way or round-trip)
-            '<div class="srb-pw-field" id="srb-date-field">' +
+          '</div>' +
+          // Row 2: Departure + Return date fields
+          '<div class="srb-pw-fields-row" style="grid-template-columns: ' + (isRoundTrip ? 'repeat(2, 1fr)' : '1fr') + ';">' +
+            '<div class="srb-pw-field" id="srb-depart-date-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
                 '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + dateFieldLabel + '</label>' +
-                  '<button type="button" class="srb-pw-date-btn' + (!state.departDate ? ' placeholder' : '') + '" id="srb-date-btn">' + 
-                    formatTripDatesLabel() + 
+                  '<label class="srb-pw-field-label">' + t.departureDate + '</label>' +
+                  '<button type="button" class="srb-pw-date-btn' + (!state.departDate ? ' placeholder' : '') + '" id="srb-depart-date-btn">' + 
+                    formatDepartDateLabel() + 
                   '</button>' +
                 '</div>' +
               '</div>' +
             '</div>' +
+            (isRoundTrip ? (
+              '<div class="srb-pw-field" id="srb-return-date-field">' +
+                '<div class="srb-pw-field-inner">' +
+                  '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
+                  '<div class="srb-pw-field-content">' +
+                    '<label class="srb-pw-field-label">' + t.returnDate + '</label>' +
+                    '<button type="button" class="srb-pw-date-btn' + (!state.returnDate ? ' placeholder' : '') + '" id="srb-return-date-btn">' + 
+                      formatReturnDateLabel() + 
+                    '</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>'
+            ) : '') +
           '</div>' +
-          // Calendar dropdown - unified, rendered via JS positioning
-          (state.calendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-calendar">' + buildCalendarHTML() + '</div>' : '') +
-          // Passengers row
+          (state.departCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar">' + buildCalendarHTML('depart') + '</div>' : '') +
+          (state.returnCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar">' + buildCalendarHTML('return') + '</div>' : '') +
           '<div class="srb-pw-pax-row">' +
-            // Adult
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
@@ -863,7 +868,6 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Child
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
@@ -873,7 +877,6 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Infant
             '<div class="srb-pw-field">' +
               '<div class="srb-pw-field-inner">' +
                 '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.baby + '</div>' +
@@ -883,10 +886,8 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            // Search button
             '<button type="button" class="srb-pw-search-btn" id="srb-search" style="background-color: ' + primaryColor + ';">' + t.searchTrips + '</button>' +
           '</div>' +
-          // Branding
           '<div class="srb-pw-branding">' +
             t.poweredBy + ' <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" style="color: ' + primaryColor + ';">SriBooking.com</a>' +
           '</div>' +
@@ -894,48 +895,39 @@
       '</div>' +
     '</div>';
 
-    // Add backdrop if calendar is open
-    if (state.calendarOpen) {
+    if (state.departCalendarOpen || state.returnCalendarOpen) {
       html = '<div class="srb-pw-calendar-backdrop" id="srb-backdrop"></div>' + html;
     }
 
     container.innerHTML = html;
     bindEvents();
-    positionCalendar();
+    positionCalendars();
   }
 
-  // Position calendar dropdown - center vertically on trigger button
-  function positionCalendar() {
-    var calendar = container.querySelector('.srb-pw-calendar-dropdown');
+  function positionCalendars() {
+    positionCalendarFor('srb-depart-calendar', 'srb-depart-date-btn');
+    positionCalendarFor('srb-return-calendar', 'srb-return-date-btn');
+  }
+
+  function positionCalendarFor(calendarId, btnId) {
+    var calendar = document.getElementById(calendarId);
     if (!calendar) return;
-
-    var btn = document.getElementById('srb-date-btn');
+    var btn = document.getElementById(btnId);
     var body = container.querySelector('.srb-pw-body');
-    
     if (!btn || !body) return;
-
     var btnRect = btn.getBoundingClientRect();
     var bodyRect = body.getBoundingClientRect();
     var calWidth = 300;
     var calHeight = calendar.offsetHeight || 320;
-    
-    // Calculate left position - center on button, but keep within body bounds
     var btnCenterX = btnRect.left + btnRect.width / 2 - bodyRect.left;
     var left = btnCenterX - calWidth / 2;
-    
-    // Clamp to body bounds with padding
     var padding = 16;
     var maxLeft = bodyRect.width - calWidth - padding;
     left = Math.max(padding, Math.min(left, maxLeft));
-    
-    // Calculate top position - center vertically on button
     var btnCenterY = btnRect.top + btnRect.height / 2 - bodyRect.top;
     var top = btnCenterY - calHeight / 2;
-    
-    // Clamp to stay within body bounds (with some padding)
     var maxTop = bodyRect.height - calHeight - padding;
     top = Math.max(padding, Math.min(top, maxTop));
-    
     calendar.style.left = left + 'px';
     calendar.style.top = top + 'px';
     calendar.style.bottom = 'auto';
