@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWidgetLanguage, useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
-import type { DateRange } from 'react-day-picker';
+
 import { widgetLogger } from '@/lib/widgetLogger';
 import WidgetDebugPanel from '@/components/widget/WidgetDebugPanel';
 
