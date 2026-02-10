@@ -145,6 +145,10 @@ const WidgetBookingNew = () => {
         setTimeout(poll, 2000);
       } catch {
         if (attempts >= maxAttempts) {
+          if (paymentPopupRef.current && !paymentPopupRef.current.closed) {
+            paymentPopupRef.current.close();
+            paymentPopupRef.current = null;
+          }
           toast.error('Unable to verify payment. Please contact support.');
           setStep('payment');
           return;
