@@ -361,11 +361,7 @@ export const WidgetBookingDetails = ({
     });
   };
 
-  // Trip info grouped for display
-  const trips = [
-    { ...outbound, isReturn: false },
-    ...(returnTrip ? [{ ...returnTrip, isReturn: true }] : []),
-  ];
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
