@@ -6,7 +6,7 @@ import { ChevronLeft, Loader2, Wallet, Building, CreditCard, Landmark } from 'lu
 import { format } from 'date-fns';
 import { useWidgetCurrency } from '@/contexts/WidgetLanguageContext';
 
-export type PaymentMethod = 'cash' | 'bank_transfer' | 'xendit' | 'paypal';
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'doku' | 'paypal';
 
 const paymentMethods = [
   {
@@ -22,8 +22,8 @@ const paymentMethods = [
     icon: Landmark,
   },
   {
-    id: 'xendit' as PaymentMethod,
-    name: 'Online Payment (Xendit)',
+    id: 'doku' as PaymentMethod,
+    name: 'Online Payment',
     description: 'Pay via e-wallet, virtual account, QRIS, or bank transfer',
     icon: CreditCard,
   },

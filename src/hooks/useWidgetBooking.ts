@@ -394,7 +394,7 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     promoCode?: string,
     selectedAddons?: SelectedAddon[],
     returnDepartureId?: string | null,
-    paymentMethod?: 'cash' | 'bank_transfer' | 'xendit' | 'paypal',
+    paymentMethod?: 'cash' | 'bank_transfer' | 'doku' | 'paypal',
     successRedirectUrl?: string,
     failureRedirectUrl?: string
   ) => {
