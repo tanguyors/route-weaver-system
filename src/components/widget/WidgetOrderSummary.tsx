@@ -57,6 +57,17 @@ export const WidgetOrderSummary = ({
 }: WidgetOrderSummaryProps) => {
   const { formatPrice } = useWidgetCurrency();
 
+  // Calculate pickup time: departure time - beforeDepartureMinutes
+  const calcPickupTime = (departureTime: string | undefined, beforeMinutes: number | undefined): string | null => {
+    if (!departureTime || !beforeMinutes) return null;
+    const [hours, minutes] = departureTime.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return null;
+    const totalMin = hours * 60 + minutes - beforeMinutes;
+    const h = Math.floor(((totalMin % 1440) + 1440) % 1440 / 60);
+    const m = ((totalMin % 1440) + 1440) % 1440 % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+
   // For private boats, pickups are included (price = 0 in total)
   const pickupsTotal = isPrivateBoat ? 0 : pickups.reduce((sum, p) => sum + p.price, 0);
   const subtotal = (outbound?.price || 0) + (returnTrip?.price || 0) + addonsTotal + pickupsTotal;
