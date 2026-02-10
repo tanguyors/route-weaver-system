@@ -393,7 +393,10 @@ export const useWidgetBooking = (widgetKey: string | null) => {
     paxChild: number,
     promoCode?: string,
     selectedAddons?: SelectedAddon[],
-    returnDepartureId?: string | null
+    returnDepartureId?: string | null,
+    paymentMethod?: 'cash' | 'bank_transfer' | 'xendit' | 'paypal',
+    successRedirectUrl?: string,
+    failureRedirectUrl?: string
   ) => {
     if (!widgetKey) throw new Error('No widget key');
 
@@ -411,6 +414,9 @@ export const useWidgetBooking = (widgetKey: string | null) => {
           pax_child: paxChild,
           promo_code: promoCode,
           addons: selectedAddons,
+          payment_method: paymentMethod || 'cash',
+          success_redirect_url: successRedirectUrl,
+          failure_redirect_url: failureRedirectUrl,
         }),
       }
     );
