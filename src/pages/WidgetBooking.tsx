@@ -199,6 +199,10 @@ const WidgetBooking = () => {
         }
 
         if (attempts >= maxAttempts) {
+          if (paymentPopupRef.current && !paymentPopupRef.current.closed) {
+            paymentPopupRef.current.close();
+            paymentPopupRef.current = null;
+          }
           toast.error('Payment verification timed out. Please contact support.');
           setStep('payment');
           return;
