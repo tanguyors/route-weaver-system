@@ -135,8 +135,9 @@ export const WidgetSearchForm = ({
 }: WidgetSearchFormProps) => {
   const { t } = useWidgetLanguage();
   const [departureDateOpen, setDepartureDateOpen] = useState(false);
+  const [returnDateOpen, setReturnDateOpen] = useState(false);
 
-  // With the unified calendar, we must ensure returnDate is cleared when switching back to one-way.
+  // Clear returnDate when switching to one-way.
   useEffect(() => {
     if (tripType === 'one-way' && returnDate) {
       onReturnDateChange('');
