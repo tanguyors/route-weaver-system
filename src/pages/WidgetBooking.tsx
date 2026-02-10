@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWidgetBooking, SelectedAddon } from '@/hooks/useWidgetBooking';
 import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
@@ -122,6 +122,7 @@ const WidgetBooking = () => {
   });
   const [bookingResult, setBookingResult] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const paymentPopupRef = useRef<Window | null>(null);
 
   const {
     data,
@@ -198,6 +199,10 @@ const WidgetBooking = () => {
         }
 
         if (attempts >= maxAttempts) {
+          if (paymentPopupRef.current && !paymentPopupRef.current.closed) {
+            paymentPopupRef.current.close();
+            paymentPopupRef.current = null;
+          }
           toast.error('Payment verification timed out. Please contact support.');
           setStep('payment');
           return;
@@ -206,6 +211,10 @@ const WidgetBooking = () => {
         setTimeout(poll, 2000);
       } catch (err) {
         if (attempts >= maxAttempts) {
+          if (paymentPopupRef.current && !paymentPopupRef.current.closed) {
+            paymentPopupRef.current.close();
+            paymentPopupRef.current = null;
+          }
           toast.error('Unable to verify payment. Please contact support.');
           setStep('payment');
           return;
@@ -474,6 +483,7 @@ const WidgetBooking = () => {
           'sribooking_payment',
           `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
         );
+        paymentPopupRef.current = popup;
 
         // Move to payment-pending step and start polling
         setStep('payment-pending');
@@ -484,7 +494,7 @@ const WidgetBooking = () => {
           const popupCheck = setInterval(() => {
             if (popup.closed) {
               clearInterval(popupCheck);
-              // Polling is already running, nothing extra needed
+              paymentPopupRef.current = null;
             }
           }, 1000);
         }

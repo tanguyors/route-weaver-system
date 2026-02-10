@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWidgetBooking, SelectedAddon, PrivateBoat } from '@/hooks/useWidgetBooking';
 import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
@@ -80,6 +80,7 @@ const WidgetBookingNew = () => {
   
   // Track if we've done auto-prefill
   const [hasPrefilled, setHasPrefilled] = useState(false);
+  const paymentPopupRef = useRef<Window | null>(null);
 
   const {
     data,
@@ -132,6 +133,11 @@ const WidgetBookingNew = () => {
         }
 
         if (attempts >= maxAttempts) {
+          // Close the payment popup window if still open
+          if (paymentPopupRef.current && !paymentPopupRef.current.closed) {
+            paymentPopupRef.current.close();
+            paymentPopupRef.current = null;
+          }
           toast.error('Payment verification timed out. Please contact support.');
           setStep('payment');
           return;
@@ -140,6 +146,10 @@ const WidgetBookingNew = () => {
         setTimeout(poll, 2000);
       } catch {
         if (attempts >= maxAttempts) {
+          if (paymentPopupRef.current && !paymentPopupRef.current.closed) {
+            paymentPopupRef.current.close();
+            paymentPopupRef.current = null;
+          }
           toast.error('Unable to verify payment. Please contact support.');
           setStep('payment');
           return;
@@ -386,6 +396,7 @@ const WidgetBookingNew = () => {
           'sribooking_payment',
           `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
         );
+        paymentPopupRef.current = popup;
 
         setStep('payment-pending');
         pollBookingStatus(result.booking_id);
@@ -394,6 +405,7 @@ const WidgetBookingNew = () => {
           const popupCheck = setInterval(() => {
             if (popup.closed) {
               clearInterval(popupCheck);
+              paymentPopupRef.current = null;
             }
           }, 1000);
         }
