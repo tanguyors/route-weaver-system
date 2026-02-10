@@ -591,7 +591,7 @@ async function createXenditPayment(
 
     console.log('Creating Xendit invoice:', JSON.stringify(payload));
 
-    const response = await fetch('https://api.xendit.co/v2/invoices', {
+    const response = await fetch('https://api.xendit.co/v1/invoices', {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${btoa(xenditKey + ':')}`,
