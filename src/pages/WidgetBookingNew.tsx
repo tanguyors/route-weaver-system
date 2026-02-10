@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWidgetBooking, SelectedAddon, PrivateBoat } from '@/hooks/useWidgetBooking';
 import { useIframeHeightMessenger } from '@/hooks/useIframeHeightMessenger';
@@ -15,6 +15,7 @@ import WidgetDebugPanel from '@/components/widget/WidgetDebugPanel';
 import { Card } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PassengerInfo {
   name: string;
@@ -96,6 +97,81 @@ const WidgetBookingNew = () => {
     getPricing,
     createBooking,
   } = useWidgetBooking(widgetKey);
+
+  // Poll booking status after online payment
+  const pollBookingStatus = useCallback(async (pollBookingId: string) => {
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const { data: bookingData } = await supabase
+          .from('bookings')
+          .select('id, status, total_amount')
+          .eq('id', pollBookingId)
+          .single();
+
+        if (bookingData?.status === 'confirmed') {
+          const { data: ticketData } = await supabase
+            .from('tickets')
+            .select('id, qr_token')
+            .eq('booking_id', pollBookingId)
+            .single();
+
+          setBookingResult((prev: any) => ({
+            ...prev,
+            booking_id: pollBookingId,
+            ticket_id: ticketData?.id,
+            qr_token: ticketData?.qr_token,
+            total_amount: bookingData.total_amount,
+          }));
+          setStep('finish');
+          toast.success('Payment confirmed! Your booking is ready.');
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          toast.error('Payment verification timed out. Please contact support.');
+          setStep('payment');
+          return;
+        }
+
+        setTimeout(poll, 2000);
+      } catch {
+        if (attempts >= maxAttempts) {
+          toast.error('Unable to verify payment. Please contact support.');
+          setStep('payment');
+          return;
+        }
+        setTimeout(poll, 2000);
+      }
+    };
+
+    poll();
+  }, []);
+
+  // Handle return from payment platform (URL params)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment_status');
+    const returnBookingId = params.get('booking_id');
+
+    if (paymentStatus && returnBookingId) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('payment_status');
+      cleanUrl.searchParams.delete('booking_id');
+      window.history.replaceState({}, '', cleanUrl.toString());
+
+      if (paymentStatus === 'success') {
+        setStep('payment-pending');
+        pollBookingStatus(returnBookingId);
+      } else {
+        toast.error('Payment was not completed. Please select another payment method.');
+        setStep('payment');
+      }
+    }
+  }, [pollBookingStatus]);
 
   // Auto-prefill origin/destination from URL params after data loads
   useEffect(() => {
@@ -273,6 +349,12 @@ const WidgetBookingNew = () => {
           },
         }));
 
+      // Build redirect URLs for online payment
+      const currentUrl = window.location.href.split('?')[0];
+      const baseParams = new URLSearchParams(window.location.search);
+      const successUrl = `${currentUrl}?${baseParams.toString()}&payment_status=success&booking_id=`;
+      const failureUrl = `${currentUrl}?${baseParams.toString()}&payment_status=failed&booking_id=`;
+
       const result = await createBooking(
         selectedOutbound.departure.id,
         customerData,
@@ -280,7 +362,10 @@ const WidgetBookingNew = () => {
         paxChild,
         promoCode,
         pickupAddons,
-        selectedReturn?.departure?.id || null
+        selectedReturn?.departure?.id || null,
+        paymentMethod,
+        successUrl,
+        failureUrl
       );
 
       setBookingResult({
@@ -289,6 +374,39 @@ const WidgetBookingNew = () => {
         customer_name: customerData.full_name,
         customer_email: customerData.email,
       });
+
+      // If online payment: open payment gateway in a popup window
+      if (result.requires_payment && result.payment_redirect_url) {
+        const width = 500;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const popup = window.open(
+          result.payment_redirect_url,
+          'sribooking_payment',
+          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+        );
+
+        setStep('payment-pending');
+        pollBookingStatus(result.booking_id);
+
+        if (popup) {
+          const popupCheck = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(popupCheck);
+            }
+          }, 1000);
+        }
+        return;
+      }
+
+      if (result.requires_payment && !result.payment_redirect_url) {
+        toast.error('Payment gateway unavailable. Please select another payment method.');
+        setStep('payment');
+        return;
+      }
+
+      // For cash/bank_transfer: go directly to success
       setStep('finish');
       toast.success('Booking confirmed!');
     } catch (err: any) {
@@ -530,6 +648,17 @@ const WidgetBookingNew = () => {
             onSubmit={handlePaymentSubmit}
             onBack={() => setStep('details')}
           />
+        )}
+
+        {/* Payment Pending */}
+        {step === 'payment-pending' && (
+          <Card className="p-8 text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+            <h2 className="text-xl font-bold mb-2">Verifying Payment...</h2>
+            <p className="text-muted-foreground">
+              Please complete the payment in the popup window. We'll confirm your booking automatically.
+            </p>
+          </Card>
         )}
 
         {/* Success */}
