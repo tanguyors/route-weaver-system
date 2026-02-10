@@ -935,14 +935,13 @@
 
   // Bind events
   function bindEvents() {
-    // Backdrop click to close calendar (only if allowed)
+    // Backdrop click to close calendars
     var backdrop = document.getElementById('srb-backdrop');
     if (backdrop) {
       backdrop.addEventListener('click', function() {
-        if (canCloseCalendar()) {
-          state.calendarOpen = false;
-          render();
-        }
+        state.departCalendarOpen = false;
+        state.returnCalendarOpen = false;
+        render();
       });
     }
 
@@ -952,9 +951,9 @@
       btn.addEventListener('click', function() {
         var newType = this.getAttribute('data-trip');
         state.tripType = newType;
-        // Clear return date when switching to one-way
         if (newType === 'oneway') {
           state.returnDate = '';
+          state.returnCalendarOpen = false;
         }
         render();
       });
@@ -965,7 +964,7 @@
     if (fromSelect) {
       fromSelect.addEventListener('change', function() {
         state.from = this.value;
-        state.to = ''; // Reset destination
+        state.to = '';
         render();
       });
     }
@@ -978,21 +977,31 @@
       });
     }
 
-    // Unified date button
-    var dateBtn = document.getElementById('srb-date-btn');
-    if (dateBtn) {
-      dateBtn.addEventListener('click', function(e) {
+    // Departure date button
+    var departBtn = document.getElementById('srb-depart-date-btn');
+    if (departBtn) {
+      departBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        state.calendarOpen = !state.calendarOpen;
-        if (state.calendarOpen) {
-          // Set initial view month
-          if (state.returnDate) {
-            state.calendarViewDate = new Date(state.returnDate + 'T00:00:00');
-          } else if (state.departDate) {
-            state.calendarViewDate = new Date(state.departDate + 'T00:00:00');
-          } else {
-            state.calendarViewDate = new Date();
-          }
+        state.returnCalendarOpen = false;
+        state.departCalendarOpen = !state.departCalendarOpen;
+        if (state.departCalendarOpen) {
+          state.departCalendarViewDate = state.departDate ? new Date(state.departDate + 'T00:00:00') : new Date();
+        }
+        render();
+      });
+    }
+
+    // Return date button
+    var returnBtn = document.getElementById('srb-return-date-btn');
+    if (returnBtn) {
+      returnBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        state.departCalendarOpen = false;
+        state.returnCalendarOpen = !state.returnCalendarOpen;
+        if (state.returnCalendarOpen) {
+          state.returnCalendarViewDate = state.returnDate 
+            ? new Date(state.returnDate + 'T00:00:00') 
+            : (state.departDate ? new Date(state.departDate + 'T00:00:00') : new Date());
         }
         render();
       });
@@ -1004,11 +1013,13 @@
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         var action = this.getAttribute('data-action');
-        var current = state.calendarViewDate;
+        var target = this.getAttribute('data-target');
+        var key = target === 'return' ? 'returnCalendarViewDate' : 'departCalendarViewDate';
+        var current = state[key];
         if (action === 'prev') {
-          state.calendarViewDate = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+          state[key] = new Date(current.getFullYear(), current.getMonth() - 1, 1);
         } else {
-          state.calendarViewDate = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+          state[key] = new Date(current.getFullYear(), current.getMonth() + 1, 1);
         }
         render();
       });
@@ -1020,7 +1031,8 @@
       dayBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         var dateStr = this.getAttribute('data-date');
-        handleDayClick(dateStr);
+        var target = this.getAttribute('data-target');
+        handleDayClick(dateStr, target);
       });
     });
 
