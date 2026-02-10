@@ -35,10 +35,12 @@ interface BookingRequest {
   pax_child: number;
   promo_code?: string;
   addons?: SelectedAddon[];
+  payment_method?: 'cash' | 'bank_transfer' | 'xendit' | 'paypal';
+  success_redirect_url?: string;
+  failure_redirect_url?: string;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -162,7 +164,6 @@ serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     const depDate = departure.departure_date;
 
-    // Find applicable price rule
     for (const rule of priceRules || []) {
       if (rule.rule_type === 'seasonal' && rule.start_date && rule.end_date) {
         if (depDate >= rule.start_date && depDate <= rule.end_date) {
@@ -181,7 +182,6 @@ serve(async (req) => {
     // Calculate return trip pricing if applicable
     let returnSubtotal = 0;
     if (returnDeparture) {
-      // Get pricing for return trip
       const { data: returnPriceRules } = await supabase
         .from('price_rules')
         .select('*')
@@ -248,7 +248,6 @@ serve(async (req) => {
               discountAmount = discount.discount_value;
             }
             
-            // Increment usage count
             await supabase
               .from('discount_rules')
               .update({ usage_count: discount.usage_count + 1 })
@@ -327,7 +326,6 @@ serve(async (req) => {
     }
 
     // 8. ATOMIC: Lock capacity and create booking
-    // First, lock the outbound departure row
     const newReserved = departure.capacity_reserved + totalPax;
     const newStatus = newReserved >= departure.capacity_total ? 'sold_out' : 'open';
 
@@ -338,7 +336,7 @@ serve(async (req) => {
         status: newStatus
       })
       .eq('id', body.departure_id)
-      .eq('capacity_reserved', departure.capacity_reserved); // Optimistic lock
+      .eq('capacity_reserved', departure.capacity_reserved);
 
     if (lockError) {
       console.error('Failed to lock capacity:', lockError);
@@ -363,7 +361,6 @@ serve(async (req) => {
         .eq('capacity_reserved', returnDeparture.capacity_reserved);
 
       if (returnLockError) {
-        // Rollback outbound capacity
         await supabase
           .from('departures')
           .update({ 
@@ -380,6 +377,12 @@ serve(async (req) => {
       }
     }
 
+    // Determine booking status based on payment method
+    const paymentMethod = body.payment_method || 'cash';
+    const isOnlinePayment = paymentMethod === 'xendit' || paymentMethod === 'paypal';
+    // Use 'pending' for all (the enum only supports: pending, confirmed, cancelled, refunded)
+    const bookingStatus = 'pending';
+
     // 9. Create booking
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
@@ -394,7 +397,7 @@ serve(async (req) => {
         subtotal_amount: subtotal,
         discount_amount: discountAmount,
         total_amount: totalAmount,
-        status: 'pending',
+        status: bookingStatus,
         currency: 'IDR',
       })
       .select('id')
@@ -410,7 +413,6 @@ serve(async (req) => {
         })
         .eq('id', body.departure_id);
       
-      // Rollback return capacity if applicable
       if (returnDeparture) {
         await supabase
           .from('departures')
@@ -443,55 +445,84 @@ serve(async (req) => {
 
       if (addonsError) {
         console.error('Failed to create booking addons:', addonsError);
-        // Don't fail the booking, just log the error
       } else {
         console.log('Created', addons.length, 'booking addon records');
       }
     }
 
-    // 11. Create ticket with QR token
-    const { data: ticket, error: ticketError } = await supabase
-      .from('tickets')
-      .insert({
-        booking_id: booking.id,
-        status: 'pending',
-      })
-      .select('id, qr_token')
-      .single();
+    // For non-online payments: create ticket and commission immediately
+    let ticket: any = null;
+    if (!isOnlinePayment) {
+      // 11. Create ticket with QR token
+      const { data: ticketData, error: ticketError } = await supabase
+        .from('tickets')
+        .insert({
+          booking_id: booking.id,
+          status: 'pending',
+        })
+        .select('id, qr_token')
+        .single();
 
-    if (ticketError) {
-      console.error('Ticket creation failed:', ticketError);
+      if (ticketError) {
+        console.error('Ticket creation failed:', ticketError);
+      }
+      ticket = ticketData;
+
+      // 12. Create commission record
+      const { data: partner } = await supabase
+        .from('partners')
+        .select('commission_percent')
+        .eq('id', partnerId)
+        .single();
+
+      const platformFeePercent = partner?.commission_percent || 7;
+      const platformFeeAmount = totalAmount * (platformFeePercent / 100);
+      const partnerNetAmount = totalAmount - platformFeeAmount;
+
+      await supabase.from('commission_records').insert({
+        booking_id: booking.id,
+        partner_id: partnerId,
+        gross_amount: totalAmount,
+        platform_fee_percent: platformFeePercent,
+        platform_fee_amount: platformFeeAmount,
+        partner_net_amount: partnerNetAmount,
+        currency: 'IDR',
+      });
     }
 
-    // 12. Get partner's commission rate and create commission record
-    const { data: partner } = await supabase
-      .from('partners')
-      .select('commission_percent')
-      .eq('id', partnerId)
-      .single();
+    // For online payments: create payment session and return redirect URL
+    let paymentRedirectUrl: string | null = null;
 
-    const platformFeePercent = partner?.commission_percent || 7;
-    const platformFeeAmount = totalAmount * (platformFeePercent / 100);
-    const partnerNetAmount = totalAmount - platformFeeAmount;
+    if (paymentMethod === 'xendit') {
+      const successUrlWithId = (body.success_redirect_url || '') + booking.id;
+      const failureUrlWithId = (body.failure_redirect_url || '') + booking.id;
+      paymentRedirectUrl = await createXenditPayment(
+        booking.id,
+        totalAmount,
+        body.customer,
+        successUrlWithId,
+        failureUrlWithId
+      );
+    } else if (paymentMethod === 'paypal') {
+      const successUrlWithId = (body.success_redirect_url || '') + booking.id;
+      const failureUrlWithId = (body.failure_redirect_url || '') + booking.id;
+      paymentRedirectUrl = await createPayPalPayment(
+        booking.id,
+        totalAmount,
+        body.customer,
+        successUrlWithId,
+        failureUrlWithId
+      );
+    }
 
-    await supabase.from('commission_records').insert({
-      booking_id: booking.id,
-      partner_id: partnerId,
-      gross_amount: totalAmount,
-      platform_fee_percent: platformFeePercent,
-      platform_fee_amount: platformFeeAmount,
-      partner_net_amount: partnerNetAmount,
-      currency: 'IDR',
-    });
-
-    console.log('Booking created successfully:', booking.id);
+    console.log('Booking created successfully:', booking.id, 'Payment method:', paymentMethod);
 
     return new Response(
       JSON.stringify({
         success: true,
         booking_id: booking.id,
-        ticket_id: ticket?.id,
-        qr_token: ticket?.qr_token,
+        ticket_id: ticket?.id || null,
+        qr_token: ticket?.qr_token || null,
         outbound_subtotal: outboundSubtotal,
         return_subtotal: returnSubtotal,
         subtotal_amount: ticketSubtotal,
@@ -508,6 +539,9 @@ serve(async (req) => {
           date: returnDeparture.departure_date,
           time: returnDeparture.departure_time,
         } : null,
+        payment_method: paymentMethod,
+        payment_redirect_url: paymentRedirectUrl,
+        requires_payment: isOnlinePayment,
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -520,3 +554,163 @@ serve(async (req) => {
     );
   }
 });
+
+// ─── Xendit Payment Creation ───
+async function createXenditPayment(
+  bookingId: string,
+  amount: number,
+  customer: { full_name: string; email?: string; phone?: string },
+  successUrl: string,
+  failureUrl: string
+): Promise<string | null> {
+  const xenditKey = Deno.env.get('XENDIT_SECRET_KEY');
+  if (!xenditKey) {
+    console.error('XENDIT_SECRET_KEY not configured');
+    return null;
+  }
+
+  try {
+    const payload: any = {
+      external_id: bookingId,
+      amount,
+      currency: 'IDR',
+      description: `Booking ${bookingId}`,
+      payer_email: customer.email || undefined,
+      customer: {
+        given_names: customer.full_name,
+        email: customer.email || undefined,
+        mobile_number: customer.phone || undefined,
+      },
+      customer_notification_preference: {
+        invoice_created: customer.email ? ['email'] : [],
+        invoice_paid: customer.email ? ['email'] : [],
+      },
+      success_redirect_url: successUrl || undefined,
+      failure_redirect_url: failureUrl || undefined,
+    };
+
+    console.log('Creating Xendit invoice:', JSON.stringify(payload));
+
+    const response = await fetch('https://api.xendit.co/v2/invoices', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(xenditKey + ':')}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      const textResponse = await response.text();
+      console.error('Xendit returned non-JSON:', textResponse.substring(0, 500));
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Xendit API error:', JSON.stringify(data));
+      return null;
+    }
+
+    console.log('Xendit invoice created:', data.id, 'URL:', data.invoice_url);
+    return data.invoice_url;
+  } catch (error) {
+    console.error('Xendit payment creation failed:', error);
+    return null;
+  }
+}
+
+// ─── PayPal Payment Creation ───
+async function createPayPalPayment(
+  bookingId: string,
+  amountIDR: number,
+  customer: { full_name: string; email?: string },
+  successUrl: string,
+  failureUrl: string
+): Promise<string | null> {
+  const clientId = Deno.env.get('PAYPAL_CLIENT_ID');
+  const clientSecret = Deno.env.get('PAYPAL_CLIENT_SECRET');
+
+  if (!clientId || !clientSecret) {
+    console.error('PayPal credentials not configured');
+    return null;
+  }
+
+  try {
+    // 1. Get access token
+    const tokenResponse = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+
+    const tokenData = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      console.error('PayPal token error:', JSON.stringify(tokenData));
+      return null;
+    }
+
+    const accessToken = tokenData.access_token;
+
+    // Convert IDR to USD (approximate - PayPal doesn't support IDR well)
+    // Using a rough conversion, partners should configure proper rates
+    const amountUSD = Math.max(1, Math.round((amountIDR / 15500) * 100) / 100);
+
+    // 2. Create order
+    const orderPayload = {
+      intent: 'CAPTURE',
+      purchase_units: [{
+        reference_id: bookingId,
+        custom_id: bookingId,
+        description: `Booking ${bookingId}`,
+        amount: {
+          currency_code: 'USD',
+          value: amountUSD.toFixed(2),
+        },
+      }],
+      application_context: {
+        return_url: successUrl || 'https://sribooking.com',
+        cancel_url: failureUrl || 'https://sribooking.com',
+        brand_name: 'SriBooking',
+        user_action: 'PAY_NOW',
+      },
+    };
+
+    console.log('Creating PayPal order:', JSON.stringify(orderPayload));
+
+    const orderResponse = await fetch('https://api-m.paypal.com/v2/checkout/orders', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(orderPayload),
+    });
+
+    const orderData = await orderResponse.json();
+
+    if (!orderResponse.ok) {
+      console.error('PayPal order creation error:', JSON.stringify(orderData));
+      return null;
+    }
+
+    const approveLink = orderData.links?.find((l: any) => l.rel === 'approve');
+    if (approveLink) {
+      console.log('PayPal order created:', orderData.id, 'Approve URL:', approveLink.href);
+      return approveLink.href;
+    }
+
+    console.error('No approve link in PayPal response');
+    return null;
+  } catch (error) {
+    console.error('PayPal payment creation failed:', error);
+    return null;
+  }
+}

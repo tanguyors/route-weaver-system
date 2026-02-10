@@ -7,6 +7,7 @@ import { BookingStepDeparture } from '@/components/widget/BookingStepDeparture';
 import { BookingStepPassengers } from '@/components/widget/BookingStepPassengers';
 import { BookingStepPickupDropoff, PickupDropoffSelection } from '@/components/widget/BookingStepPickupDropoff';
 import { BookingStepConfirm } from '@/components/widget/BookingStepConfirm';
+import { BookingStepPayment, PaymentMethod } from '@/components/widget/BookingStepPayment';
 import { BookingSuccess } from '@/components/widget/BookingSuccess';
 import WidgetBarView from '@/components/widget/WidgetBarView';
 import { BookingStepPrivateConfirm } from '@/components/widget/BookingStepPrivateConfirm';
@@ -14,8 +15,9 @@ import { Card } from '@/components/ui/card';
 import { Loader2, Ship, AlertCircle, ArrowLeft, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
-type BookingStep = 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'pickup-dropoff' | 'confirm' | 'success' | 'private-confirm' | 'private-success';
+type BookingStep = 'route' | 'departure' | 'return-route' | 'return-departure' | 'passengers' | 'pickup-dropoff' | 'confirm' | 'payment' | 'payment-pending' | 'success' | 'private-confirm' | 'private-success';
 type WidgetStyle = 'block' | 'bar';
 
 interface BarSelectionState {
@@ -137,6 +139,83 @@ const WidgetBooking = () => {
     getPricing,
     createBooking,
   } = useWidgetBooking(widgetKey);
+
+  // Handle return from payment platform (check URL params) - must be before early returns
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment_status');
+    const returnBookingId = params.get('booking_id');
+
+    if (paymentStatus && returnBookingId) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('payment_status');
+      cleanUrl.searchParams.delete('booking_id');
+      window.history.replaceState({}, '', cleanUrl.toString());
+
+      if (paymentStatus === 'success') {
+        setStep('payment-pending');
+        pollBookingStatus(returnBookingId);
+      } else {
+        toast.error('Payment was not completed. Please select another payment method.');
+        setStep('payment');
+      }
+    }
+  }, []);
+
+  const pollBookingStatus = async (pollBookingId: string) => {
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const { data: bookingData } = await supabase
+          .from('bookings')
+          .select('id, status, total_amount')
+          .eq('id', pollBookingId)
+          .single();
+
+        if (bookingData?.status === 'confirmed') {
+          const { data: ticketData } = await supabase
+            .from('tickets')
+            .select('id, qr_token')
+            .eq('booking_id', pollBookingId)
+            .single();
+
+          setBookingResult({
+            booking_id: pollBookingId,
+            ticket_id: ticketData?.id,
+            qr_token: ticketData?.qr_token,
+            total_amount: bookingData.total_amount,
+            subtotal_amount: booking.subtotal,
+            addons_amount: booking.transportTotal,
+            discount_amount: 0,
+            addons: booking.selectedAddons,
+          });
+          setStep('success');
+          toast.success('Payment confirmed! Your booking is ready.');
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          toast.error('Payment verification timed out. Please contact support.');
+          setStep('payment');
+          return;
+        }
+
+        setTimeout(poll, 2000);
+      } catch (err) {
+        if (attempts >= maxAttempts) {
+          toast.error('Unable to verify payment. Please contact support.');
+          setStep('payment');
+          return;
+        }
+        setTimeout(poll, 2000);
+      }
+    };
+
+    poll();
+  };
 
   // Get current trip type based on widget style
   const currentTripType = widgetStyle === 'bar' ? barSelection.tripType : blockTripType;
@@ -319,6 +398,12 @@ const WidgetBooking = () => {
   };
 
   const handleCustomerSubmit = async (customer: typeof booking.customer) => {
+    // Save customer info and move to payment step
+    setBooking(prev => ({ ...prev, customer }));
+    setStep('payment');
+  };
+
+  const handlePaymentSubmit = async (paymentMethod: PaymentMethod) => {
     setIsSubmitting(true);
     try {
       const transportAddons: SelectedAddon[] = [];
@@ -355,18 +440,43 @@ const WidgetBooking = () => {
         });
       }
 
+      // Build redirect URLs
+      const currentUrl = window.location.href.split('?')[0];
+      const baseParams = new URLSearchParams(window.location.search);
+      const successUrl = `${currentUrl}?${baseParams.toString()}&payment_status=success&booking_id=`;
+      const failureUrl = `${currentUrl}?${baseParams.toString()}&payment_status=failed&booking_id=`;
+
       const result = await createBooking(
         booking.outbound.departureId,
-        customer,
+        booking.customer,
         booking.paxAdult,
         booking.paxChild,
         booking.promoCode,
         [...(booking.selectedAddons || []), ...transportAddons],
-        booking.returnTrip?.departureId || null
+        booking.returnTrip?.departureId || null,
+        paymentMethod,
+        successUrl,
+        failureUrl
       );
 
       setBookingResult(result);
-      setBooking(prev => ({ ...prev, customer, total: result.total_amount }));
+      setBooking(prev => ({ ...prev, total: result.total_amount }));
+
+      // If online payment: redirect to payment platform
+      if (result.requires_payment && result.payment_redirect_url) {
+        // Redirect to payment platform
+        window.location.href = result.payment_redirect_url;
+        return;
+      }
+
+      if (result.requires_payment && !result.payment_redirect_url) {
+        // Payment creation failed - go back to payment selection
+        toast.error('Payment gateway unavailable. Please select another payment method.');
+        setStep('payment');
+        return;
+      }
+
+      // For cash/bank_transfer: go directly to success
       setStep('success');
       toast.success('Booking confirmed!');
     } catch (err: any) {
@@ -400,6 +510,9 @@ const WidgetBooking = () => {
       case 'confirm':
         setStep('pickup-dropoff');
         break;
+      case 'payment':
+        setStep('confirm');
+        break;
     }
   };
 
@@ -418,6 +531,7 @@ const WidgetBooking = () => {
     baseSteps.push('passengers');
     baseSteps.push('pickup-dropoff');
     baseSteps.push('confirm');
+    baseSteps.push('payment');
     return baseSteps;
   };
 
@@ -670,6 +784,42 @@ const WidgetBooking = () => {
               />
             )}
 
+            {step === 'payment' && (
+              <BookingStepPayment
+                outbound={{
+                  originName: originPort?.name || '',
+                  destName: destPort?.name || '',
+                  date: booking.outbound.departureDate,
+                  time: booking.outbound.departureTime,
+                }}
+                returnTrip={booking.returnTrip ? {
+                  originName: destPort?.name || '',
+                  destName: originPort?.name || '',
+                  date: booking.returnTrip.departureDate,
+                  time: booking.returnTrip.departureTime,
+                } : undefined}
+                paxAdult={booking.paxAdult}
+                paxChild={booking.paxChild}
+                paxInfant={booking.paxInfant}
+                passengers={[]}
+                customer={booking.customer}
+                totalAmount={booking.total}
+                isSubmitting={isSubmitting}
+                onSubmit={handlePaymentSubmit}
+                onBack={goBack}
+              />
+            )}
+
+            {step === 'payment-pending' && (
+              <Card className="p-8 text-center">
+                <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+                <h2 className="text-xl font-bold mb-2">Verifying Payment...</h2>
+                <p className="text-muted-foreground">
+                  Please wait while we confirm your payment. This may take a few moments.
+                </p>
+              </Card>
+            )}
+
             {step === 'success' && bookingResult && (
               <BookingSuccess
                 bookingId={bookingResult.booking_id}
@@ -894,6 +1044,42 @@ const WidgetBooking = () => {
             onSubmit={handleCustomerSubmit}
             onBack={goBack}
           />
+        )}
+
+        {step === 'payment' && (
+          <BookingStepPayment
+            outbound={{
+              originName: originPort?.name || '',
+              destName: destPort?.name || '',
+              date: booking.outbound.departureDate,
+              time: booking.outbound.departureTime,
+            }}
+            returnTrip={booking.returnTrip ? {
+              originName: destPort?.name || '',
+              destName: originPort?.name || '',
+              date: booking.returnTrip.departureDate,
+              time: booking.returnTrip.departureTime,
+            } : undefined}
+            paxAdult={booking.paxAdult}
+            paxChild={booking.paxChild}
+            paxInfant={booking.paxInfant}
+            passengers={[]}
+            customer={booking.customer}
+            totalAmount={booking.total}
+            isSubmitting={isSubmitting}
+            onSubmit={handlePaymentSubmit}
+            onBack={goBack}
+          />
+        )}
+
+        {step === 'payment-pending' && (
+          <Card className="p-8 text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+            <h2 className="text-xl font-bold mb-2">Verifying Payment...</h2>
+            <p className="text-muted-foreground">
+              Please wait while we confirm your payment. This may take a few moments.
+            </p>
+          </Card>
         )}
 
         {step === 'success' && bookingResult && (
