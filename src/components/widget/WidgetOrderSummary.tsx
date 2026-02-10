@@ -21,6 +21,7 @@ interface PickupInfo {
   details?: string;
   hotelAddress?: string;
   beforeDepartureMinutes?: number;
+  serviceType?: 'pickup' | 'dropoff';
 }
 
 interface ActivityAddonInfo {
