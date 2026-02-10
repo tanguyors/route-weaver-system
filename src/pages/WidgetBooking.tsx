@@ -122,6 +122,7 @@ const WidgetBooking = () => {
   });
   const [bookingResult, setBookingResult] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const paymentPopupRef = useRef<Window | null>(null);
 
   const {
     data,
