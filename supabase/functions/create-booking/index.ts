@@ -571,52 +571,107 @@ async function createXenditPayment(
 
   try {
     const payload: any = {
+      reference_id: bookingId,
+      type: 'PAY',
+      currency: 'IDR',
+      amount,
+      description: `Booking ${bookingId}`,
+      payment_method: {
+        type: 'EWALLET',
+        reusability: 'ONE_TIME_USE',
+      },
+      items: [{
+        name: `Booking ${bookingId}`,
+        quantity: 1,
+        price: amount,
+        currency: 'IDR',
+      }],
+      success_return_url: successUrl || undefined,
+      failure_return_url: failureUrl || undefined,
+      metadata: {
+        booking_id: bookingId,
+      },
+    };
+
+    // Try Invoice API first (most compatible)
+    const invoicePayload: any = {
       external_id: bookingId,
       amount,
       currency: 'IDR',
       description: `Booking ${bookingId}`,
       payer_email: customer.email || undefined,
-      customer: {
-        given_names: customer.full_name,
-        email: customer.email || undefined,
-        mobile_number: customer.phone || undefined,
-      },
-      customer_notification_preference: {
-        invoice_created: customer.email ? ['email'] : [],
-        invoice_paid: customer.email ? ['email'] : [],
-      },
       success_redirect_url: successUrl || undefined,
       failure_redirect_url: failureUrl || undefined,
     };
 
-    console.log('Creating Xendit invoice:', JSON.stringify(payload));
+    console.log('Creating Xendit invoice:', JSON.stringify(invoicePayload));
 
-    const response = await fetch('https://api.xendit.co/v1/invoices', {
+    const response = await fetch('https://api.xendit.co/v2/invoices', {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${btoa(xenditKey + ':')}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(invoicePayload),
     });
 
     const contentType = response.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
       const textResponse = await response.text();
       console.error('Xendit returned non-JSON:', textResponse.substring(0, 500));
+    } else {
+      const data = await response.json();
+
+      if (response.ok && data.invoice_url) {
+        console.log('Xendit invoice created:', data.id, 'URL:', data.invoice_url);
+        return data.invoice_url;
+      }
+
+      console.error('Xendit Invoice API error:', JSON.stringify(data), '- Trying Payment Request API...');
+    }
+
+    // Fallback: Payment Request API v3
+    const prPayload = {
+      reference_id: bookingId,
+      type: 'PAY',
+      currency: 'IDR',
+      amount,
+      description: `Booking ${bookingId}`,
+      success_return_url: successUrl || undefined,
+      failure_return_url: failureUrl || undefined,
+      metadata: { booking_id: bookingId },
+    };
+
+    console.log('Creating Xendit payment request v3:', JSON.stringify(prPayload));
+
+    const prResponse = await fetch('https://api.xendit.co/v3/payment_requests', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(xenditKey + ':')}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'api-version': '2024-11-11',
+      },
+      body: JSON.stringify(prPayload),
+    });
+
+    const prData = await prResponse.json();
+
+    if (!prResponse.ok) {
+      console.error('Xendit Payment Request API error:', JSON.stringify(prData));
       return null;
     }
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Xendit API error:', JSON.stringify(data));
-      return null;
+    // Look for actions.url or similar redirect
+    const redirectUrl = prData.actions?.url || prData.actions?.desktop_web_checkout_url || prData.actions?.mobile_web_checkout_url;
+    if (redirectUrl) {
+      console.log('Xendit payment request created:', prData.id, 'URL:', redirectUrl);
+      return redirectUrl;
     }
 
-    console.log('Xendit invoice created:', data.id, 'URL:', data.invoice_url);
-    return data.invoice_url;
+    console.error('No redirect URL in Xendit payment request response:', JSON.stringify(prData));
+    return null;
   } catch (error) {
     console.error('Xendit payment creation failed:', error);
     return null;
