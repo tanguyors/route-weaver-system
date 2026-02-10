@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type WidgetStep = 'search' | 'select-trip' | 'cart' | 'details' | 'payment' | 'finish';
+export type WidgetStep = 'search' | 'select-trip' | 'cart' | 'details' | 'payment' | 'payment-pending' | 'finish';
 
 interface WidgetStepIndicatorProps {
   currentStep: WidgetStep;
