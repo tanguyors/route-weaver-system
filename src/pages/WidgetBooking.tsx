@@ -462,13 +462,30 @@ const WidgetBooking = () => {
       setBookingResult(result);
       setBooking(prev => ({ ...prev, total: result.total_amount }));
 
-      // If online payment: redirect to payment platform
+      // If online payment: open payment gateway in a popup window
       if (result.requires_payment && result.payment_redirect_url) {
-        // Redirect to payment platform - use top-level window for iframe compatibility
-        if (window.top && window.top !== window) {
-          window.top.location.href = result.payment_redirect_url;
-        } else {
-          window.location.href = result.payment_redirect_url;
+        const width = 500;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const popup = window.open(
+          result.payment_redirect_url,
+          'sribooking_payment',
+          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+        );
+
+        // Move to payment-pending step and start polling
+        setStep('payment-pending');
+        pollBookingStatus(result.booking_id);
+
+        // Also monitor popup close in case user closes it manually
+        if (popup) {
+          const popupCheck = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(popupCheck);
+              // Polling is already running, nothing extra needed
+            }
+          }, 1000);
         }
         return;
       }
