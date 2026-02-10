@@ -464,8 +464,12 @@ const WidgetBooking = () => {
 
       // If online payment: redirect to payment platform
       if (result.requires_payment && result.payment_redirect_url) {
-        // Redirect to payment platform
-        window.location.href = result.payment_redirect_url;
+        // Redirect to payment platform - use top-level window for iframe compatibility
+        if (window.top && window.top !== window) {
+          window.top.location.href = result.payment_redirect_url;
+        } else {
+          window.location.href = result.payment_redirect_url;
+        }
         return;
       }
 
