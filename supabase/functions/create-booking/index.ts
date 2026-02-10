@@ -35,7 +35,7 @@ interface BookingRequest {
   pax_child: number;
   promo_code?: string;
   addons?: SelectedAddon[];
-  payment_method?: 'cash' | 'bank_transfer' | 'xendit' | 'paypal';
+  payment_method?: 'cash' | 'bank_transfer' | 'doku' | 'paypal';
   success_redirect_url?: string;
   failure_redirect_url?: string;
 }
@@ -379,8 +379,7 @@ serve(async (req) => {
 
     // Determine booking status based on payment method
     const paymentMethod = body.payment_method || 'cash';
-    const isOnlinePayment = paymentMethod === 'xendit' || paymentMethod === 'paypal';
-    // Use 'pending' for all (the enum only supports: pending, confirmed, cancelled, refunded)
+    const isOnlinePayment = paymentMethod === 'doku' || paymentMethod === 'paypal';
     const bookingStatus = 'pending';
 
     // 9. Create booking
@@ -404,7 +403,6 @@ serve(async (req) => {
       .single();
 
     if (bookingError) {
-      // Rollback outbound capacity
       await supabase
         .from('departures')
         .update({ 
@@ -453,7 +451,6 @@ serve(async (req) => {
     // For non-online payments: create ticket and commission immediately
     let ticket: any = null;
     if (!isOnlinePayment) {
-      // 11. Create ticket with QR token
       const { data: ticketData, error: ticketError } = await supabase
         .from('tickets')
         .insert({
@@ -468,7 +465,6 @@ serve(async (req) => {
       }
       ticket = ticketData;
 
-      // 12. Create commission record
       const { data: partner } = await supabase
         .from('partners')
         .select('commission_percent')
@@ -493,10 +489,10 @@ serve(async (req) => {
     // For online payments: create payment session and return redirect URL
     let paymentRedirectUrl: string | null = null;
 
-    if (paymentMethod === 'xendit') {
+    if (paymentMethod === 'doku') {
       const successUrlWithId = (body.success_redirect_url || '') + booking.id;
       const failureUrlWithId = (body.failure_redirect_url || '') + booking.id;
-      paymentRedirectUrl = await createXenditPayment(
+      paymentRedirectUrl = await createDokuPayment(
         booking.id,
         totalAmount,
         body.customer,
@@ -555,66 +551,95 @@ serve(async (req) => {
   }
 });
 
-// ─── Xendit Payment Creation ───
-async function createXenditPayment(
+// ─── DOKU Checkout Payment Creation ───
+async function createDokuPayment(
   bookingId: string,
   amount: number,
   customer: { full_name: string; email?: string; phone?: string },
   successUrl: string,
   failureUrl: string
 ): Promise<string | null> {
-  const xenditKey = Deno.env.get('XENDIT_SECRET_KEY');
-  if (!xenditKey) {
-    console.error('XENDIT_SECRET_KEY not configured');
+  const clientId = Deno.env.get('DOKU_CLIENT_ID');
+  const secretKey = Deno.env.get('DOKU_SECRET_KEY');
+
+  if (!clientId || !secretKey) {
+    console.error('DOKU credentials not configured');
     return null;
   }
 
   try {
-    // Use Xendit Invoice API (Payment Links) - POST /v2/invoices
-    const invoicePayload = {
-      external_id: `booking-${bookingId}`,
-      amount,
-      currency: 'IDR',
-      description: `Boat Booking ${bookingId.substring(0, 8)}`,
-      payer_email: customer.email || undefined,
-      success_redirect_url: successUrl || undefined,
-      failure_redirect_url: failureUrl || undefined,
-      invoice_duration: 86400, // 24 hours
+    const requestId = crypto.randomUUID();
+    const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const requestTarget = '/checkout/v1/payment';
+
+    const orderPayload = {
+      order: {
+        amount: Math.round(amount),
+        invoice_number: `booking-${bookingId}`,
+        currency: 'IDR',
+        callback_url: successUrl || undefined,
+        callback_url_cancel: failureUrl || undefined,
+      },
+      payment: {
+        payment_due_date: 1440, // 24 hours in minutes
+      },
+      customer: {
+        name: customer.full_name,
+        email: customer.email || undefined,
+        phone: customer.phone || undefined,
+      },
     };
 
-    console.log('Creating Xendit invoice with key prefix:', xenditKey.substring(0, 10) + '...');
-    console.log('Xendit invoice payload:', JSON.stringify(invoicePayload));
+    const bodyString = JSON.stringify(orderPayload);
 
-    const authHeader = `Basic ${btoa(xenditKey + ':')}`;
+    // Generate Digest: base64(SHA-256(body))
+    const bodyBytes = new TextEncoder().encode(bodyString);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', bodyBytes);
+    const digest = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
 
-    const response = await fetch('https://api.xendit.co/v2/invoices', {
+    // Generate Signature
+    const signatureComponents = `Client-Id:${clientId}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${requestTarget}\nDigest:${digest}`;
+    
+    const keyBytes = new TextEncoder().encode(secretKey);
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const sigBuffer = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(signatureComponents));
+    const signature = `HMACSHA256=${btoa(String.fromCharCode(...new Uint8Array(sigBuffer)))}`;
+
+    console.log('Creating DOKU checkout for booking:', bookingId, 'amount:', amount);
+
+    const response = await fetch('https://api.doku.com/checkout/v1/payment', {
       method: 'POST',
       headers: {
-        'Authorization': authHeader,
+        'Client-Id': clientId,
+        'Request-Id': requestId,
+        'Request-Timestamp': timestamp,
+        'Signature': signature,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(invoicePayload),
+      body: bodyString,
     });
 
     const responseText = await response.text();
-    console.log('Xendit response status:', response.status);
-    console.log('Xendit response body:', responseText.substring(0, 1000));
+    console.log('DOKU response status:', response.status);
+    console.log('DOKU response body:', responseText.substring(0, 1000));
 
     if (!response.ok) {
-      console.error('Xendit Invoice API failed (status ' + response.status + '):', responseText.substring(0, 500));
+      console.error('DOKU Checkout API failed (status ' + response.status + '):', responseText.substring(0, 500));
       return null;
     }
 
     const data = JSON.parse(responseText);
-    if (data.invoice_url) {
-      console.log('Xendit invoice created successfully:', data.id, 'URL:', data.invoice_url);
-      return data.invoice_url;
+    if (data.response?.payment?.url) {
+      console.log('DOKU checkout created successfully, URL:', data.response.payment.url);
+      return data.response.payment.url;
     }
 
-    console.error('No invoice_url in Xendit response');
+    console.error('No payment.url in DOKU response:', responseText.substring(0, 500));
     return null;
   } catch (error) {
-    console.error('Xendit payment creation failed:', error);
+    console.error('DOKU payment creation failed:', error);
     return null;
   }
 }
@@ -636,7 +661,6 @@ async function createPayPalPayment(
   }
 
   try {
-    // 1. Get access token
     const tokenResponse = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
       method: 'POST',
       headers: {
@@ -653,12 +677,8 @@ async function createPayPalPayment(
     }
 
     const accessToken = tokenData.access_token;
-
-    // Convert IDR to USD (approximate - PayPal doesn't support IDR well)
-    // Using a rough conversion, partners should configure proper rates
     const amountUSD = Math.max(1, Math.round((amountIDR / 15500) * 100) / 100);
 
-    // 2. Create order
     const orderPayload = {
       intent: 'CAPTURE',
       purchase_units: [{

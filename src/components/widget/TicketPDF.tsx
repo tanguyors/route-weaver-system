@@ -63,7 +63,7 @@ interface TicketPDFProps {
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   cash: 'Cash at Partner Office',
   bank_transfer: 'Bank Transfer',
-  xendit: 'Online Payment (Xendit)',
+  doku: 'Online Payment (DOKU)',
   paypal: 'PayPal',
 };
 

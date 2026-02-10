@@ -39,5 +39,5 @@ verify_jwt = false
 [functions.create-accommodation-booking]
 verify_jwt = false
 
-[functions.xendit-webhook]
+[functions.doku-webhook]
 verify_jwt = false
