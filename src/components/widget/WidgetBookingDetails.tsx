@@ -133,8 +133,16 @@ export const WidgetBookingDetails = ({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Passengers
-  const [passengers, setPassengers] = useState<PassengerInfo[]>(
+  // Departure passengers
+  const [departurePassengers, setDeparturePassengers] = useState<PassengerInfo[]>(
+    Array.from({ length: totalPassengers }, () => ({
+      name: '',
+      age: '',
+      idNumber: '',
+    }))
+  );
+  // Return passengers (only used when returnTrip exists and samePassengers is false)
+  const [returnPassengers, setReturnPassengers] = useState<PassengerInfo[]>(
     Array.from({ length: totalPassengers }, () => ({
       name: '',
       age: '',
@@ -142,8 +150,10 @@ export const WidgetBookingDetails = ({
     }))
   );
   // Passenger selector (single form shown at a time)
-  const [expandedPassenger, setExpandedPassenger] = useState<number>(0);
-  const [useCustomerAsFirstPassenger, setUseCustomerAsFirstPassenger] = useState(false);
+  const [expandedDeparturePassenger, setExpandedDeparturePassenger] = useState<number>(0);
+  const [expandedReturnPassenger, setExpandedReturnPassenger] = useState<number>(0);
+  const [bookerIsPassenger, setBookerIsPassenger] = useState(false);
+  const [samePassengers, setSamePassengers] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Private boat pickup selection
