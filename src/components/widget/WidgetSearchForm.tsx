@@ -443,19 +443,6 @@ export const WidgetSearchForm = ({
     return null;
   };
 
-  const handleMobileTriggerToggle = (
-    e: React.PointerEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>,
-    disabled: boolean,
-    toggle: () => void,
-  ) => {
-    if (!isMobileInIframe) return;
-    if (disabled) return;
-    if (!shouldProcessMobileGesture(lastMobileTriggerTsRef)) return;
-    // Prevent the synthetic click chain from toggling the popover twice.
-    e.preventDefault();
-    e.stopPropagation();
-    toggle();
-  };
 
   const parsedDepartureDate = departureDate ? parseDateOnly(departureDate) : null;
   const parsedReturnDate = returnDate ? parseDateOnly(returnDate) : null;
