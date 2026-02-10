@@ -35,6 +35,39 @@ const paymentMethods = [
   },
 ];
 
+interface PassengerInfo {
+  name: string;
+  age: string;
+  idNumber: string;
+}
+
+interface TripSummary {
+  originName: string;
+  destName: string;
+  date: string;
+  time?: string;
+}
+
+interface BookingStepPaymentProps {
+  outbound: TripSummary;
+  returnTrip?: TripSummary;
+  paxAdult: number;
+  paxChild: number;
+  paxInfant: number;
+  passengers: PassengerInfo[];
+  customer: {
+    full_name: string;
+    email: string;
+    phone: string;
+    country: string;
+  };
+  totalAmount: number;
+  primaryColor?: string;
+  isSubmitting?: boolean;
+  onSubmit: (paymentMethod: PaymentMethod) => void;
+  onBack: () => void;
+}
+
 export const BookingStepPayment = ({
   outbound,
   returnTrip,
