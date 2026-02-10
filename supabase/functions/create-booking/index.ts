@@ -380,7 +380,8 @@ serve(async (req) => {
     // Determine booking status based on payment method
     const paymentMethod = body.payment_method || 'cash';
     const isOnlinePayment = paymentMethod === 'xendit' || paymentMethod === 'paypal';
-    const bookingStatus = isOnlinePayment ? 'pending_payment' : 'pending';
+    // Use 'pending' for all (the enum only supports: pending, confirmed, cancelled, refunded)
+    const bookingStatus = 'pending';
 
     // 9. Create booking
     const { data: booking, error: bookingError } = await supabase
@@ -398,7 +399,6 @@ serve(async (req) => {
         total_amount: totalAmount,
         status: bookingStatus,
         currency: 'IDR',
-        payment_method: paymentMethod,
       })
       .select('id')
       .single();
