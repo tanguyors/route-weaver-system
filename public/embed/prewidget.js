@@ -20,10 +20,81 @@
     }
   } catch (e) {}
 
+  // === Auto-patch: If this script loads on a page with URL params AND an iframe pointing to
+  // our widget, inject the params into the iframe src. This ensures params are forwarded
+  // even if the partner uses old embed code without param forwarding. ===
+  (function autoPatchIframe() {
+    try {
+      var qs = window.location.search;
+      if (!qs || qs.length < 2) return; // No params to forward
+
+      var currentParams = new URLSearchParams(qs);
+      var relevantKeys = ['key','from','to','depart','return','ad','ch','inf','trip','currency','lang'];
+      var hasRelevant = false;
+      for (var k = 0; k < relevantKeys.length; k++) {
+        if (currentParams.get(relevantKeys[k])) { hasRelevant = true; break; }
+      }
+      if (!hasRelevant) return;
+
+      // Wait for DOM to be ready, then find and patch iframes
+      function patchIframes() {
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+          var src = iframes[i].src || '';
+          // Only patch iframes pointing to our widget
+          if (src.indexOf('/book-new') !== -1 || src.indexOf('/book?') !== -1 || src.indexOf('sribooking') !== -1) {
+            try {
+              var iframeUrl = new URL(src);
+              var patched = false;
+              for (var j = 0; j < relevantKeys.length; j++) {
+                var val = currentParams.get(relevantKeys[j]);
+                if (val && !iframeUrl.searchParams.get(relevantKeys[j])) {
+                  iframeUrl.searchParams.set(relevantKeys[j], val);
+                  patched = true;
+                }
+              }
+              if (patched) {
+                iframes[i].src = iframeUrl.toString();
+              }
+            } catch (e) {}
+          }
+        }
+      }
+
+      // Patch on DOMContentLoaded and also after a delay (for dynamically injected iframes)
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', patchIframes);
+      } else {
+        patchIframes();
+      }
+      // Also retry after delays for JS-rendered pages (Vue, React, Astro, etc.)
+      setTimeout(patchIframes, 500);
+      setTimeout(patchIframes, 1500);
+      setTimeout(patchIframes, 3000);
+    } catch (e) {}
+  })();
+
+  // Also listen for postMessage param requests from the iframe (dual-channel)
+  try {
+    window.addEventListener('message', function(e) {
+      if (!e || !e.data || e.data.type !== 'sribooking-request-params') return;
+      try {
+        var params = {};
+        var qs = window.location.search.substring(1).split('&');
+        for (var i = 0; i < qs.length; i++) {
+          var pair = qs[i].split('=');
+          if (pair[0]) params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+        }
+        e.source.postMessage({ type: 'sribooking-params', params: params }, '*');
+      } catch (ex) {}
+    });
+  } catch (e) {}
+
   // Find the container
   var container = document.getElementById('sribooking-prewidget');
   if (!container) {
-    console.error('[SriBooking] Pre-widget container not found');
+    // No pre-widget on this page (might be the /booking page) — that's fine, 
+    // the auto-patch and postMessage listener above still work
     return;
   }
 
