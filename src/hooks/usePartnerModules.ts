@@ -25,12 +25,17 @@ interface PartnerModulesData {
 
 export const usePartnerModules = (): PartnerModulesData => {
   const { user } = useAuth();
-  const { partnerId } = useUserRole();
+  const { partnerId, loading: roleLoading } = useUserRole();
   const [modules, setModules] = useState<PartnerModule[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchModules = async () => {
+      // Wait for role to finish loading before deciding
+      if (roleLoading) {
+        return;
+      }
+
       if (!user || !partnerId) {
         setModules([]);
         setLoading(false);
@@ -61,7 +66,7 @@ export const usePartnerModules = (): PartnerModulesData => {
     };
 
     fetchModules();
-  }, [user, partnerId]);
+  }, [user, partnerId, roleLoading]);
 
   const activeModules = modules
     .filter(m => m.status === 'active')
