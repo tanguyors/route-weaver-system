@@ -26,7 +26,14 @@
   // If NO iframe is found at all, auto-create one (so partner only needs this ONE script). ===
   (function autoPatchOrCreateIframe() {
     try {
+      // Try to get URL search params - try window.top first (for website builders that isolate embed code)
       var qs = window.location.search;
+      if (!qs || qs.length < 2) {
+        try { qs = window.top.location.search; } catch(e) {}
+      }
+      if (!qs || qs.length < 2) {
+        try { qs = window.parent.location.search; } catch(e) {}
+      }
       if (!qs || qs.length < 2) return; // No params to forward
 
       var currentParams = new URLSearchParams(qs);
@@ -131,20 +138,54 @@
   })();
 
   // Also listen for postMessage param requests from the iframe (dual-channel)
+  // AND proactively broadcast params to iframes on load
+  var __srb_getPageParams = function() {
+    var searchStr = window.location.search;
+    if (!searchStr || searchStr.length < 2) {
+      try { searchStr = window.top.location.search; } catch(e) {}
+    }
+    if (!searchStr || searchStr.length < 2) {
+      try { searchStr = window.parent.location.search; } catch(e) {}
+    }
+    if (!searchStr || searchStr.length < 2) return null;
+    var params = {};
+    var qs = searchStr.substring(1).split('&');
+    for (var i = 0; i < qs.length; i++) {
+      var pair = qs[i].split('=');
+      if (pair[0]) params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+    }
+    return params;
+  };
+
   try {
     window.addEventListener('message', function(e) {
       if (!e || !e.data || e.data.type !== 'sribooking-request-params') return;
       try {
-        var params = {};
-        var qs = window.location.search.substring(1).split('&');
-        for (var i = 0; i < qs.length; i++) {
-          var pair = qs[i].split('=');
-          if (pair[0]) params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
-        }
+        var params = __srb_getPageParams() || {};
         e.source.postMessage({ type: 'sribooking-params', params: params }, '*');
       } catch (ex) {}
     });
   } catch (e) {}
+
+  // Proactively broadcast params to any sribooking iframes after they load
+  function proactiveBroadcast() {
+    var params = __srb_getPageParams();
+    if (!params || (!params.from && !params.to && !params.depart)) return;
+    var iframes = document.querySelectorAll('iframe');
+    for (var i = 0; i < iframes.length; i++) {
+      var src = iframes[i].src || '';
+      if (src.indexOf('book-new') !== -1 || src.indexOf('sribooking') !== -1) {
+        try {
+          iframes[i].contentWindow.postMessage({ type: 'sribooking-params', params: params }, '*');
+        } catch(e) {}
+      }
+    }
+  }
+  // Broadcast after delays to catch iframes that load asynchronously
+  setTimeout(proactiveBroadcast, 1000);
+  setTimeout(proactiveBroadcast, 2000);
+  setTimeout(proactiveBroadcast, 4000);
+  setTimeout(proactiveBroadcast, 6000);
 
   // Find the container
   var container = document.getElementById('sribooking-prewidget');
