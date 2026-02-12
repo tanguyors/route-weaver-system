@@ -517,6 +517,11 @@ export const useWidgetConfigData = () => {
   - Change data-redirect to your booking page path (e.g., "/booking", "/tickets")
   - Set data-lang to "en", "fr", or "id"
   - Set data-theme to "light" or "dark"
+  
+  IMPORTANT: Add this script tag on ALL pages of your site (including your booking page):
+  <script async src="${baseUrl}/embed/prewidget.js"></script>
+  On pages without the prewidget div, the script will automatically
+  forward search parameters to the booking widget iframe.
 -->`;
   };
 

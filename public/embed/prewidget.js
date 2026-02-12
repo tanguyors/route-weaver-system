@@ -22,8 +22,9 @@
 
   // === Auto-patch: If this script loads on a page with URL params AND an iframe pointing to
   // our widget, inject the params into the iframe src. This ensures params are forwarded
-  // even if the partner uses old embed code without param forwarding. ===
-  (function autoPatchIframe() {
+  // even if the partner uses old embed code without param forwarding.
+  // If NO iframe is found at all, auto-create one (so partner only needs this ONE script). ===
+  (function autoPatchOrCreateIframe() {
     try {
       var qs = window.location.search;
       if (!qs || qs.length < 2) return; // No params to forward
@@ -35,6 +36,12 @@
         if (currentParams.get(relevantKeys[k])) { hasRelevant = true; break; }
       }
       if (!hasRelevant) return;
+
+      // Check if there's a prewidget container on this page — if so, don't auto-create
+      // (the prewidget search bar will handle things)
+      var hasPrewidgetContainer = !!document.getElementById('sribooking-prewidget');
+
+      var foundAndPatched = false;
 
       // Wait for DOM to be ready, then find and patch iframes
       function patchIframes() {
@@ -56,21 +63,68 @@
               if (patched) {
                 iframes[i].src = iframeUrl.toString();
               }
+              foundAndPatched = true;
             } catch (e) {}
           }
         }
+        return foundAndPatched;
+      }
+
+      // Auto-create iframe if none found (so partner only needs ONE script tag)
+      function createIframeIfNeeded() {
+        if (foundAndPatched) return;
+        if (hasPrewidgetContainer) return; // Don't create on homepage
+        // Check again for iframes (might have been added dynamically)
+        if (patchIframes()) return;
+
+        // No SriBooking iframe found — create one with all params
+        var widgetUrl = widgetBaseUrl + '/book-new';
+        var url = new URL(widgetUrl);
+        for (var j = 0; j < relevantKeys.length; j++) {
+          var val = currentParams.get(relevantKeys[j]);
+          if (val) url.searchParams.set(relevantKeys[j], val);
+        }
+
+        var iframeId = 'sribooking-widget-auto';
+        var iframe = document.createElement('iframe');
+        iframe.id = iframeId;
+        iframe.src = url.toString();
+        iframe.style.cssText = 'width:100%;min-height:calc(100dvh - 200px);border:0;display:block;transition:height 0.2s ease;';
+        iframe.setAttribute('allow', 'payment');
+        iframe.setAttribute('title', 'SriBooking');
+
+        // Try to find a main content area, otherwise append to body
+        var target = document.querySelector('main') || document.querySelector('[role="main"]') || document.querySelector('.page-content') || document.querySelector('#content') || document.body;
+        target.appendChild(iframe);
+
+        // Auto-resize listener
+        window.addEventListener('message', function(e) {
+          if (!e || !e.data || e.data.type !== 'sribooking-resize') return;
+          if (e.source !== iframe.contentWindow) return;
+          var h = Number(e.data.height);
+          if (!isFinite(h) || h <= 0) return;
+          iframe.style.height = Math.max(400, Math.round(h)) + 'px';
+        });
+        iframe.addEventListener('load', function() {
+          try { iframe.contentWindow.postMessage({ type: 'sribooking-request-resize' }, '*'); } catch(e){}
+          setTimeout(function(){ try { iframe.contentWindow.postMessage({ type: 'sribooking-request-resize' }, '*'); } catch(e){} }, 500);
+        });
       }
 
       // Patch on DOMContentLoaded and also after a delay (for dynamically injected iframes)
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', patchIframes);
+        document.addEventListener('DOMContentLoaded', function() {
+          patchIframes();
+          setTimeout(createIframeIfNeeded, 500);
+        });
       } else {
         patchIframes();
       }
       // Also retry after delays for JS-rendered pages (Vue, React, Astro, etc.)
-      setTimeout(patchIframes, 500);
-      setTimeout(patchIframes, 1500);
-      setTimeout(patchIframes, 3000);
+      setTimeout(function() { patchIframes(); }, 500);
+      setTimeout(function() { patchIframes(); }, 1500);
+      // Final attempt: if no iframe found after 3s, create one
+      setTimeout(createIframeIfNeeded, 3000);
     } catch (e) {}
   })();
 
