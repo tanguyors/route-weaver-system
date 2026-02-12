@@ -1312,7 +1312,11 @@
     redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
     try { window.top.location.href = redirectUrl; } catch(e) {
       try { window.parent.location.href = redirectUrl; } catch(e2) {
-        window.location.href = redirectUrl;
+        try { window.location.href = redirectUrl; } catch(e3) {}
+        // Ultimate fallback: open in new tab (works even in sandboxed iframes)
+        try { window.open(redirectUrl, '_top'); } catch(e4) {
+          window.open(redirectUrl, '_blank');
+        }
       }
     }
   }
