@@ -1115,15 +1115,8 @@
       params.set('lang', lang);
     }
 
-    // Always redirect directly to the hosted widget page with all params
-    // This bypasses iframe parameter loss and cross-origin referrer stripping
-    var redirectUrl;
-    if (widgetBaseUrl) {
-      redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
-    } else {
-      // Fallback: use partner's redirect path
-      redirectUrl = redirectPath + '?' + params.toString();
-    }
+    // Redirect to partner's booking page with all search params
+    var redirectUrl = redirectPath + '?' + params.toString();
 
     // Use top-level navigation to avoid iframe restrictions (X-Frame-Options / CSP)
     try {
