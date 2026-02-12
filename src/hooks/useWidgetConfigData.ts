@@ -543,8 +543,12 @@ export const useWidgetConfigData = () => {
   var iframe = document.getElementById('sribooking-widget');
   if(!iframe) return;
 
-  // Setup URL params
-  var p = new URLSearchParams(window.location.search);
+  // Setup URL params — try window.location first, then window.top/parent
+  // (Hostinger/Zyro may wrap custom HTML in a sub-iframe)
+  var qs = window.location.search;
+  if(!qs || qs.length < 2){ try { qs = window.top.location.search; } catch(e){} }
+  if(!qs || qs.length < 2){ try { qs = window.parent.location.search; } catch(e){} }
+  var p = new URLSearchParams(qs || '');
   var base = "${baseUrl}/book-new";
   var url = new URL(base);
   ["key","from","to","depart","return","ad","ch","inf","trip","currency","lang"].forEach(function(k){

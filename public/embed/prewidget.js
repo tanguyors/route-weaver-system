@@ -1283,25 +1283,35 @@
       params.set('lang', lang);
     }
 
-    // Redirect to partner's booking page with all search params
-    // Build absolute URL using the top window's origin to ensure we stay on the partner's domain
+    // Redirect strategy:
+    // If data-redirect-mode="page" is set, redirect to partner's booking page (old behavior)
+    // Default: redirect directly to the widget URL (bypasses Zyro/Hostinger sandboxing issues)
     var redirectUrl;
-    try {
-      // Try to read top window origin (works if same-origin or not sandboxed)
-      var topOrigin = window.top.location.origin;
-      redirectUrl = topOrigin + redirectPath + '?' + params.toString();
-      window.top.location.href = redirectUrl;
-    } catch (e) {
-      // Cross-origin: we can't read top origin, so use postMessage to request navigation
-      // or fallback to relative path (will navigate within current context)
+    var redirectMode = container ? container.getAttribute('data-redirect-mode') : null;
+    
+    if (redirectMode === 'page') {
+      // Legacy mode: redirect to partner's booking page with params
       try {
-        // Try parent instead of top
-        var parentOrigin = window.parent.location.origin;
-        redirectUrl = parentOrigin + redirectPath + '?' + params.toString();
-        window.parent.location.href = redirectUrl;
-      } catch (e2) {
-        // Last resort: use relative path
-        redirectUrl = redirectPath + '?' + params.toString();
+        var topOrigin = window.top.location.origin;
+        redirectUrl = topOrigin + redirectPath + '?' + params.toString();
+        window.top.location.href = redirectUrl;
+      } catch (e) {
+        try {
+          var parentOrigin = window.parent.location.origin;
+          redirectUrl = parentOrigin + redirectPath + '?' + params.toString();
+          window.parent.location.href = redirectUrl;
+        } catch (e2) {
+          redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
+          window.location.href = redirectUrl;
+        }
+      }
+      return;
+    }
+
+    // Default: redirect directly to widget URL (guaranteed to work)
+    redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
+    try { window.top.location.href = redirectUrl; } catch(e) {
+      try { window.parent.location.href = redirectUrl; } catch(e2) {
         window.location.href = redirectUrl;
       }
     }
