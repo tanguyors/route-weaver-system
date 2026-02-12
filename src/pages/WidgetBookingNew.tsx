@@ -253,23 +253,42 @@ const WidgetBookingNew = () => {
       }
     } catch (e) { /* referrer parsing failed, continue */ }
 
-    // Fallback 2: postMessage to parent window
+    // Fallback 2: postMessage to parent window (with retry for async prewidget.js)
+    let paramReceived = false;
     const handleParentParams = (e: MessageEvent) => {
       if (!e.data || e.data.type !== 'sribooking-params') return;
-      if (hasPrefilled) return;
+      if (hasPrefilled || paramReceived) return;
+      paramReceived = true;
       const p = e.data.params || {};
-      applyPrefillParams(p);
+      if (p.from || p.to || p.depart) {
+        applyPrefillParams(p);
+      }
     };
     
     window.addEventListener('message', handleParentParams);
     
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'sribooking-request-params' }, '*');
-      }
-    } catch (e) { /* cross-origin, ignore */ }
+    // Send request multiple times to handle async script loading race condition
+    const sendRequest = () => {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'sribooking-request-params' }, '*');
+        }
+      } catch (e) { /* cross-origin, ignore */ }
+    };
     
-    return () => window.removeEventListener('message', handleParentParams);
+    sendRequest();
+    const retryTimers = [
+      setTimeout(sendRequest, 300),
+      setTimeout(sendRequest, 800),
+      setTimeout(sendRequest, 1500),
+      setTimeout(sendRequest, 3000),
+      setTimeout(sendRequest, 5000),
+    ];
+    
+    return () => {
+      window.removeEventListener('message', handleParentParams);
+      retryTimers.forEach(clearTimeout);
+    };
   }, [data, hasPrefilled, prefillFrom, prefillTo, prefillDepart, prefillReturn, prefillAdults, prefillChildren, prefillInfants, prefillTrip, applyPrefillParams]);
 
   // Trigger auto-search only once all states are actually committed
