@@ -88,6 +88,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/book" element={<WidgetBooking />} />
             <Route path="/book-new" element={<WidgetBookingNew />} />
+            <Route path="/booking" element={<WidgetBookingNew />} />
             <Route path="/modify-ticket" element={<ModifyTicket />} />
             <Route path="/pay/:token" element={<PaymentPage />} />
             
