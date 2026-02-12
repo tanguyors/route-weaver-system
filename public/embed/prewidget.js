@@ -7,6 +7,19 @@
 (function() {
   'use strict';
 
+  // Derive the widget base URL from this script's own src
+  var widgetBaseUrl = '';
+  try {
+    var scripts = document.getElementsByTagName('script');
+    for (var i = 0; i < scripts.length; i++) {
+      if (scripts[i].src && scripts[i].src.indexOf('prewidget.js') !== -1) {
+        var su = new URL(scripts[i].src);
+        widgetBaseUrl = su.origin;
+        break;
+      }
+    }
+  } catch (e) {}
+
   // Find the container
   var container = document.getElementById('sribooking-prewidget');
   if (!container) {
@@ -1102,7 +1115,20 @@
       params.set('lang', lang);
     }
 
-    var redirectUrl = redirectPath + '?' + params.toString();
+    // If partner has custom redirect path, use it (old behavior)
+    // Otherwise, redirect directly to the widget URL (bypasses iframe issues)
+    var redirectUrl;
+    if (container.getAttribute('data-redirect')) {
+      // Partner explicitly set a redirect path → use their page
+      redirectUrl = redirectPath + '?' + params.toString();
+    } else if (widgetBaseUrl) {
+      // No custom redirect → go directly to widget (all params in URL, no iframe needed)
+      redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
+    } else {
+      // Fallback to old behavior
+      redirectUrl = redirectPath + '?' + params.toString();
+    }
+
     // Use top-level navigation to avoid iframe restrictions (X-Frame-Options / CSP)
     try {
       window.top.location.href = redirectUrl;
