@@ -500,7 +500,8 @@ export const useWidgetConfigData = () => {
     const primaryColor = themeConfig.primary_color || '#1B5E3B';
     const logoUrl = themeConfig.logo_url || '';
     
-    return `<!-- Pre-Widget Search Bar for Homepage -->
+    return `<!-- SriBooking Pre-Widget – Homepage Search Bar -->
+<!-- Just paste this on your homepage. Change data-redirect to your booking page path. -->
 <div
   id="sribooking-prewidget"
   data-key="${widget.public_widget_key}"
@@ -510,26 +511,15 @@ export const useWidgetConfigData = () => {
   data-primary-color="${primaryColor}"${logoUrl ? `
   data-logo="${logoUrl}"` : ''}
 ></div>
-<script async src="${baseUrl}/embed/prewidget.js"></script>
-
-<!-- 
-  Instructions:
-  - Change data-redirect to your booking page path (e.g., "/booking", "/tickets")
-  - Set data-lang to "en", "fr", or "id"
-  - Set data-theme to "light" or "dark"
-  
-  IMPORTANT: Add this script tag on ALL pages of your site (including your booking page):
-  <script async src="${baseUrl}/embed/prewidget.js"></script>
-  On pages without the prewidget div, the script will automatically
-  forward search parameters to the booking widget iframe.
--->`;
+<script async src="${baseUrl}/embed/prewidget.js"><\/script>`;
   };
 
   // Get Full Widget embed code (iframe for dedicated booking page)
   const getFullWidgetCode = () => {
     if (!widget) return '';
     const baseUrl = getProductionBaseUrl();
-    return `<!-- Full Widget for Dedicated Booking Page -->
+    return `<!-- SriBooking Full Widget – Booking Page -->
+<!-- Paste this as the main content of your booking page (e.g., /booking). If you have a fixed header, set --header-h to its height. -->
 <script async src="${baseUrl}/embed/prewidget.js"><\/script>
 <style>
   /* Adjust min-height if you have a fixed header */
@@ -679,13 +669,7 @@ export const useWidgetConfigData = () => {
 })();
 </script>
 
-<!--
-  Instructions:
-  1. Create a dedicated page on your website (e.g., /booking)
-  2. Paste this code as the ONLY content of that page body
-  3. If you have a fixed header, set --header-h to your header height (e.g., 72px)
-  4. The iframe will auto-resize to fit the widget content - page scrolls, not iframe
--->`;
+`;
   };
 
   return {
