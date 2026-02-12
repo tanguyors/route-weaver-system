@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { getProductionBaseUrl } from '@/lib/getProductionUrl';
 
 export type WidgetStyle = 'block' | 'bar';
 
@@ -407,7 +408,7 @@ export const useActivityWidgetConfigData = () => {
   const getEmbedCode = (height = '700px') => {
     if (!widget) return '';
 
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     const iframeId = `sribooking-activity-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
   id="${iframeId}"
@@ -425,7 +426,7 @@ export const useActivityWidgetConfigData = () => {
   const getBarEmbedCode = () => {
     if (!widget) return '';
 
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     const iframeId = `sribooking-activity-bar-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
   id="${iframeId}"
@@ -442,7 +443,7 @@ export const useActivityWidgetConfigData = () => {
   // Get direct link
   const getDirectLink = (style: 'block' | 'bar' = 'block') => {
     if (!widget) return '';
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     const styleParam = style === 'bar' ? '&style=bar' : '';
     return `${baseUrl}/activity-widget?key=${widget.public_widget_key}${styleParam}`;
   };

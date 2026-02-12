@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { getProductionBaseUrl } from '@/lib/getProductionUrl';
 
 export type WidgetStyle = 'block' | 'bar' | 'test';
 
@@ -430,7 +431,7 @@ export const useWidgetConfigData = () => {
   const getEmbedCode = (height = '600px') => {
     if (!widget) return '';
 
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     const iframeId = `sribooking-widget-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
   id="${iframeId}"
@@ -448,7 +449,7 @@ export const useWidgetConfigData = () => {
   const getBarEmbedCode = () => {
     if (!widget) return '';
 
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     const iframeId = `sribooking-bar-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
   id="${iframeId}"
@@ -466,7 +467,7 @@ export const useWidgetConfigData = () => {
   const getTestEmbedCode = () => {
     if (!widget) return '';
 
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     const iframeId = `sribooking-v2-${widget.public_widget_key.slice(0, 8)}`;
     return `<iframe 
   id="${iframeId}"
@@ -483,7 +484,7 @@ export const useWidgetConfigData = () => {
   // Get direct link
   const getDirectLink = (style: 'block' | 'bar' | 'test' = 'block') => {
     if (!widget) return '';
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     if (style === 'test') {
       return `${baseUrl}/book-new?key=${widget.public_widget_key}`;
     }
@@ -494,7 +495,7 @@ export const useWidgetConfigData = () => {
   // Get Pre-Widget embed code (native search bar for homepage)
   const getPreWidgetCode = () => {
     if (!widget) return '';
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     const themeConfig = widget.theme_config || {};
     const primaryColor = themeConfig.primary_color || '#1B5E3B';
     const logoUrl = themeConfig.logo_url || '';
@@ -522,7 +523,7 @@ export const useWidgetConfigData = () => {
   // Get Full Widget embed code (iframe for dedicated booking page)
   const getFullWidgetCode = () => {
     if (!widget) return '';
-    const baseUrl = window.location.origin;
+    const baseUrl = getProductionBaseUrl();
     return `<!-- Full Widget for Dedicated Booking Page -->
 <style>
   /* Adjust min-height if you have a fixed header */
