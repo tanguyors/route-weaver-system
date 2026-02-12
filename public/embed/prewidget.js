@@ -1103,7 +1103,13 @@
     }
 
     var redirectUrl = redirectPath + '?' + params.toString();
-    window.location.href = redirectUrl;
+    // Use top-level navigation to avoid iframe restrictions (X-Frame-Options / CSP)
+    try {
+      window.top.location.href = redirectUrl;
+    } catch (e) {
+      // Fallback if cross-origin restriction blocks access to window.top
+      window.location.href = redirectUrl;
+    }
   }
 
   // Fetch ports
