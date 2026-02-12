@@ -13,8 +13,8 @@ export const getProductionBaseUrl = (): string => {
     return origin;
   }
 
-  // For preview URLs or lovable.app staging, use the production custom domain
-  if (origin.includes('lovable.app')) {
+  // For preview URLs or lovable staging, use the production custom domain
+  if (origin.includes('lovable.app') || origin.includes('lovableproject.com')) {
     return PRODUCTION_URL;
   }
 
