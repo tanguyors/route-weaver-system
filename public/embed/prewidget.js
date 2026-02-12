@@ -122,7 +122,9 @@
       }
       // Also retry after delays for JS-rendered pages (Vue, React, Astro, etc.)
       setTimeout(function() { patchIframes(); }, 500);
+      setTimeout(function() { patchIframes(); }, 1000);
       setTimeout(function() { patchIframes(); }, 1500);
+      setTimeout(function() { patchIframes(); }, 2500);
       // Final attempt: if no iframe found after 3s, create one
       setTimeout(createIframeIfNeeded, 3000);
     } catch (e) {}
