@@ -229,7 +229,31 @@ const WidgetBookingNew = () => {
       return;
     }
     
-    // No URL params — request from parent window via postMessage
+    // Fallback 1: Try document.referrer (works cross-origin, no partner action needed)
+    try {
+      const referrer = document.referrer;
+      if (referrer) {
+        const referrerUrl = new URL(referrer);
+        const rp = referrerUrl.searchParams;
+        const refFrom = rp.get('from') || '';
+        const refTo = rp.get('to') || '';
+        const refDepart = rp.get('depart') || '';
+        if (refFrom || refTo || refDepart) {
+          console.log('[Widget] Recovered params from document.referrer:', referrer);
+          applyPrefillParams({
+            from: refFrom, to: refTo, depart: refDepart,
+            return: rp.get('return') || undefined,
+            ad: rp.get('ad') || undefined,
+            ch: rp.get('ch') || undefined,
+            inf: rp.get('inf') || undefined,
+            trip: rp.get('trip') || undefined,
+          });
+          return;
+        }
+      }
+    } catch (e) { /* referrer parsing failed, continue */ }
+
+    // Fallback 2: postMessage to parent window
     const handleParentParams = (e: MessageEvent) => {
       if (!e.data || e.data.type !== 'sribooking-params') return;
       if (hasPrefilled) return;
@@ -239,7 +263,6 @@ const WidgetBookingNew = () => {
     
     window.addEventListener('message', handleParentParams);
     
-    // Ask the parent page for its URL params
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage({ type: 'sribooking-request-params' }, '*');
