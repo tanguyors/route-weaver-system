@@ -26,13 +26,29 @@
   // If NO iframe is found at all, auto-create one (so partner only needs this ONE script). ===
   (function autoPatchOrCreateIframe() {
     try {
-      // Try to get URL search params - try window.top first (for website builders that isolate embed code)
+      // Try to get URL search params from multiple sources
       var qs = window.location.search;
       if (!qs || qs.length < 2) {
         try { qs = window.top.location.search; } catch(e) {}
       }
       if (!qs || qs.length < 2) {
         try { qs = window.parent.location.search; } catch(e) {}
+      }
+      // Fallback: read params from cookie (set by prewidget on homepage before redirect)
+      // This works even in sandboxed sub-iframes on Hostinger/Zyro
+      if (!qs || qs.length < 2) {
+        try {
+          var cookies = document.cookie.split(';');
+          for (var ci = 0; ci < cookies.length; ci++) {
+            var c = cookies[ci].trim();
+            if (c.indexOf('sribooking_params=') === 0) {
+              qs = '?' + decodeURIComponent(c.substring('sribooking_params='.length));
+              // Clear the cookie after reading (one-time use)
+              document.cookie = 'sribooking_params=;path=/;max-age=0;SameSite=Lax';
+              break;
+            }
+          }
+        } catch(e) {}
       }
       if (!qs || qs.length < 2) return; // No params to forward
 
@@ -146,6 +162,19 @@
     }
     if (!searchStr || searchStr.length < 2) {
       try { searchStr = window.parent.location.search; } catch(e) {}
+    }
+    // Fallback: read from cookie
+    if (!searchStr || searchStr.length < 2) {
+      try {
+        var cookies = document.cookie.split(';');
+        for (var ci = 0; ci < cookies.length; ci++) {
+          var c = cookies[ci].trim();
+          if (c.indexOf('sribooking_params=') === 0) {
+            searchStr = '?' + decodeURIComponent(c.substring('sribooking_params='.length));
+            break;
+          }
+        }
+      } catch(e) {}
     }
     if (!searchStr || searchStr.length < 2) return null;
     var params = {};
@@ -1283,37 +1312,28 @@
       params.set('lang', lang);
     }
 
-    // Redirect strategy:
-    // If data-redirect-mode="page" is set, redirect to partner's booking page (old behavior)
-    // Default: redirect directly to the widget URL (bypasses Zyro/Hostinger sandboxing issues)
-    var redirectUrl;
-    var redirectMode = container ? container.getAttribute('data-redirect-mode') : null;
-    
-    if (redirectMode === 'page') {
-      // Legacy mode: redirect to partner's booking page with params
-      try {
-        var topOrigin = window.top.location.origin;
-        redirectUrl = topOrigin + redirectPath + '?' + params.toString();
-        window.top.location.href = redirectUrl;
-      } catch (e) {
-        try {
-          var parentOrigin = window.parent.location.origin;
-          redirectUrl = parentOrigin + redirectPath + '?' + params.toString();
-          window.parent.location.href = redirectUrl;
-        } catch (e2) {
-          redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
-          window.location.href = redirectUrl;
-        }
-      }
-      return;
-    }
+    // Store params in a cookie so the booking page can read them
+    // (bypasses Hostinger/Zyro sandboxing where window.top.location.search is inaccessible)
+    try {
+      document.cookie = 'sribooking_params=' + encodeURIComponent(params.toString()) +
+        ';path=/;max-age=300;SameSite=Lax';
+    } catch(e) {}
 
-    // Default: redirect directly to widget URL (guaranteed to work)
-    redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
-    try { window.top.location.href = redirectUrl; } catch(e) {
-      try { window.parent.location.href = redirectUrl; } catch(e2) {
+    // Redirect to partner's booking page
+    var redirectUrl;
+    try {
+      var topOrigin = window.top.location.origin;
+      redirectUrl = topOrigin + redirectPath + '?' + params.toString();
+      window.top.location.href = redirectUrl;
+    } catch (e) {
+      try {
+        var parentOrigin = window.parent.location.origin;
+        redirectUrl = parentOrigin + redirectPath + '?' + params.toString();
+        window.parent.location.href = redirectUrl;
+      } catch (e2) {
+        // Can't navigate partner page — redirect directly to widget URL
+        redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
         try { window.location.href = redirectUrl; } catch(e3) {}
-        // Ultimate fallback: open in new tab (works even in sandboxed iframes)
         try { window.open(redirectUrl, '_top'); } catch(e4) {
           window.open(redirectUrl, '_blank');
         }
