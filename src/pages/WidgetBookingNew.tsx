@@ -184,33 +184,70 @@ const WidgetBookingNew = () => {
     }
   }, [pollBookingStatus]);
 
+  // Apply prefill params helper (used for both URL params and postMessage params)
+  const applyPrefillParams = useCallback((params: { from?: string; to?: string; depart?: string; return?: string; ad?: string; ch?: string; inf?: string; trip?: string }) => {
+    if (!data) return;
+    
+    const from = params.from || '';
+    const to = params.to || '';
+    const depart = params.depart || '';
+    
+    if (from && data.ports.some(p => p.id === from)) {
+      setSelectedOrigin(from);
+    }
+    if (to && data.ports.some(p => p.id === to)) {
+      setSelectedDestination(to);
+    }
+    if (depart) {
+      setDepartureDate(depart);
+      setSelectedDate(depart);
+    }
+    if (params.return) setReturnDate(params.return);
+    if (params.ad) setPaxAdult(parseInt(params.ad, 10) || 1);
+    if (params.ch) setPaxChild(parseInt(params.ch, 10) || 0);
+    if (params.inf) setPaxInfant(parseInt(params.inf, 10) || 0);
+    if (params.trip === 'round') setTripType('round-trip');
+    
+    setHasPrefilled(true);
+    
+    if (from && to && depart) {
+      setPendingAutoSearch(true);
+    }
+  }, [data, setSelectedOrigin, setSelectedDestination, setSelectedDate]);
+
   // Auto-prefill origin/destination from URL params after data loads
   useEffect(() => {
     if (!data || hasPrefilled) return;
     
-    // Set origin if valid
-    if (prefillFrom && data.ports.some(p => p.id === prefillFrom)) {
-      setSelectedOrigin(prefillFrom);
+    // If we have URL params, use them directly
+    if (prefillFrom || prefillTo || prefillDepart) {
+      applyPrefillParams({
+        from: prefillFrom, to: prefillTo, depart: prefillDepart,
+        return: prefillReturn, ad: String(prefillAdults), ch: String(prefillChildren),
+        inf: String(prefillInfants), trip: prefillTrip || undefined,
+      });
+      return;
     }
     
-    // Set destination if valid
-    if (prefillTo && data.ports.some(p => p.id === prefillTo)) {
-      setSelectedDestination(prefillTo);
-    }
+    // No URL params — request from parent window via postMessage
+    const handleParentParams = (e: MessageEvent) => {
+      if (!e.data || e.data.type !== 'sribooking-params') return;
+      if (hasPrefilled) return;
+      const p = e.data.params || {};
+      applyPrefillParams(p);
+    };
     
-    // Set departure date for search — sync BOTH local state and hook state
-    if (prefillDepart) {
-      setDepartureDate(prefillDepart);
-      setSelectedDate(prefillDepart);
-    }
+    window.addEventListener('message', handleParentParams);
     
-    setHasPrefilled(true);
+    // Ask the parent page for its URL params
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'sribooking-request-params' }, '*');
+      }
+    } catch (e) { /* cross-origin, ignore */ }
     
-    // Flag auto-search if we have complete params
-    if (prefillFrom && prefillTo && prefillDepart) {
-      setPendingAutoSearch(true);
-    }
-  }, [data, hasPrefilled, prefillFrom, prefillTo, prefillDepart, setSelectedOrigin, setSelectedDestination, setSelectedDate]);
+    return () => window.removeEventListener('message', handleParentParams);
+  }, [data, hasPrefilled, prefillFrom, prefillTo, prefillDepart, prefillReturn, prefillAdults, prefillChildren, prefillInfants, prefillTrip, applyPrefillParams]);
 
   // Trigger auto-search only once all states are actually committed
   useEffect(() => {

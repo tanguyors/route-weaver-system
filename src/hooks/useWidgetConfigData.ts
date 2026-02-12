@@ -406,6 +406,21 @@ export const useWidgetConfigData = () => {
      setTimeout(requestResize, 2500);
   });
 
+  // Forward parent URL params to iframe via postMessage
+  window.addEventListener('message', function(e){
+    if (!e || !e.data || e.data.type !== 'sribooking-request-params') return;
+    if (e.source !== iframe.contentWindow) return;
+    try {
+      var params = {};
+      var qs = window.location.search.substring(1).split('&');
+      for (var i = 0; i < qs.length; i++) {
+        var pair = qs[i].split('=');
+        if (pair[0]) params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+      }
+      e.source.postMessage({ type: 'sribooking-params', params: params }, '*');
+    } catch(ex){}
+  });
+
   requestResize();
 })();
 </script>`;
