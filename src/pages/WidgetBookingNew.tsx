@@ -80,6 +80,7 @@ const WidgetBookingNew = () => {
   
   // Track if we've done auto-prefill
   const [hasPrefilled, setHasPrefilled] = useState(false);
+  const [pendingAutoSearch, setPendingAutoSearch] = useState(false);
   const paymentPopupRef = useRef<Window | null>(null);
 
   const {
@@ -187,39 +188,39 @@ const WidgetBookingNew = () => {
   useEffect(() => {
     if (!data || hasPrefilled) return;
     
-    let didPrefill = false;
-    
     // Set origin if valid
     if (prefillFrom && data.ports.some(p => p.id === prefillFrom)) {
       setSelectedOrigin(prefillFrom);
-      didPrefill = true;
     }
     
     // Set destination if valid
     if (prefillTo && data.ports.some(p => p.id === prefillTo)) {
       setSelectedDestination(prefillTo);
-      didPrefill = true;
     }
     
     // Set departure date for search — sync BOTH local state and hook state
     if (prefillDepart) {
       setDepartureDate(prefillDepart);
       setSelectedDate(prefillDepart);
-      didPrefill = true;
     }
     
     setHasPrefilled(true);
     
-    // If we have complete search params, auto-search after React has committed state
-    if (didPrefill && prefillFrom && prefillTo && prefillDepart) {
-      // Use requestAnimationFrame + setTimeout to ensure state updates are flushed
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          setStep('select-trip');
-        }, 50);
-      });
+    // Flag auto-search if we have complete params
+    if (prefillFrom && prefillTo && prefillDepart) {
+      setPendingAutoSearch(true);
     }
   }, [data, hasPrefilled, prefillFrom, prefillTo, prefillDepart, setSelectedOrigin, setSelectedDestination, setSelectedDate]);
+
+  // Trigger auto-search only once all states are actually committed
+  useEffect(() => {
+    if (!pendingAutoSearch) return;
+    // Verify that hook state is actually set before switching step
+    if (selectedOrigin && selectedDestination && selectedDate) {
+      setPendingAutoSearch(false);
+      setStep('select-trip');
+    }
+  }, [pendingAutoSearch, selectedOrigin, selectedDestination, selectedDate]);
 
   const primaryColor = data?.theme_config?.primary_color || '#1B5E3B';
 
