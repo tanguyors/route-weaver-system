@@ -1115,17 +1115,13 @@
       params.set('lang', lang);
     }
 
-    // If partner has custom redirect path, use it (old behavior)
-    // Otherwise, redirect directly to the widget URL (bypasses iframe issues)
+    // Always redirect directly to the hosted widget page with all params
+    // This bypasses iframe parameter loss and cross-origin referrer stripping
     var redirectUrl;
-    if (container.getAttribute('data-redirect')) {
-      // Partner explicitly set a redirect path → use their page
-      redirectUrl = redirectPath + '?' + params.toString();
-    } else if (widgetBaseUrl) {
-      // No custom redirect → go directly to widget (all params in URL, no iframe needed)
+    if (widgetBaseUrl) {
       redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
     } else {
-      // Fallback to old behavior
+      // Fallback: use partner's redirect path
       redirectUrl = redirectPath + '?' + params.toString();
     }
 
