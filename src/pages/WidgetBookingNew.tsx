@@ -187,30 +187,38 @@ const WidgetBookingNew = () => {
   useEffect(() => {
     if (!data || hasPrefilled) return;
     
+    let didPrefill = false;
+    
     // Set origin if valid
     if (prefillFrom && data.ports.some(p => p.id === prefillFrom)) {
       setSelectedOrigin(prefillFrom);
+      didPrefill = true;
     }
     
-    // Set destination if valid (will be validated against available destinations)
+    // Set destination if valid
     if (prefillTo && data.ports.some(p => p.id === prefillTo)) {
       setSelectedDestination(prefillTo);
+      didPrefill = true;
     }
     
-    // Set departure date for search
+    // Set departure date for search — sync BOTH local state and hook state
     if (prefillDepart) {
+      setDepartureDate(prefillDepart);
       setSelectedDate(prefillDepart);
-    }
-    
-    // If we have complete search params, auto-search
-    if (prefillFrom && prefillTo && prefillDepart) {
-      // Give a tiny delay for state to propagate
-      setTimeout(() => {
-        setStep('select-trip');
-      }, 100);
+      didPrefill = true;
     }
     
     setHasPrefilled(true);
+    
+    // If we have complete search params, auto-search after React has committed state
+    if (didPrefill && prefillFrom && prefillTo && prefillDepart) {
+      // Use requestAnimationFrame + setTimeout to ensure state updates are flushed
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          setStep('select-trip');
+        }, 50);
+      });
+    }
   }, [data, hasPrefilled, prefillFrom, prefillTo, prefillDepart, setSelectedOrigin, setSelectedDestination, setSelectedDate]);
 
   const primaryColor = data?.theme_config?.primary_color || '#1B5E3B';
