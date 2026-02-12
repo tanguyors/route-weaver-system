@@ -530,6 +530,7 @@ export const useWidgetConfigData = () => {
     if (!widget) return '';
     const baseUrl = getProductionBaseUrl();
     return `<!-- Full Widget for Dedicated Booking Page -->
+<script async src="${baseUrl}/embed/prewidget.js"><\/script>
 <style>
   /* Adjust min-height if you have a fixed header */
   :root { --header-h: 0px; }
