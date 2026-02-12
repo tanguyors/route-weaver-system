@@ -1116,14 +1116,26 @@
     }
 
     // Redirect to partner's booking page with all search params
-    var redirectUrl = redirectPath + '?' + params.toString();
-
-    // Use top-level navigation to avoid iframe restrictions (X-Frame-Options / CSP)
+    // Build absolute URL using the top window's origin to ensure we stay on the partner's domain
+    var redirectUrl;
     try {
+      // Try to read top window origin (works if same-origin or not sandboxed)
+      var topOrigin = window.top.location.origin;
+      redirectUrl = topOrigin + redirectPath + '?' + params.toString();
       window.top.location.href = redirectUrl;
     } catch (e) {
-      // Fallback if cross-origin restriction blocks access to window.top
-      window.location.href = redirectUrl;
+      // Cross-origin: we can't read top origin, so use postMessage to request navigation
+      // or fallback to relative path (will navigate within current context)
+      try {
+        // Try parent instead of top
+        var parentOrigin = window.parent.location.origin;
+        redirectUrl = parentOrigin + redirectPath + '?' + params.toString();
+        window.parent.location.href = redirectUrl;
+      } catch (e2) {
+        // Last resort: use relative path
+        redirectUrl = redirectPath + '?' + params.toString();
+        window.location.href = redirectUrl;
+      }
     }
   }
 
