@@ -11,7 +11,7 @@ interface WidgetStepIndicatorProps {
 
 const steps: { key: WidgetStep; label: string }[] = [
   { key: 'select-trip', label: 'Select Trip' },
-  { key: 'cart', label: 'Shopping Cart' },
+  { key: 'cart', label: 'Booking Cart' },
   { key: 'details', label: 'Booking Details' },
   { key: 'payment', label: 'Payment' },
   { key: 'finish', label: 'Finish' },
