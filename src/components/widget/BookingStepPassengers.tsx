@@ -80,7 +80,7 @@ export const BookingStepPassengers = ({
               {formatPrice(adultPrice)} per person
             </div>
             <div className="text-xs text-muted-foreground">
-              10+ years old
+              12y+
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -113,7 +113,7 @@ export const BookingStepPassengers = ({
                 {formatPrice(childPrice)} per child
               </div>
               <div className="text-xs text-muted-foreground">
-                3-10 years old
+                2-12y
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export const BookingStepPassengers = ({
               FREE
             </div>
             <div className="text-xs text-muted-foreground">
-              0-2 years old
+              0-2y
             </div>
           </div>
           <div className="flex items-center gap-3">

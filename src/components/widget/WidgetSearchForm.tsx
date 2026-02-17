@@ -866,7 +866,7 @@ export const WidgetSearchForm = ({
               </FieldWrapper>
 
               {/* Child */}
-              <FieldWrapper label={t('child')} icon={Users}>
+              <FieldWrapper label={t('childAge')} icon={Users}>
                 <select
                   value={paxChild}
                   onChange={(e) => onPaxChange(paxAdult, Number(e.target.value), paxInfant)}
