@@ -330,6 +330,8 @@
   var state = {
     ports: [],
     routes: [],
+    privateBoats: [],
+    serviceType: 'public-ferry', // 'public-ferry' | 'private-boat'
     tripType: 'oneway', // 'oneway' | 'roundtrip'
     from: '',
     to: '',
@@ -344,7 +346,15 @@
     departCalendarOpen: false,
     returnCalendarOpen: false,
     departCalendarViewDate: new Date(),
-    returnCalendarViewDate: new Date()
+    returnCalendarViewDate: new Date(),
+    // Private boat state
+    selectedBoatId: '',
+    selectedRouteId: '',
+    privateDate: '',
+    privateTime: '',
+    privatePax: 1,
+    privateDateCalendarOpen: false,
+    privateDateCalendarViewDate: new Date()
   };
 
   // Supabase Edge Function URL (hardcoded to avoid CORS issues)
@@ -743,16 +753,163 @@
         background: ${isDark ? '#7f1d1d' : '#fef2f2'};
         border-radius: 8px;
       }
+
+      /* Service type tabs */
+      .srb-pw-service-tabs {
+        display: flex;
+        gap: 2px;
+        padding: 4px;
+        background: ${isDark ? '#374151' : '#f3f4f6'};
+        border-radius: 8px;
+        margin-bottom: 16px;
+      }
+      .srb-pw-service-tab {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: transparent;
+        color: ${isDark ? '#9ca3af' : '#6b7280'};
+      }
+      .srb-pw-service-tab:hover:not(.active):not(:disabled) {
+        color: ${textColor};
+      }
+      .srb-pw-service-tab:disabled {
+        color: ${isDark ? '#4b5563' : '#d1d5db'};
+        cursor: not-allowed;
+      }
+      .srb-pw-service-tab.active-ferry {
+        background: ${isDark ? '#1f2937' : '#ffffff'};
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .srb-pw-service-tab.active-private {
+        background: #d97706;
+        color: #ffffff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .srb-pw-service-tab svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      
+      /* Private boat cards */
+      .srb-pw-boat-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-boat-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      .srb-pw-boat-card {
+        padding: 12px;
+        border: 2px solid ${fieldBorderColor};
+        border-radius: 8px;
+        background: ${inputBg};
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+      }
+      .srb-pw-boat-card:hover {
+        border-color: #d97706;
+      }
+      .srb-pw-boat-card.selected {
+        border-color: #d97706;
+        background: ${isDark ? '#451a03' : '#fffbeb'};
+      }
+      .srb-pw-boat-img {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+      .srb-pw-boat-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: ${isDark ? '#374151' : '#f3f4f6'};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: ${mutedColor};
+      }
+      .srb-pw-boat-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: ${textColor};
+      }
+      .srb-pw-boat-pax {
+        font-size: 12px;
+        color: ${mutedColor};
+      }
+      
+      /* Price summary bar */
+      .srb-pw-price-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: ${isDark ? '#451a03' : '#fffbeb'};
+        border: 1px solid ${isDark ? '#92400e' : '#fde68a'};
+        border-radius: 8px;
+        margin-top: 16px;
+      }
+      .srb-pw-price-label {
+        font-size: 13px;
+        color: ${mutedColor};
+      }
+      .srb-pw-price-amount {
+        font-size: 22px;
+        font-weight: 700;
+        color: ${isDark ? '#fbbf24' : '#b45309'};
+      }
+      .srb-pw-book-btn {
+        padding: 10px 28px;
+        border-radius: 8px;
+        background: #d97706;
+        color: white;
+        font-weight: 600;
+        font-size: 15px;
+        border: none;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .srb-pw-book-btn:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+      .srb-pw-book-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     `;
     document.head.appendChild(styleEl);
   }
 
   // SVG Icons (inline)
   var icons = {
+    ship: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"></path><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"></path><path d="M12 10v-4"></path></svg>',
+    anchor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"></circle><line x1="12" y1="22" x2="12" y2="8"></line><path d="M5 12H2a10 10 0 0 0 20 0h-3"></path></svg>',
     mapPin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>',
     calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
     users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
     baby: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h.01"></path><path d="M15 12h.01"></path><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"></path><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"></path></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
     chevronLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"></polyline></svg>',
     chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"></polyline></svg>',
   };
@@ -855,9 +1012,11 @@
     return isSameDay(date, end);
   }
 
-  // Build calendar HTML for a specific target ('depart' or 'return')
+  // Build calendar HTML for a specific target ('depart', 'return', or 'private')
   function buildCalendarHTML(target) {
-    var viewDate = target === 'return' ? state.returnCalendarViewDate : state.departCalendarViewDate;
+    var viewDate = target === 'return' ? state.returnCalendarViewDate 
+      : target === 'private' ? state.privateDateCalendarViewDate 
+      : state.departCalendarViewDate;
     var year = viewDate.getFullYear();
     var month = viewDate.getMonth();
     var months = monthNames[lang] || monthNames.en;
@@ -866,6 +1025,8 @@
     
     var selectedDate = target === 'return' 
       ? (state.returnDate ? new Date(state.returnDate + 'T00:00:00') : null)
+      : target === 'private'
+      ? (state.privateDate ? new Date(state.privateDate + 'T00:00:00') : null)
       : (state.departDate ? new Date(state.departDate + 'T00:00:00') : null);
     
     var html = '<div class="srb-pw-calendar-header">' +
@@ -921,7 +1082,10 @@
 
   // Handle day selection - simple single mode
   function handleDayClick(dateStr, target) {
-    if (target === 'return') {
+    if (target === 'private') {
+      state.privateDate = dateStr;
+      state.privateDateCalendarOpen = false;
+    } else if (target === 'return') {
       state.returnDate = dateStr;
       state.returnCalendarOpen = false;
     } else {
@@ -933,6 +1097,48 @@
       }
     }
     render();
+  }
+
+  // Helper: get selected boat object
+  function getSelectedBoat() {
+    if (!state.selectedBoatId) return null;
+    return state.privateBoats.find(function(b) { return b.id === state.selectedBoatId; }) || null;
+  }
+
+  // Helper: get selected route object
+  function getSelectedRoute() {
+    var boat = getSelectedBoat();
+    if (!boat || !state.selectedRouteId) return null;
+    return (boat.routes || []).find(function(r) { return r.id === state.selectedRouteId; }) || null;
+  }
+
+  // Helper: generate time slots for a boat
+  function getTimeSlots(boat) {
+    if (!boat) return [];
+    var minH = 7, maxH = 18;
+    if (boat.min_departure_time) {
+      var parts = boat.min_departure_time.split(':');
+      minH = parseInt(parts[0], 10) || 7;
+    }
+    if (boat.max_departure_time) {
+      var parts2 = boat.max_departure_time.split(':');
+      maxH = parseInt(parts2[0], 10) || 18;
+    }
+    var slots = [];
+    for (var h = minH; h <= maxH; h++) {
+      slots.push(String(h).padStart(2, '0') + ':00');
+      if (h < maxH) slots.push(String(h).padStart(2, '0') + ':30');
+    }
+    return slots;
+  }
+
+  // Helper: format price
+  function formatPrice(amount, currency) {
+    currency = currency || 'IDR';
+    if (currency === 'IDR') {
+      return 'Rp ' + Number(amount).toLocaleString('id-ID');
+    }
+    return currency + ' ' + Number(amount).toLocaleString();
   }
 
   // Render function
@@ -947,13 +1153,15 @@
       return;
     }
 
+    var hasPrivateBoats = state.privateBoats.length > 0;
+    var hasPublicFerry = state.ports.length > 0;
+    var isPublicFerry = state.serviceType === 'public-ferry';
     var isRoundTrip = state.tripType === 'roundtrip';
 
-    // Build port options
+    // Build port options for public ferry
     var fromOptions = '<option value="">' + t.selectOrigin + '</option>';
     var toOptions = '<option value="">' + t.selectDestination + '</option>';
     
-    // Get valid origins
     var origins = [];
     var originsSet = {};
     state.routes.forEach(function(r) {
@@ -971,7 +1179,6 @@
       }
     });
 
-    // Get valid destinations for selected origin
     if (state.from) {
       var dests = [];
       var destsSet = {};
@@ -1004,6 +1211,216 @@
       infantOptions += '<option value="' + inf + '"' + (state.infants === inf ? ' selected' : '') + '>' + inf + '</option>';
     }
 
+    // Service type tabs HTML (only show if private boats exist)
+    var serviceTabsHTML = '';
+    if (hasPrivateBoats) {
+      serviceTabsHTML = '<div class="srb-pw-service-tabs">' +
+        '<button type="button" class="srb-pw-service-tab' + (isPublicFerry ? ' active-ferry' : '') + '" data-service="public-ferry"' + (!hasPublicFerry ? ' disabled' : '') + ' style="' + (isPublicFerry ? 'color: ' + primaryColor + ';' : '') + '">' +
+          icons.ship + '<span>' + t.sharedBoat + '</span>' +
+        '</button>' +
+        '<button type="button" class="srb-pw-service-tab' + (!isPublicFerry ? ' active-private' : '') + '" data-service="private-boat">' +
+          icons.anchor + '<span>' + t.privateBoat + '</span>' +
+        '</button>' +
+      '</div>';
+    }
+
+    // Build private boat form HTML
+    var privateBoatHTML = '';
+    if (!isPublicFerry) {
+      var selectedBoat = getSelectedBoat();
+      var selectedRoute = getSelectedRoute();
+
+      // Boat cards
+      var boatCardsHTML = '<div class="srb-pw-boat-grid">';
+      state.privateBoats.forEach(function(boat) {
+        var isSelected = state.selectedBoatId === boat.id;
+        var imgHTML = boat.image_url 
+          ? '<img src="' + boat.image_url + '" alt="' + boat.name + '" class="srb-pw-boat-img"/>'
+          : '<div class="srb-pw-boat-placeholder">' + icons.anchor + '</div>';
+        boatCardsHTML += '<button type="button" class="srb-pw-boat-card' + (isSelected ? ' selected' : '') + '" data-boat="' + boat.id + '">' +
+          imgHTML +
+          '<div><div class="srb-pw-boat-name">' + boat.name + '</div>' +
+          '<div class="srb-pw-boat-pax">' + (boat.min_capacity || 1) + '-' + (boat.max_capacity || boat.capacity) + ' pax</div></div>' +
+        '</button>';
+      });
+      boatCardsHTML += '</div>';
+
+      // Route + Date + Time + Passengers (only if boat selected)
+      var boatFieldsHTML = '';
+      if (selectedBoat) {
+        // Route select
+        var routeOptions = '<option value="">' + t.selectDestination + '</option>';
+        (selectedBoat.routes || []).forEach(function(r) {
+          var fromName = r.from_port ? r.from_port.name : '';
+          var toName = r.to_port ? r.to_port.name : '';
+          var label = fromName + ' → ' + toName + ' - ' + formatPrice(r.price, r.currency);
+          var sel = state.selectedRouteId === r.id ? ' selected' : '';
+          routeOptions += '<option value="' + r.id + '"' + sel + '>' + label + '</option>';
+        });
+
+        // Time select
+        var timeSlots = getTimeSlots(selectedBoat);
+        var timeOptions = '<option value="">Select time</option>';
+        timeSlots.forEach(function(slot) {
+          var sel = state.privateTime === slot ? ' selected' : '';
+          timeOptions += '<option value="' + slot + '"' + sel + '>' + slot + '</option>';
+        });
+
+        // Pax select
+        var minPax = selectedBoat.min_capacity || 1;
+        var maxPax = selectedBoat.max_capacity || selectedBoat.capacity || 10;
+        var paxOptions = '';
+        for (var p = minPax; p <= maxPax; p++) {
+          paxOptions += '<option value="' + p + '"' + (state.privatePax === p ? ' selected' : '') + '>' + p + ' pax</option>';
+        }
+
+        boatFieldsHTML = 
+          '<div class="srb-pw-fields-row">' +
+            '<div class="srb-pw-field" style="grid-column: span 2;">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: #d97706;">' + icons.mapPin + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">Route</label>' +
+                  '<select id="srb-private-route">' + routeOptions + '</select>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="srb-pw-fields-row" style="grid-template-columns: repeat(3, 1fr);">' +
+            '<div class="srb-pw-field" id="srb-private-date-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: #d97706;">' + icons.calendar + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">Date</label>' +
+                  '<button type="button" class="srb-pw-date-btn' + (!state.privateDate ? ' placeholder' : '') + '" id="srb-private-date-btn">' +
+                    (state.privateDate ? formatDisplayDate(state.privateDate) : t.selectDate) +
+                  '</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="srb-pw-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: #d97706;">' + icons.clock + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">Time</label>' +
+                  '<select id="srb-private-time">' + timeOptions + '</select>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="srb-pw-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: #d97706;">' + icons.users + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">Passengers</label>' +
+                  '<select id="srb-private-pax">' + paxOptions + '</select>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          (state.privateDateCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-private-calendar">' + buildCalendarHTML('private') + '</div>' : '');
+
+        // Price bar + Book button
+        if (selectedRoute) {
+          boatFieldsHTML += '<div class="srb-pw-price-bar">' +
+            '<div><div class="srb-pw-price-label">Charter Price</div>' +
+            '<div class="srb-pw-price-amount">' + formatPrice(selectedRoute.price, selectedRoute.currency) + '</div></div>' +
+            '<button type="button" class="srb-pw-book-btn" id="srb-private-search">Book Now</button>' +
+          '</div>';
+        }
+      }
+
+      privateBoatHTML = boatCardsHTML + boatFieldsHTML;
+    }
+
+    // Build public ferry form HTML
+    var publicFerryHTML = '';
+    if (isPublicFerry) {
+      publicFerryHTML = 
+        '<div class="srb-pw-trip-toggle">' +
+          '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'oneway' ? ' active-oneway' : '') + '" data-trip="oneway">' + t.oneWay + '</button>' +
+          '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'roundtrip' ? ' active-round' : '') + '" data-trip="roundtrip" style="' + (state.tripType === 'roundtrip' ? 'background-color: ' + primaryColor + ';' : '') + '">' + t.roundTrip + '</button>' +
+          '<span class="srb-pw-trip-info"><span class="srb-pw-trip-info-icon">i</span>' + t.selectVoyage + '</span>' +
+        '</div>' +
+        '<div class="srb-pw-fields-row">' +
+          '<div class="srb-pw-field">' +
+            '<div class="srb-pw-field-inner">' +
+              '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
+              '<div class="srb-pw-field-content">' +
+                '<label class="srb-pw-field-label">' + t.from + '</label>' +
+                '<select id="srb-from">' + fromOptions + '</select>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="srb-pw-field">' +
+            '<div class="srb-pw-field-inner">' +
+              '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
+              '<div class="srb-pw-field-content">' +
+                '<label class="srb-pw-field-label">' + t.to + '</label>' +
+                '<select id="srb-to"' + (!state.from ? ' disabled' : '') + '>' + toOptions + '</select>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="srb-pw-fields-row" style="grid-template-columns: ' + (isRoundTrip ? 'repeat(2, 1fr)' : '1fr') + ';">' +
+          '<div class="srb-pw-field" id="srb-depart-date-field">' +
+            '<div class="srb-pw-field-inner">' +
+              '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
+              '<div class="srb-pw-field-content">' +
+                '<label class="srb-pw-field-label">' + t.departureDate + '</label>' +
+                '<button type="button" class="srb-pw-date-btn' + (!state.departDate ? ' placeholder' : '') + '" id="srb-depart-date-btn">' + 
+                  formatDepartDateLabel() + 
+                '</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          (isRoundTrip ? (
+            '<div class="srb-pw-field" id="srb-return-date-field">' +
+              '<div class="srb-pw-field-inner">' +
+                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
+                '<div class="srb-pw-field-content">' +
+                  '<label class="srb-pw-field-label">' + t.returnDate + '</label>' +
+                  '<button type="button" class="srb-pw-date-btn' + (!state.returnDate ? ' placeholder' : '') + '" id="srb-return-date-btn">' + 
+                    formatReturnDateLabel() + 
+                  '</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>'
+          ) : '') +
+        '</div>' +
+        (state.departCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar">' + buildCalendarHTML('depart') + '</div>' : '') +
+        (state.returnCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar">' + buildCalendarHTML('return') + '</div>' : '') +
+        '<div class="srb-pw-pax-row">' +
+          '<div class="srb-pw-field">' +
+            '<div class="srb-pw-field-inner">' +
+              '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
+              '<div class="srb-pw-field-content">' +
+                '<label class="srb-pw-field-label">' + t.adultAge + '</label>' +
+                '<select id="srb-adults">' + adultOptions + '</select>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="srb-pw-field">' +
+            '<div class="srb-pw-field-inner">' +
+              '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
+              '<div class="srb-pw-field-content">' +
+                '<label class="srb-pw-field-label">' + t.child + '</label>' +
+                '<select id="srb-children">' + childOptions + '</select>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="srb-pw-field">' +
+            '<div class="srb-pw-field-inner">' +
+              '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.baby + '</div>' +
+              '<div class="srb-pw-field-content">' +
+                '<label class="srb-pw-field-label">' + t.infantAge + '</label>' +
+                '<select id="srb-infants">' + infantOptions + '</select>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="srb-pw-search-btn" id="srb-search" style="background-color: ' + primaryColor + ';">' + t.searchTrips + '</button>' +
+        '</div>';
+    }
+
     var html = '<div class="srb-pw">' +
       '<div class="srb-pw-card">' +
         '<div class="srb-pw-header" style="background-color: ' + primaryColor + ';">' +
@@ -1013,91 +1430,8 @@
           '</h2>' +
         '</div>' +
         '<div class="srb-pw-body">' +
-          '<div class="srb-pw-trip-toggle">' +
-            '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'oneway' ? ' active-oneway' : '') + '" data-trip="oneway">' + t.oneWay + '</button>' +
-            '<button type="button" class="srb-pw-trip-btn' + (state.tripType === 'roundtrip' ? ' active-round' : '') + '" data-trip="roundtrip" style="' + (state.tripType === 'roundtrip' ? 'background-color: ' + primaryColor + ';' : '') + '">' + t.roundTrip + '</button>' +
-            '<span class="srb-pw-trip-info"><span class="srb-pw-trip-info-icon">i</span>' + t.selectVoyage + '</span>' +
-          '</div>' +
-          // Row 1: From + To
-          '<div class="srb-pw-fields-row">' +
-            '<div class="srb-pw-field">' +
-              '<div class="srb-pw-field-inner">' +
-                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
-                '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + t.from + '</label>' +
-                  '<select id="srb-from">' + fromOptions + '</select>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div class="srb-pw-field">' +
-              '<div class="srb-pw-field-inner">' +
-                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.mapPin + '</div>' +
-                '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + t.to + '</label>' +
-                  '<select id="srb-to"' + (!state.from ? ' disabled' : '') + '>' + toOptions + '</select>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-          // Row 2: Departure + Return date fields
-          '<div class="srb-pw-fields-row" style="grid-template-columns: ' + (isRoundTrip ? 'repeat(2, 1fr)' : '1fr') + ';">' +
-            '<div class="srb-pw-field" id="srb-depart-date-field">' +
-              '<div class="srb-pw-field-inner">' +
-                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
-                '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + t.departureDate + '</label>' +
-                  '<button type="button" class="srb-pw-date-btn' + (!state.departDate ? ' placeholder' : '') + '" id="srb-depart-date-btn">' + 
-                    formatDepartDateLabel() + 
-                  '</button>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            (isRoundTrip ? (
-              '<div class="srb-pw-field" id="srb-return-date-field">' +
-                '<div class="srb-pw-field-inner">' +
-                  '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.calendar + '</div>' +
-                  '<div class="srb-pw-field-content">' +
-                    '<label class="srb-pw-field-label">' + t.returnDate + '</label>' +
-                    '<button type="button" class="srb-pw-date-btn' + (!state.returnDate ? ' placeholder' : '') + '" id="srb-return-date-btn">' + 
-                      formatReturnDateLabel() + 
-                    '</button>' +
-                  '</div>' +
-                '</div>' +
-              '</div>'
-            ) : '') +
-          '</div>' +
-          (state.departCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-depart-calendar">' + buildCalendarHTML('depart') + '</div>' : '') +
-          (state.returnCalendarOpen ? '<div class="srb-pw-calendar-dropdown" id="srb-return-calendar">' + buildCalendarHTML('return') + '</div>' : '') +
-          '<div class="srb-pw-pax-row">' +
-            '<div class="srb-pw-field">' +
-              '<div class="srb-pw-field-inner">' +
-                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
-                '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + t.adultAge + '</label>' +
-                  '<select id="srb-adults">' + adultOptions + '</select>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div class="srb-pw-field">' +
-              '<div class="srb-pw-field-inner">' +
-                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.users + '</div>' +
-                '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + t.child + '</label>' +
-                  '<select id="srb-children">' + childOptions + '</select>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div class="srb-pw-field">' +
-              '<div class="srb-pw-field-inner">' +
-                '<div class="srb-pw-field-icon" style="color: ' + primaryColor + ';">' + icons.baby + '</div>' +
-                '<div class="srb-pw-field-content">' +
-                  '<label class="srb-pw-field-label">' + t.infantAge + '</label>' +
-                  '<select id="srb-infants">' + infantOptions + '</select>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            '<button type="button" class="srb-pw-search-btn" id="srb-search" style="background-color: ' + primaryColor + ';">' + t.searchTrips + '</button>' +
-          '</div>' +
+          serviceTabsHTML +
+          (isPublicFerry ? publicFerryHTML : privateBoatHTML) +
           '<div class="srb-pw-branding">' +
             t.poweredBy + ' <a href="https://sribooking.com" target="_blank" rel="noopener noreferrer" style="color: ' + primaryColor + ';">SriBooking.com</a>' +
           '</div>' +
@@ -1105,7 +1439,7 @@
       '</div>' +
     '</div>';
 
-    if (state.departCalendarOpen || state.returnCalendarOpen) {
+    if (state.departCalendarOpen || state.returnCalendarOpen || state.privateDateCalendarOpen) {
       html = '<div class="srb-pw-calendar-backdrop" id="srb-backdrop"></div>' + html;
     }
 
@@ -1117,6 +1451,7 @@
   function positionCalendars() {
     positionCalendarFor('srb-depart-calendar', 'srb-depart-date-btn');
     positionCalendarFor('srb-return-calendar', 'srb-return-date-btn');
+    positionCalendarFor('srb-private-calendar', 'srb-private-date-btn');
   }
 
   function positionCalendarFor(calendarId, btnId) {
@@ -1151,9 +1486,37 @@
       backdrop.addEventListener('click', function() {
         state.departCalendarOpen = false;
         state.returnCalendarOpen = false;
+        state.privateDateCalendarOpen = false;
         render();
       });
     }
+
+    // Service type tabs
+    var serviceTabs = container.querySelectorAll('.srb-pw-service-tab');
+    serviceTabs.forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        var svc = this.getAttribute('data-service');
+        if (svc && !this.disabled) {
+          state.serviceType = svc;
+          render();
+        }
+      });
+    });
+
+    // Boat cards
+    var boatCards = container.querySelectorAll('.srb-pw-boat-card');
+    boatCards.forEach(function(card) {
+      card.addEventListener('click', function() {
+        var boatId = this.getAttribute('data-boat');
+        state.selectedBoatId = boatId;
+        state.selectedRouteId = '';
+        state.privateTime = '';
+        // Set default pax to min_capacity
+        var boat = getSelectedBoat();
+        if (boat) state.privatePax = boat.min_capacity || 1;
+        render();
+      });
+    });
 
     // Trip type toggle
     var tripBtns = container.querySelectorAll('.srb-pw-trip-btn');
@@ -1224,7 +1587,7 @@
         e.stopPropagation();
         var action = this.getAttribute('data-action');
         var target = this.getAttribute('data-target');
-        var key = target === 'return' ? 'returnCalendarViewDate' : 'departCalendarViewDate';
+        var key = target === 'return' ? 'returnCalendarViewDate' : target === 'private' ? 'privateDateCalendarViewDate' : 'departCalendarViewDate';
         var current = state[key];
         if (action === 'prev') {
           state[key] = new Date(current.getFullYear(), current.getMonth() - 1, 1);
@@ -1268,10 +1631,53 @@
       });
     }
 
-    // Search button
+    // Search button (public ferry)
     var searchBtn = document.getElementById('srb-search');
     if (searchBtn) {
       searchBtn.addEventListener('click', handleSearch);
+    }
+
+    // Private boat fields
+    var privateRouteSelect = document.getElementById('srb-private-route');
+    if (privateRouteSelect) {
+      privateRouteSelect.addEventListener('change', function() {
+        state.selectedRouteId = this.value;
+        render();
+      });
+    }
+
+    var privateDateBtn = document.getElementById('srb-private-date-btn');
+    if (privateDateBtn) {
+      privateDateBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        state.departCalendarOpen = false;
+        state.returnCalendarOpen = false;
+        state.privateDateCalendarOpen = !state.privateDateCalendarOpen;
+        if (state.privateDateCalendarOpen) {
+          state.privateDateCalendarViewDate = state.privateDate ? new Date(state.privateDate + 'T00:00:00') : new Date();
+        }
+        render();
+      });
+    }
+
+    var privateTimeSelect = document.getElementById('srb-private-time');
+    if (privateTimeSelect) {
+      privateTimeSelect.addEventListener('change', function() {
+        state.privateTime = this.value;
+      });
+    }
+
+    var privatePaxSelect = document.getElementById('srb-private-pax');
+    if (privatePaxSelect) {
+      privatePaxSelect.addEventListener('change', function() {
+        state.privatePax = parseInt(this.value, 10) || 1;
+      });
+    }
+
+    // Private boat search/book button
+    var privateSearchBtn = document.getElementById('srb-private-search');
+    if (privateSearchBtn) {
+      privateSearchBtn.addEventListener('click', handlePrivateSearch);
     }
   }
 
@@ -1341,6 +1747,53 @@
     }
   }
 
+  // Handle private boat search/book
+  function handlePrivateSearch() {
+    if (!state.selectedBoatId) { alert('Please select a boat'); return; }
+    if (!state.selectedRouteId) { alert('Please select a route'); return; }
+    if (!state.privateDate) { alert(t.selectDate); return; }
+    if (!state.privateTime) { alert('Please select a time'); return; }
+
+    var route = getSelectedRoute();
+    var params = new URLSearchParams();
+    params.set('key', widgetKey);
+    params.set('service', 'private');
+    params.set('boat', state.selectedBoatId);
+    params.set('route', state.selectedRouteId);
+    params.set('depart', state.privateDate);
+    params.set('time', state.privateTime);
+    params.set('pax', state.privatePax);
+    if (lang && lang !== 'en') {
+      params.set('lang', lang);
+    }
+
+    // Store params in cookie
+    try {
+      document.cookie = 'sribooking_params=' + encodeURIComponent(params.toString()) +
+        ';path=/;max-age=300;SameSite=Lax';
+    } catch(e) {}
+
+    // Redirect to partner's booking page
+    var redirectUrl;
+    try {
+      var topOrigin = window.top.location.origin;
+      redirectUrl = topOrigin + redirectPath + '?' + params.toString();
+      window.top.location.href = redirectUrl;
+    } catch (e) {
+      try {
+        var parentOrigin = window.parent.location.origin;
+        redirectUrl = parentOrigin + redirectPath + '?' + params.toString();
+        window.parent.location.href = redirectUrl;
+      } catch (e2) {
+        redirectUrl = widgetBaseUrl + '/book-new?' + params.toString();
+        try { window.location.href = redirectUrl; } catch(e3) {}
+        try { window.open(redirectUrl, '_top'); } catch(e4) {
+          window.open(redirectUrl, '_blank');
+        }
+      }
+    }
+  }
+
   // Fetch ports
   function fetchPorts() {
     var url = SUPABASE_URL + '/functions/v1/widget-ports?key=' + encodeURIComponent(widgetKey);
@@ -1353,6 +1806,11 @@
       .then(function(data) {
         state.ports = data.ports || [];
         state.routes = data.routes || [];
+        state.privateBoats = data.private_boats || [];
+        // If no public ferry routes but has private boats, default to private tab
+        if (state.ports.length === 0 && state.privateBoats.length > 0) {
+          state.serviceType = 'private-boat';
+        }
         state.loading = false;
         render();
       })
