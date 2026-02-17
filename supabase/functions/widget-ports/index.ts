@@ -56,35 +56,54 @@ Deno.serve(async (req) => {
       .eq("status", "active");
 
     if (!routes || routes.length === 0) {
-      return new Response(JSON.stringify({ ports: [], routes: [] }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // Still check for private boats even if no public routes
     }
 
     // Extract unique port IDs
     const portIds = new Set<string>();
-    routes.forEach((r) => {
+    (routes || []).forEach((r) => {
       if (r.origin_port_id) portIds.add(r.origin_port_id);
       if (r.destination_port_id) portIds.add(r.destination_port_id);
     });
 
     // Get port details
-    const { data: ports } = await supabase
-      .from("ports")
-      .select("id, name")
-      .in("id", Array.from(portIds));
+    const { data: ports } = portIds.size > 0
+      ? await supabase.from("ports").select("id, name").in("id", Array.from(portIds))
+      : { data: [] };
 
     // Build route pairs for the prewidget
-    const routePairs = routes.map((r) => ({
+    const routePairs = (routes || []).map((r) => ({
       from: r.origin_port_id,
       to: r.destination_port_id,
     }));
+
+    // Get private boats with their routes
+    const { data: privateBoats } = await supabase
+      .from("private_boats")
+      .select("id, name, description, capacity, min_capacity, max_capacity, image_url, min_departure_time, max_departure_time")
+      .eq("partner_id", widget.partner_id)
+      .eq("status", "active");
+
+    let privateBoatsWithRoutes: any[] = [];
+    if (privateBoats && privateBoats.length > 0) {
+      const boatIds = privateBoats.map((b) => b.id);
+      const { data: pbRoutes } = await supabase
+        .from("private_boat_routes")
+        .select("id, boat_id, from_port_id, to_port_id, price, currency, from_port:ports!private_boat_routes_from_port_id_fkey(id, name), to_port:ports!private_boat_routes_to_port_id_fkey(id, name)")
+        .in("boat_id", boatIds)
+        .eq("status", "active");
+
+      privateBoatsWithRoutes = privateBoats.map((boat) => ({
+        ...boat,
+        routes: (pbRoutes || []).filter((r) => r.boat_id === boat.id),
+      }));
+    }
 
     return new Response(
       JSON.stringify({
         ports: ports || [],
         routes: routePairs,
+        private_boats: privateBoatsWithRoutes,
       }),
       {
         status: 200,
