@@ -73,6 +73,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': 'Infants',
     'yearsOld': 'years old',
     'underYears': 'under {years} years',
+    'adultAge': 'Adult (12y+)',
+    'childAge': 'Child (2-12y)',
+    'infantAge': 'Infant (0-2y)',
     
     // Departures
     'selectDeparture': 'Select Departure',
@@ -202,6 +205,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': 'Bébés',
     'yearsOld': 'ans',
     'underYears': 'moins de {years} ans',
+    'adultAge': 'Adulte (12 ans+)',
+    'childAge': 'Enfant (2-12 ans)',
+    'infantAge': 'Bébé (0-2 ans)',
     
     // Departures
     'selectDeparture': 'Sélectionner le départ',
@@ -331,6 +337,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': 'Младенцы',
     'yearsOld': 'лет',
     'underYears': 'до {years} лет',
+    'adultAge': 'Взрослый (12+)',
+    'childAge': 'Ребенок (2-12)',
+    'infantAge': 'Младенец (0-2)',
     
     // Departures
     'selectDeparture': 'Выбрать отправление',
@@ -460,6 +469,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': '婴儿',
     'yearsOld': '岁',
     'underYears': '{years}岁以下',
+    'adultAge': '成人 (12岁+)',
+    'childAge': '儿童 (2-12岁)',
+    'infantAge': '婴儿 (0-2岁)',
     
     // Departures
     'selectDeparture': '选择航班',
@@ -589,6 +601,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': 'Bebés',
     'yearsOld': 'años',
     'underYears': 'menores de {years} años',
+    'adultAge': 'Adulto (12+)',
+    'childAge': 'Niño (2-12)',
+    'infantAge': 'Bebé (0-2)',
     
     // Departures
     'selectDeparture': 'Seleccionar salida',
@@ -718,6 +733,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': 'Kleinkinder',
     'yearsOld': 'Jahre alt',
     'underYears': 'unter {years} Jahren',
+    'adultAge': 'Erwachsener (12+)',
+    'childAge': 'Kind (2-12)',
+    'infantAge': 'Kleinkind (0-2)',
     
     // Departures
     'selectDeparture': 'Abfahrt auswählen',
@@ -847,6 +865,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': "Baby's",
     'yearsOld': 'jaar oud',
     'underYears': 'onder {years} jaar',
+    'adultAge': 'Volwassene (12+)',
+    'childAge': 'Kind (2-12)',
+    'infantAge': 'Baby (0-2)',
     
     // Departures
     'selectDeparture': 'Vertrek selecteren',
@@ -980,8 +1001,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': 'Bayi',
     'yearsOld': 'tahun',
     'underYears': 'di bawah {years} tahun',
-    'adultAge': 'Dewasa (12+ tahun)',
-    'infantAge': 'Bayi (0-2 tahun)',
+    'adultAge': 'Dewasa (12+)',
+    'childAge': 'Anak (2-12)',
+    'infantAge': 'Bayi (0-2)',
     
     // Departures
     'availableTrips': 'Perjalanan Tersedia',
@@ -1116,8 +1138,9 @@ const translations: Record<SupportedLanguage, Record<string, string>> = {
     'infants': '유아',
     'yearsOld': '세',
     'underYears': '{years}세 미만',
-    'adultAge': '성인 (12세 이상)',
-    'infantAge': '유아 (0-2세)',
+    'adultAge': '성인 (12+)',
+    'childAge': '어린이 (2-12)',
+    'infantAge': '유아 (0-2)',
     
     // Departures
     'availableTrips': '이용 가능한 여행',
