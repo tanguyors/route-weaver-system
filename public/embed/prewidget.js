@@ -490,9 +490,12 @@
       /* Field grid */
       .srb-pw-fields-row {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
         gap: 8px;
         margin-bottom: 12px;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-fields-row { grid-template-columns: repeat(2, 1fr); }
       }
       @media (min-width: 768px) {
         .srb-pw-fields-row { gap: 16px; margin-bottom: 16px; }
@@ -692,9 +695,12 @@
       /* Passengers row */
       .srb-pw-pax-row {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: 1fr;
         gap: 8px;
         margin-bottom: 16px;
+      }
+      @media (min-width: 640px) {
+        .srb-pw-pax-row { grid-template-columns: repeat(3, 1fr); }
       }
       @media (min-width: 768px) {
         .srb-pw-pax-row { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
