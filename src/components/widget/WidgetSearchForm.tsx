@@ -624,7 +624,7 @@ export const WidgetSearchForm = ({
             {/* Row 1: From, To, Departure, Return */}
             <div className={cn(
               "grid gap-2 sm:gap-4 mb-3 sm:mb-4",
-              tripType === 'round-trip' ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-3"
+              tripType === 'round-trip' ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
             )}>
               {/* From */}
               <FieldWrapper label={t('from')} icon={MapPin}>
@@ -851,7 +851,7 @@ export const WidgetSearchForm = ({
             </div>
 
             {/* Row 2: Passengers */}
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
               {/* Adult */}
               <FieldWrapper label={t('adultAge')} icon={Users}>
                 <select
@@ -895,7 +895,7 @@ export const WidgetSearchForm = ({
               <button
                 onClick={onSearch}
                 disabled={!canSearch || isLoading}
-                className="col-span-3 md:col-span-1 h-full min-h-[50px] sm:min-h-[60px] rounded-lg text-white font-semibold text-base sm:text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                className="col-span-1 sm:col-span-3 md:col-span-1 h-full min-h-[50px] sm:min-h-[60px] rounded-lg text-white font-semibold text-base sm:text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
                 style={{ backgroundColor: '#374151' }}
               >
                 {isLoading ? t('loading') : t('searchTrips')}
