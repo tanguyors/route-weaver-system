@@ -153,14 +153,14 @@ const WidgetBooking = () => {
       cleanUrl.searchParams.delete('booking_id');
       window.history.replaceState({}, '', cleanUrl.toString());
 
-      // Restore saved booking state from sessionStorage
+      // Restore saved booking state from localStorage (works across iframe/top-level contexts)
       try {
-        const savedState = sessionStorage.getItem('srb_payment_state');
+        const savedState = localStorage.getItem('srb_payment_state');
         if (savedState) {
           const parsed = JSON.parse(savedState);
           if (parsed.booking) setBooking(parsed.booking);
           if (parsed.bookingResult) setBookingResult(parsed.bookingResult);
-          sessionStorage.removeItem('srb_payment_state');
+          localStorage.removeItem('srb_payment_state');
         }
       } catch (e) {
         console.warn('Failed to restore payment state:', e);
@@ -463,11 +463,26 @@ const WidgetBooking = () => {
         });
       }
 
-      // Build short redirect URLs (DOKU has 255 char limit)
-      const currentUrl = window.location.href.split('?')[0];
-      const widgetKey = new URLSearchParams(window.location.search).get('key') || '';
-      const successUrl = `${currentUrl}?key=${widgetKey}&payment_status=success&booking_id=`;
-      const failureUrl = `${currentUrl}?key=${widgetKey}&payment_status=failed&booking_id=`;
+      // Build redirect URLs: prefer partner's page (via document.referrer) so the user
+      // returns to the partner's site after Doku payment, not to sribooking.com directly.
+      const isInIframe = window.self !== window.top;
+      const partnerPageUrl = isInIframe ? document.referrer : '';
+      let successUrl: string;
+      let failureUrl: string;
+
+      if (partnerPageUrl) {
+        // Strip existing srb_ params and hash from partner URL, then append payment params
+        const partnerBase = partnerPageUrl.split('#')[0];
+        const separator = partnerBase.includes('?') ? '&' : '?';
+        successUrl = `${partnerBase}${separator}srb_status=success&srb_bid=`;
+        failureUrl = `${partnerBase}${separator}srb_status=failed&srb_bid=`;
+      } else {
+        // Fallback: widget is opened directly (not in iframe)
+        const currentUrl = window.location.href.split('?')[0];
+        const wk = new URLSearchParams(window.location.search).get('key') || '';
+        successUrl = `${currentUrl}?key=${wk}&payment_status=success&booking_id=`;
+        failureUrl = `${currentUrl}?key=${wk}&payment_status=failed&booking_id=`;
+      }
 
       const result = await createBooking(
         booking.outbound.departureId,
@@ -485,17 +500,22 @@ const WidgetBooking = () => {
       setBookingResult(result);
       setBooking(prev => ({ ...prev, total: result.total_amount }));
 
-      // If online payment: save state and redirect within the iframe
+      // If online payment: save state to localStorage and redirect top window
       if (result.requires_payment && result.payment_redirect_url) {
         try {
-          sessionStorage.setItem('srb_payment_state', JSON.stringify({
+          localStorage.setItem('srb_payment_state', JSON.stringify({
             booking,
             bookingResult: result,
           }));
         } catch (e) {
           console.warn('Failed to save payment state:', e);
         }
-        window.location.href = result.payment_redirect_url;
+        // Use top-level navigation so Doku page loads properly (not blocked by iframe restrictions)
+        try {
+          window.top!.location.href = result.payment_redirect_url;
+        } catch {
+          window.location.href = result.payment_redirect_url;
+        }
         return;
       }
 
