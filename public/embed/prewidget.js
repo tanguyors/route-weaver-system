@@ -54,11 +54,14 @@
 
       var currentParams = new URLSearchParams(qs);
       var relevantKeys = ['key','from','to','depart','return','ad','ch','inf','trip','currency','lang'];
+      // Also detect payment return params (srb_status, srb_bid) from Doku redirect
+      var paymentKeys = ['srb_status', 'srb_bid'];
       var hasRelevant = false;
+      var hasPaymentReturn = !!(currentParams.get('srb_status') && currentParams.get('srb_bid'));
       for (var k = 0; k < relevantKeys.length; k++) {
         if (currentParams.get(relevantKeys[k])) { hasRelevant = true; break; }
       }
-      if (!hasRelevant) return;
+      if (!hasRelevant && !hasPaymentReturn) return;
 
       // Check if there's a prewidget container on this page — if so, don't auto-create
       // (the prewidget search bar will handle things)
@@ -76,6 +79,7 @@
             try {
               var iframeUrl = new URL(src);
               var patched = false;
+              // Forward search params
               for (var j = 0; j < relevantKeys.length; j++) {
                 var val = currentParams.get(relevantKeys[j]);
                 if (val && !iframeUrl.searchParams.get(relevantKeys[j])) {
@@ -83,12 +87,27 @@
                   patched = true;
                 }
               }
+              // Forward payment return params (srb_status/srb_bid → payment_status/booking_id)
+              if (hasPaymentReturn) {
+                iframeUrl.searchParams.set('payment_status', currentParams.get('srb_status'));
+                iframeUrl.searchParams.set('booking_id', currentParams.get('srb_bid'));
+                patched = true;
+              }
               if (patched) {
                 iframes[i].src = iframeUrl.toString();
               }
               foundAndPatched = true;
             } catch (e) {}
           }
+        }
+        // Clean payment params from the partner's URL (one-time use)
+        if (hasPaymentReturn && foundAndPatched) {
+          try {
+            var cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('srb_status');
+            cleanUrl.searchParams.delete('srb_bid');
+            window.history.replaceState({}, '', cleanUrl.toString());
+          } catch(e) {}
         }
         return foundAndPatched;
       }
@@ -106,6 +125,11 @@
         for (var j = 0; j < relevantKeys.length; j++) {
           var val = currentParams.get(relevantKeys[j]);
           if (val) url.searchParams.set(relevantKeys[j], val);
+        }
+        // Forward payment return params if present
+        if (hasPaymentReturn) {
+          url.searchParams.set('payment_status', currentParams.get('srb_status'));
+          url.searchParams.set('booking_id', currentParams.get('srb_bid'));
         }
 
         var iframeId = 'sribooking-widget-auto';
