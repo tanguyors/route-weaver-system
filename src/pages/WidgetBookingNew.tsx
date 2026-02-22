@@ -473,30 +473,9 @@ const WidgetBookingNew = () => {
         customer_email: customerData.email,
       });
 
-      // If online payment: open payment gateway in a popup window
+      // If online payment: redirect within the iframe (popups are blocked on mobile in cross-origin iframes)
       if (result.requires_payment && result.payment_redirect_url) {
-        const width = 500;
-        const height = 700;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        const popup = window.open(
-          result.payment_redirect_url,
-          'sribooking_payment',
-          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-        );
-        paymentPopupRef.current = popup;
-
-        setStep('payment-pending');
-        pollBookingStatus(result.booking_id);
-
-        if (popup) {
-          const popupCheck = setInterval(() => {
-            if (popup.closed) {
-              clearInterval(popupCheck);
-              paymentPopupRef.current = null;
-            }
-          }, 1000);
-        }
+        window.location.href = result.payment_redirect_url;
         return;
       }
 
