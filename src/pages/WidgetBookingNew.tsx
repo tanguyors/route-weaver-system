@@ -174,6 +174,26 @@ const WidgetBookingNew = () => {
       cleanUrl.searchParams.delete('booking_id');
       window.history.replaceState({}, '', cleanUrl.toString());
 
+      // Restore saved booking state from sessionStorage
+      try {
+        const savedState = sessionStorage.getItem('srb_payment_state_new');
+        if (savedState) {
+          const parsed = JSON.parse(savedState);
+          if (parsed.customerData) setCustomerData(parsed.customerData);
+          if (parsed.passengersData) setPassengersData(parsed.passengersData);
+          if (parsed.paxAdult) setPaxAdult(parsed.paxAdult);
+          if (parsed.paxChild) setPaxChild(parsed.paxChild);
+          if (parsed.paxInfant) setPaxInfant(parsed.paxInfant);
+          if (parsed.selectedOutbound) setSelectedOutbound(parsed.selectedOutbound);
+          if (parsed.selectedReturn) setSelectedReturn(parsed.selectedReturn);
+          if (parsed.selectedPickups) setSelectedPickups(parsed.selectedPickups);
+          if (parsed.bookingResult) setBookingResult(parsed.bookingResult);
+          sessionStorage.removeItem('srb_payment_state_new');
+        }
+      } catch (e) {
+        console.warn('Failed to restore payment state:', e);
+      }
+
       if (paymentStatus === 'success') {
         setStep('payment-pending');
         pollBookingStatus(returnBookingId);
@@ -473,8 +493,28 @@ const WidgetBookingNew = () => {
         customer_email: customerData.email,
       });
 
-      // If online payment: redirect within the iframe (popups are blocked on mobile in cross-origin iframes)
+      // If online payment: save state and redirect within the iframe
       if (result.requires_payment && result.payment_redirect_url) {
+        try {
+          sessionStorage.setItem('srb_payment_state_new', JSON.stringify({
+            customerData,
+            passengersData,
+            paxAdult,
+            paxChild,
+            paxInfant,
+            selectedOutbound,
+            selectedReturn,
+            selectedPickups,
+            bookingResult: {
+              ...result,
+              payment_method: paymentMethod,
+              customer_name: customerData.full_name,
+              customer_email: customerData.email,
+            },
+          }));
+        } catch (e) {
+          console.warn('Failed to save payment state:', e);
+        }
         window.location.href = result.payment_redirect_url;
         return;
       }
