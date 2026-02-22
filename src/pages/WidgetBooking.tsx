@@ -472,32 +472,9 @@ const WidgetBooking = () => {
       setBookingResult(result);
       setBooking(prev => ({ ...prev, total: result.total_amount }));
 
-      // If online payment: open payment gateway in a popup window
+      // If online payment: redirect within the iframe (popups are blocked on mobile in cross-origin iframes)
       if (result.requires_payment && result.payment_redirect_url) {
-        const width = 500;
-        const height = 700;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        const popup = window.open(
-          result.payment_redirect_url,
-          'sribooking_payment',
-          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-        );
-        paymentPopupRef.current = popup;
-
-        // Move to payment-pending step and start polling
-        setStep('payment-pending');
-        pollBookingStatus(result.booking_id);
-
-        // Also monitor popup close in case user closes it manually
-        if (popup) {
-          const popupCheck = setInterval(() => {
-            if (popup.closed) {
-              clearInterval(popupCheck);
-              paymentPopupRef.current = null;
-            }
-          }, 1000);
-        }
+        window.location.href = result.payment_redirect_url;
         return;
       }
 
