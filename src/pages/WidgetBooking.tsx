@@ -153,6 +153,19 @@ const WidgetBooking = () => {
       cleanUrl.searchParams.delete('booking_id');
       window.history.replaceState({}, '', cleanUrl.toString());
 
+      // Restore saved booking state from sessionStorage
+      try {
+        const savedState = sessionStorage.getItem('srb_payment_state');
+        if (savedState) {
+          const parsed = JSON.parse(savedState);
+          if (parsed.booking) setBooking(parsed.booking);
+          if (parsed.bookingResult) setBookingResult(parsed.bookingResult);
+          sessionStorage.removeItem('srb_payment_state');
+        }
+      } catch (e) {
+        console.warn('Failed to restore payment state:', e);
+      }
+
       if (paymentStatus === 'success') {
         setStep('payment-pending');
         pollBookingStatus(returnBookingId);
@@ -472,8 +485,16 @@ const WidgetBooking = () => {
       setBookingResult(result);
       setBooking(prev => ({ ...prev, total: result.total_amount }));
 
-      // If online payment: redirect within the iframe (popups are blocked on mobile in cross-origin iframes)
+      // If online payment: save state and redirect within the iframe
       if (result.requires_payment && result.payment_redirect_url) {
+        try {
+          sessionStorage.setItem('srb_payment_state', JSON.stringify({
+            booking,
+            bookingResult: result,
+          }));
+        } catch (e) {
+          console.warn('Failed to save payment state:', e);
+        }
         window.location.href = result.payment_redirect_url;
         return;
       }
