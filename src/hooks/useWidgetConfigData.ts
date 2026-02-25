@@ -519,13 +519,19 @@ export const useWidgetConfigData = () => {
     if (!widget) return '';
     const baseUrl = getProductionBaseUrl();
     return `<!-- SriBooking Full Widget – Booking Page -->
-<!-- Paste this as the main content of your booking page (e.g., /booking). If you have a fixed header, set --header-h to its height. -->
+<!-- Paste this as the main content of your booking page (e.g., /booking). -->
+<!-- If you have a fixed header, set --header-h to its height. -->
+<!-- To limit the widget width, set --widget-max-width (e.g., 600px, 90%, etc.) -->
 <script async src="${baseUrl}/embed/prewidget.js"><\/script>
 <style>
-  /* Adjust min-height if you have a fixed header */
-  :root { --header-h: 0px; }
+  :root {
+    --header-h: 0px;           /* Height of your fixed header */
+    --widget-max-width: 100%;  /* Max width of the widget (e.g., 600px, 480px, 90%) */
+  }
   #sribooking-widget {
     width: 100%;
+    max-width: var(--widget-max-width);
+    margin: 0 auto;
     min-height: calc(100dvh - var(--header-h));
     border: 0;
     display: block;
