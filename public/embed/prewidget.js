@@ -136,7 +136,18 @@
         var iframe = document.createElement('iframe');
         iframe.id = iframeId;
         iframe.src = url.toString();
-        iframe.style.cssText = 'width:100%;min-height:calc(100dvh - 200px);border:0;display:block;transition:height 0.2s ease;';
+        // Check for data-max-width on the script tag itself
+        var maxW = '100%';
+        try {
+          for (var si = 0; si < document.getElementsByTagName('script').length; si++) {
+            var sc = document.getElementsByTagName('script')[si];
+            if (sc.src && sc.src.indexOf('prewidget.js') !== -1 && sc.getAttribute('data-max-width')) {
+              maxW = sc.getAttribute('data-max-width');
+              break;
+            }
+          }
+        } catch(e2){}
+        iframe.style.cssText = 'width:100%;max-width:' + maxW + ';margin:0 auto;min-height:calc(100dvh - 200px);border:0;display:block;transition:height 0.2s ease;';
         iframe.setAttribute('allow', 'payment');
         iframe.setAttribute('title', 'SriBooking');
 
